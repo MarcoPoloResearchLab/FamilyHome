@@ -26,6 +26,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -52,6 +53,15 @@ public final class DrawingActivity extends Activity {
     private static final int CORAL = Color.rgb(255, 105, 105);
     private static final int TEAL = Color.rgb(0, 166, 153);
     private static final int PALE_PURPLE = Color.rgb(241, 237, 255);
+    private static final int ICON_LIBRARY = 1;
+    private static final int ICON_NEW = 2;
+    private static final int ICON_EXPAND = 3;
+    private static final int ICON_SHARE = 4;
+    private static final int ICON_DONE = 5;
+    private static final int ICON_PENCIL = 6;
+    private static final int ICON_MARKER = 7;
+    private static final int ICON_PAINT = 8;
+    private static final int ICON_ERASER = 9;
     private String profileID;
     private String profileName;
     private SharedPreferences preferences;
@@ -60,7 +70,7 @@ public final class DrawingActivity extends Activity {
     private DrawingCanvas drawingCanvas;
     private LinearLayout topBar;
     private LinearLayout palette;
-    private Button fullscreenDone;
+    private ToolButton fullscreenDone;
     private boolean fullscreen;
 
     @Override protected void onCreate(Bundle state) {
@@ -86,11 +96,11 @@ public final class DrawingActivity extends Activity {
         topBar.setGravity(Gravity.CENTER_VERTICAL);
         topBar.setPadding(dp(14), dp(12), dp(14), dp(10));
         topBar.setBackgroundColor(BG);
-        addTopButton("My drawings", v -> showLibrary());
-        addTopButton("New picture", v -> newDrawing());
-        addTopButton("Fill screen", v -> setFullscreen(true));
-        addTopButton("Save & share", v -> saveAndShare());
-        addTopButton("Done", v -> { persist(); finish(); });
+        addTopButton("My drawings", PURPLE, Color.WHITE, ICON_LIBRARY, v -> showLibrary());
+        addTopButton("New picture", TEAL, Color.WHITE, ICON_NEW, v -> newDrawing());
+        addTopButton("Fill screen", BLUE, Color.WHITE, ICON_EXPAND, v -> setFullscreen(true));
+        addTopButton("Save & share", CORAL, Color.WHITE, ICON_SHARE, v -> saveAndShare());
+        addTopButton("Done", SURFACE, INK, ICON_DONE, v -> { persist(); finish(); });
         FrameLayout.LayoutParams topParams = new FrameLayout.LayoutParams(-1, dp(78), Gravity.TOP);
         frame.addView(topBar, topParams);
 
@@ -109,15 +119,15 @@ public final class DrawingActivity extends Activity {
             color.setOnClickListener(v -> { drawingCanvas.colorIndex = selected; drawingCanvas.eraser = false; drawingCanvas.invalidate(); });
             palette.addView(color, paletteParams(60));
         }
-        addPaletteButton("Pencil", 4f, false);
-        addPaletteButton("Marker", 10f, false);
-        addPaletteButton("Paint", 22f, false);
-        addPaletteButton("Eraser", 30f, true);
+        addPaletteButton("Pencil", 4f, false, ICON_PENCIL);
+        addPaletteButton("Marker", 10f, false, ICON_MARKER);
+        addPaletteButton("Paint", 22f, false, ICON_PAINT);
+        addPaletteButton("Eraser", 30f, true, ICON_ERASER);
         FrameLayout.LayoutParams paletteParams = new FrameLayout.LayoutParams(-1, dp(78), Gravity.BOTTOM);
         paletteParams.leftMargin = dp(14); paletteParams.rightMargin = dp(14); paletteParams.bottomMargin = dp(10);
         frame.addView(palette, paletteParams);
 
-        fullscreenDone = button("Done", CORAL);
+        fullscreenDone = toolButton("Done", CORAL, Color.WHITE, ICON_DONE, true);
         fullscreenDone.setVisibility(View.GONE);
         fullscreenDone.setOnClickListener(v -> { persist(); finish(); });
         FrameLayout.LayoutParams doneParams = new FrameLayout.LayoutParams(dp(110), dp(58), Gravity.TOP | Gravity.RIGHT);
@@ -126,17 +136,16 @@ public final class DrawingActivity extends Activity {
         setContentView(frame);
     }
 
-    private void addTopButton(String label, View.OnClickListener listener) {
-        int color = label.equals("Save & share") ? CORAL : label.equals("New picture") ? TEAL : label.equals("My drawings") ? PURPLE : label.equals("Fill screen") ? BLUE : SURFACE;
-        Button button = button(label, color, label.equals("Done") ? INK : Color.WHITE);
+    private void addTopButton(String label, int color, int textColor, int iconKind, View.OnClickListener listener) {
+        ToolButton button = toolButton(label, color, textColor, iconKind, false);
         button.setOnClickListener(listener);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(56), 1f);
         params.leftMargin = dp(5); params.rightMargin = dp(5);
         topBar.addView(button, params);
     }
 
-    private void addPaletteButton(String label, float width, boolean eraser) {
-        Button button = button(label, PALE_PURPLE, INK);
+    private void addPaletteButton(String label, float width, boolean eraser, int iconKind) {
+        ToolButton button = toolButton(label, PALE_PURPLE, INK, iconKind, true);
         button.setOnClickListener(v -> { drawingCanvas.strokeWidth = dp(width); drawingCanvas.eraser = eraser; });
         palette.addView(button, paletteParams(105));
     }
@@ -279,8 +288,144 @@ public final class DrawingActivity extends Activity {
 
     private Button button(String label, int color) { return button(label, color, Color.WHITE); }
     private Button button(String label, int color, int textColor) { Button button = new Button(this); button.setText(label); button.setAllCaps(false); button.setTextColor(textColor); button.setTextSize(17); button.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)); button.setBackground(rounded(color, 18)); button.setPadding(dp(10), dp(6), dp(10), dp(6)); return button; }
+    private ToolButton toolButton(String label, int color, int textColor, int iconKind, boolean compact) { return new ToolButton(label, color, textColor, iconKind, compact); }
     private GradientDrawable rounded(int color, int radius) { GradientDrawable drawable = new GradientDrawable(); drawable.setColor(color); drawable.setCornerRadius(dp(radius)); return drawable; }
     private int dp(float value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+
+    private final class ToolButton extends LinearLayout {
+        ToolButton(String label, int color, int textColor, int iconKind, boolean compact) {
+            super(DrawingActivity.this);
+            setOrientation(HORIZONTAL);
+            setGravity(Gravity.CENTER_VERTICAL);
+            setPadding(dp(compact ? 8 : 12), 0, dp(compact ? 7 : 10), 0);
+            setBackground(rounded(color, 18));
+            setClickable(true);
+            setFocusable(true);
+            setContentDescription(label);
+
+            ToolIconView icon = new ToolIconView(iconKind, textColor);
+            int iconSize = dp(compact ? 30 : 34);
+            addView(icon, new LinearLayout.LayoutParams(iconSize, iconSize));
+
+            TextView words = new TextView(DrawingActivity.this);
+            words.setText(label);
+            words.setTextColor(textColor);
+            words.setTextSize(compact ? 13 : 15);
+            words.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD));
+            words.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+            words.setSingleLine(true);
+            LinearLayout.LayoutParams wordParams = new LinearLayout.LayoutParams(0, -1, 1f);
+            wordParams.leftMargin = dp(compact ? 6 : 8);
+            addView(words, wordParams);
+        }
+    }
+
+    private final class ToolIconView extends View {
+        private final int kind;
+        private final int inkColor;
+        private final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        ToolIconView(int kind, int inkColor) {
+            super(DrawingActivity.this);
+            this.kind = kind;
+            this.inkColor = inkColor;
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            canvas.save();
+            canvas.scale(getWidth() / 36f, getHeight() / 36f);
+            iconPaint.setStyle(Paint.Style.FILL);
+            iconPaint.setColor(Color.argb(30, 0, 0, 0));
+            canvas.drawCircle(18, 18, 17, iconPaint);
+            iconPaint.setColor(inkColor);
+            iconPaint.setStyle(Paint.Style.STROKE);
+            iconPaint.setStrokeWidth(2.4f);
+            iconPaint.setStrokeCap(Paint.Cap.ROUND);
+            iconPaint.setStrokeJoin(Paint.Join.ROUND);
+
+            switch (kind) {
+                case ICON_LIBRARY: drawLibrary(canvas); break;
+                case ICON_NEW: drawNew(canvas); break;
+                case ICON_EXPAND: drawExpand(canvas); break;
+                case ICON_SHARE: drawShare(canvas); break;
+                case ICON_DONE: drawDone(canvas); break;
+                case ICON_PENCIL: drawPencil(canvas); break;
+                case ICON_MARKER: drawMarker(canvas); break;
+                case ICON_PAINT: drawPaint(canvas); break;
+                default: drawEraser(canvas); break;
+            }
+            canvas.restore();
+        }
+
+        private void drawLibrary(Canvas canvas) {
+            canvas.drawRoundRect(new RectF(8, 9, 25, 24), 2, 2, iconPaint);
+            canvas.drawRoundRect(new RectF(12, 13, 29, 28), 2, 2, iconPaint);
+            Path mountain = new Path();
+            mountain.moveTo(15, 24); mountain.lineTo(19, 19); mountain.lineTo(22, 22); mountain.lineTo(25, 18); mountain.lineTo(28, 24);
+            canvas.drawPath(mountain, iconPaint);
+        }
+
+        private void drawNew(Canvas canvas) {
+            canvas.drawRoundRect(new RectF(9, 7, 25, 29), 2, 2, iconPaint);
+            canvas.drawLine(23, 7, 29, 13, iconPaint);
+            canvas.drawLine(25, 7, 25, 13, iconPaint);
+            canvas.drawLine(25, 13, 29, 13, iconPaint);
+            canvas.drawLine(17, 17, 17, 25, iconPaint);
+            canvas.drawLine(13, 21, 21, 21, iconPaint);
+        }
+
+        private void drawExpand(Canvas canvas) {
+            canvas.drawLine(9, 15, 9, 9, iconPaint); canvas.drawLine(9, 9, 15, 9, iconPaint);
+            canvas.drawLine(27, 15, 27, 9, iconPaint); canvas.drawLine(27, 9, 21, 9, iconPaint);
+            canvas.drawLine(9, 21, 9, 27, iconPaint); canvas.drawLine(9, 27, 15, 27, iconPaint);
+            canvas.drawLine(27, 21, 27, 27, iconPaint); canvas.drawLine(27, 27, 21, 27, iconPaint);
+        }
+
+        private void drawShare(Canvas canvas) {
+            canvas.drawLine(13, 18, 23, 12, iconPaint);
+            canvas.drawLine(13, 18, 23, 24, iconPaint);
+            canvas.drawCircle(10, 18, 3, iconPaint);
+            canvas.drawCircle(26, 10, 3, iconPaint);
+            canvas.drawCircle(26, 26, 3, iconPaint);
+        }
+
+        private void drawDone(Canvas canvas) {
+            canvas.drawLine(9, 18, 15, 24, iconPaint);
+            canvas.drawLine(15, 24, 28, 10, iconPaint);
+        }
+
+        private void drawPencil(Canvas canvas) {
+            canvas.drawLine(10, 26, 25, 11, iconPaint);
+            canvas.drawLine(14, 29, 29, 14, iconPaint);
+            canvas.drawLine(25, 11, 29, 14, iconPaint);
+            Path tip = new Path(); tip.moveTo(10, 26); tip.lineTo(14, 29); tip.lineTo(8, 31); tip.close();
+            canvas.drawPath(tip, iconPaint);
+        }
+
+        private void drawMarker(Canvas canvas) {
+            canvas.drawRoundRect(new RectF(15, 8, 23, 25), 2, 2, iconPaint);
+            canvas.drawLine(15, 21, 23, 21, iconPaint);
+            Path tip = new Path(); tip.moveTo(15, 25); tip.lineTo(23, 25); tip.lineTo(19, 30); tip.close();
+            canvas.drawPath(tip, iconPaint);
+        }
+
+        private void drawPaint(Canvas canvas) {
+            canvas.drawLine(12, 27, 25, 14, iconPaint);
+            canvas.drawLine(16, 30, 29, 17, iconPaint);
+            canvas.drawLine(25, 14, 29, 17, iconPaint);
+            Path bristles = new Path(); bristles.moveTo(12, 27); bristles.lineTo(16, 30); bristles.lineTo(8, 31); bristles.close();
+            canvas.drawPath(bristles, iconPaint);
+            canvas.drawLine(22, 17, 26, 21, iconPaint);
+        }
+
+        private void drawEraser(Canvas canvas) {
+            Path eraser = new Path();
+            eraser.moveTo(9, 24); eraser.lineTo(21, 10); eraser.lineTo(29, 17); eraser.lineTo(17, 29); eraser.lineTo(11, 29); eraser.close();
+            canvas.drawPath(eraser, iconPaint);
+            canvas.drawLine(14, 20, 22, 27, iconPaint);
+        }
+    }
 
     private static final class DrawingDocument {
         final String id; String title; final ArrayList<Stroke> strokes = new ArrayList<>();
