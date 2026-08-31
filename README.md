@@ -13,7 +13,7 @@ The current build was validated on a 1280 × 800 Portal running Android 9 (API 2
 - a full-screen, two-octave piano with multi-touch chords, note labels, and offline synthesized sound;
 - typed and recorded Ask requests routed through the official provider-neutral LLM Proxy client;
 - a read-only iCalendar/ICS next-event card;
-- optional Adventure Game and Kart Adventure launchers; and
+- a profile-specific library for Adventure, Kart, Blocks, Tiles, and Match; and
 - a balanced child-facing layout with the activity dock anchored to the bottom of the screen.
 
 ## Repository layout
@@ -24,7 +24,8 @@ The current build was validated on a 1280 × 800 Portal running Android 9 (API 2
 | `service/` | Deployed companion service for Ask, calendar fetching, and drawing sharing |
 | `games/freedoom-portal/` | Source of the small Portal-specific adapter for Freedoom for Android |
 
-SuperTuxKart is used unmodified and is installed from its official Android release. It is not vendored in this repository.
+SuperTuxKart, Block Drop, Tessel, and Privacy Friendly Memo Game are installed separately from their reviewed upstream or F-Droid builds. Their APKs are not vendored in this repository.
+The accepted package versions, hashes, signatures, and permission audit are recorded in [`android/GAMES.md`](android/GAMES.md).
 
 ## Build and test
 
@@ -81,4 +82,4 @@ Factory reset and system-package removal are outside the FamilyHome installation
 
 ## Third-party games
 
-Freedoom for Android and SuperTuxKart remain subject to their upstream licenses. FamilyHome includes no commercial Doom data, game APKs, signing keys, or generated binaries.
+Freedoom for Android, SuperTuxKart, Block Drop, Tessel, and Privacy Friendly Memo Game remain subject to their upstream licenses. FamilyHome includes no commercial Doom data, game APKs, signing keys, or generated binaries.

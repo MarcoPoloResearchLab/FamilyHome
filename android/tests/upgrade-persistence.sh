@@ -164,13 +164,25 @@ sleep 0.25
 wait_for_activity PianoActivity
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
+sleep 0.5
+
+"$adb" -s "$serial" shell input tap 881 695
+wait_for_activity GameLibraryActivity
+"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
+wait_for_activity MainActivity
 
 preferences="$($adb -s "$serial" exec-out run-as "$package_name" cat shared_prefs/children_portal.xml)"
 for expected in Alice Bob alice-profile bob-profile Sunset sunset-drawing legacy_marker preserve-me 90210 555000 \
-    freedoom_enabled kart_enabled drawing_color_alice-profile drawing_size_alice-profile \
+    enabled_game_ids adventure kart drawing_color_alice-profile drawing_size_alice-profile \
     drawing_eraser_alice-profile; do
   if [[ "$preferences" != *"$expected"* ]]; then
     printf 'Upgrade test failed: normalized preferences are missing %s\n' "$expected" >&2
+    exit 1
+  fi
+done
+for removed in freedoom_enabled kart_enabled; do
+  if [[ "$preferences" == *"$removed"* ]]; then
+    printf 'Upgrade test failed: migrated preferences still contain legacy key %s\n' "$removed" >&2
     exit 1
   fi
 done

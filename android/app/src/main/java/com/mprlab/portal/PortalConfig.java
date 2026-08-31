@@ -3,10 +3,6 @@ package com.mprlab.portal;
 import java.net.HttpURLConnection;
 
 final class PortalConfig {
-    static final String FREEDOOM_PACKAGE = "net.nullsum.freedoom";
-    static final String KART_PACKAGE = "org.supertuxkart.stk";
-    static final String KART_ACTIVITY = "org.supertuxkart.stk.SuperTuxKartActivity";
-
     static String serviceURL(String path) {
         return RuntimeConfig.SERVICE_BASE_URL + path;
     }

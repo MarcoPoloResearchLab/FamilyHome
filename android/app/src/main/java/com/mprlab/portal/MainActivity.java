@@ -2,7 +2,6 @@ package com.mprlab.portal;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -174,8 +173,8 @@ public final class MainActivity extends Activity {
         ActivityTile draw = actionTile("Draw", "Make a picture", CORAL, ICON_DRAW); draw.setOnClickListener(v -> launch(DrawingActivity.class));
         ActivityTile ask = actionTile("Ask", "Learn something", PURPLE, ICON_ASK); ask.setOnClickListener(v -> launch(AskActivity.class));
         ActivityTile music = actionTile("Music", "Play piano", MUSIC_BLUE, ICON_MUSIC); music.setOnClickListener(v -> launch(PianoActivity.class));
-        gameButton = actionTile("Play", "Adventure game", TEAL, ICON_PLAY); gameButton.setOnClickListener(v -> launchFreedoom());
-        kartButton = actionTile("Race", "Kart Adventure", PINK, ICON_RACE); kartButton.setOnClickListener(v -> launchKart());
+        gameButton = actionTile("Games", "Choose and play", TEAL, ICON_PLAY); gameButton.setOnClickListener(v -> launch(GameLibraryActivity.class));
+        kartButton = actionTile("Race", "Kart Adventure", PINK, ICON_RACE); kartButton.setOnClickListener(v -> launchGame(GameCatalog.KART));
         actions.addView(draw, actionParams());
         actions.addView(ask, actionParams());
         actions.addView(music, actionParams());
@@ -199,50 +198,13 @@ public final class MainActivity extends Activity {
         startActivity(intent);
     }
 
-    private void launchFreedoom() {
-        if (store.active == null || !store.active.freedoomEnabled) {
-            Toast.makeText(this, "Add the adventure game to this child’s space.", Toast.LENGTH_LONG).show();
+    private void launchGame(String gameId) {
+        if (store.active == null || !store.active.isGameEnabled(gameId)) {
+            Toast.makeText(this, "Choose this game in the child’s settings first.", Toast.LENGTH_LONG).show();
             openSettings();
             return;
         }
-        try {
-            getPackageManager().getApplicationInfo(PortalConfig.FREEDOOM_PACKAGE, 0);
-        } catch (PackageManager.NameNotFoundException error) {
-            Toast.makeText(this, "The adventure game is not installed yet.", Toast.LENGTH_LONG).show();
-            return;
-        }
-        Intent launch = new Intent(Intent.ACTION_MAIN);
-        launch.setClassName(PortalConfig.FREEDOOM_PACKAGE, "net.nullsum.freedoom.PortalGameActivity");
-        launch.putExtra("portal_profile_id", store.active.id);
-        try {
-            startActivity(launch);
-        } catch (SecurityException error) {
-            Toast.makeText(this, "The Portal edition of the adventure game is required.", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void launchKart() {
-        if (store.active == null || !store.active.kartEnabled) {
-            Toast.makeText(this, "Add Kart Adventure to this child’s space.", Toast.LENGTH_LONG).show();
-            openSettings();
-            return;
-        }
-        try {
-            getPackageManager().getApplicationInfo(PortalConfig.KART_PACKAGE, 0);
-        } catch (PackageManager.NameNotFoundException error) {
-            Toast.makeText(this, "Kart Adventure is not installed yet.", Toast.LENGTH_LONG).show();
-            return;
-        }
-        Intent launch = new Intent(Intent.ACTION_MAIN);
-        launch.setClassName(PortalConfig.KART_PACKAGE, PortalConfig.KART_ACTIVITY);
-        launch.addCategory(Intent.CATEGORY_LAUNCHER);
-        launch.putExtra("portal_profile_id", store.active.id);
-        launch.putExtra("portal_profile_name", store.active.name);
-        try {
-            startActivity(launch);
-        } catch (RuntimeException error) {
-            Toast.makeText(this, "Kart Adventure could not open.", Toast.LENGTH_LONG).show();
-        }
+        GameLauncher.open(this, store.active, GameCatalog.find(gameId));
     }
 
     private void showProfiles() {
@@ -298,14 +260,15 @@ public final class MainActivity extends Activity {
 
     private void updateGameButton() {
         if (gameButton == null) return;
-        boolean enabled = store.active != null && store.active.freedoomEnabled;
-        gameButton.setContent(enabled ? "Play" : "Add a game", enabled ? "Adventure game" : "Choose in profile",
-                enabled ? TEAL : Color.rgb(217, 220, 228), enabled ? Color.WHITE : MUTED);
+        int count = GameCatalog.enabledCount(store.active);
+        gameButton.setContent(count > 0 ? "Games" : "Add games",
+                count > 0 ? count + (count == 1 ? " game ready" : " games ready") : "Choose in profile",
+                count > 0 ? TEAL : Color.rgb(217, 220, 228), count > 0 ? Color.WHITE : MUTED);
     }
 
     private void updateKartButton() {
         if (kartButton == null) return;
-        boolean enabled = store.active != null && store.active.kartEnabled;
+        boolean enabled = store.active != null && store.active.isGameEnabled(GameCatalog.KART);
         kartButton.setContent(enabled ? "Race" : "Add kart racing", enabled ? "Kart Adventure" : "Choose in profile",
                 enabled ? PINK : Color.rgb(217, 220, 228), enabled ? Color.WHITE : MUTED);
     }

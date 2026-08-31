@@ -2,6 +2,7 @@ package com.mprlab.portal;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -18,6 +19,9 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public final class SettingsActivity extends Activity {
     private static final int BG = Color.rgb(255, 248, 234);
@@ -194,7 +198,7 @@ public final class SettingsActivity extends Activity {
 
     private void editChild(final ProfileStore.Profile profile) {
         LinearLayout form = column();
-        form.setPadding(dp(28), dp(8), dp(28), 0);
+        form.setPadding(dp(28), dp(8), dp(28), dp(18));
         form.setBackgroundColor(Color.WHITE);
         TextView title = text(profile == null ? "Add a child" : "Edit " + profile.name, 26, INK, true);
         title.setPadding(0, dp(8), 0, dp(12));
@@ -202,19 +206,34 @@ public final class SettingsActivity extends Activity {
 
         EditText name = field("Child's name", profile == null ? "" : profile.name);
         EditText calendar = field("Private iCalendar / ICS link (optional)", profile == null ? "" : profile.calendarUrl);
-        CheckBox game = checkBox("Add Adventure Game", profile != null && profile.freedoomEnabled);
-        CheckBox kart = checkBox("Add Kart Adventure", profile != null && profile.kartEnabled);
         form.addView(name, matchWrap());
         LinearLayout.LayoutParams calendarParams = matchWrap();
         calendarParams.topMargin = dp(12);
         form.addView(calendar, calendarParams);
-        LinearLayout.LayoutParams gameParams = matchWrap();
-        gameParams.topMargin = dp(14);
-        form.addView(game, gameParams);
-        form.addView(kart, matchWrap());
+
+        TextView gameHeading = text("CHOOSE GAMES", 14, PURPLE, true);
+        gameHeading.setLetterSpacing(.08f);
+        LinearLayout.LayoutParams headingParams = matchWrap();
+        headingParams.topMargin = dp(18);
+        form.addView(gameHeading, headingParams);
+        TextView gameHelp = text("These games appear only in this child’s game library.", 15, MUTED, false);
+        gameHelp.setPadding(0, dp(4), 0, dp(8));
+        form.addView(gameHelp, matchWrap());
+        Map<String, CheckBox> gameChecks = new LinkedHashMap<>();
+        for (GameCatalog.Game game : GameCatalog.all()) {
+            CheckBox choice = gameChoice(game, profile != null && profile.isGameEnabled(game.id));
+            gameChecks.put(game.id, choice);
+            LinearLayout.LayoutParams choiceParams = matchWrap();
+            choiceParams.topMargin = dp(7);
+            form.addView(choice, choiceParams);
+        }
+
+        ScrollView formScroll = new ScrollView(this);
+        formScroll.setFillViewport(true);
+        formScroll.addView(form, new ScrollView.LayoutParams(-1, -2));
 
         AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert)
-                .setView(form)
+                .setView(formScroll)
                 .setPositiveButton("Save", null)
                 .setNegativeButton("Cancel", null)
                 .create();
@@ -228,8 +247,9 @@ public final class SettingsActivity extends Activity {
             ProfileStore.Profile saved = profile == null ? store.add(value) : profile;
             saved.name = value;
             saved.calendarUrl = calendar.getText().toString().trim();
-            saved.freedoomEnabled = game.isChecked();
-            saved.kartEnabled = kart.isChecked();
+            for (Map.Entry<String, CheckBox> entry : gameChecks.entrySet()) {
+                saved.setGameEnabled(entry.getKey(), entry.getValue().isChecked());
+            }
             store.active = saved;
             store.save();
             dialog.dismiss();
@@ -255,8 +275,8 @@ public final class SettingsActivity extends Activity {
     private String childSummary(ProfileStore.Profile profile) {
         StringBuilder summary = new StringBuilder();
         if (profile.calendarUrl != null && !profile.calendarUrl.trim().isEmpty()) summary.append("Calendar");
-        if (profile.freedoomEnabled) appendSummary(summary, "Adventure");
-        if (profile.kartEnabled) appendSummary(summary, "Kart");
+        int gameCount = GameCatalog.enabledCount(profile);
+        if (gameCount > 0) appendSummary(summary, gameCount + (gameCount == 1 ? " game" : " games"));
         return summary.length() == 0 ? "No calendar or games yet" : summary.toString();
     }
 
@@ -280,12 +300,16 @@ public final class SettingsActivity extends Activity {
         return field;
     }
 
-    private CheckBox checkBox(String label, boolean checked) {
+    private CheckBox gameChoice(GameCatalog.Game game, boolean checked) {
         CheckBox checkBox = new CheckBox(this);
-        checkBox.setText(label);
-        checkBox.setTextSize(18);
+        checkBox.setText(game.icon + "   " + game.name + "\n      " + game.description);
+        checkBox.setTextSize(17);
         checkBox.setTextColor(INK);
         checkBox.setChecked(checked);
+        checkBox.setButtonTintList(ColorStateList.valueOf(game.color));
+        checkBox.setPadding(dp(14), dp(7), dp(14), dp(7));
+        checkBox.setBackground(rounded(Color.rgb(248, 247, 252), 14));
+        checkBox.setContentDescription(game.name + ". " + game.description);
         return checkBox;
     }
 

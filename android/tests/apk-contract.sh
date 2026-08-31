@@ -35,7 +35,7 @@ require_text "$badging" "sdkVersion:'28'" "minimum Android version"
 require_text "$badging" "targetSdkVersion:'28'" "target Android version"
 
 xmltree="$($aapt dump xmltree "$apk" AndroidManifest.xml)"
-for component in MainActivity AskActivity DrawingActivity PianoActivity SettingsActivity ShareProvider; do
+for component in MainActivity AskActivity DrawingActivity PianoActivity SettingsActivity GameLibraryActivity ShareProvider; do
   require_text "$xmltree" "$component" "manifest component $component"
 done
 require_text "$xmltree" "android.intent.category.HOME" "HOME intent"
@@ -44,6 +44,9 @@ require_text "$xmltree" "android.intent.category.LAUNCHER" "launcher intent"
 dex_strings="$(unzip -p "$apk" classes.dex | strings)"
 require_text "$dex_strings" "https://familyhome.invalid" "generated service URL"
 require_text "$dex_strings" "familyhome-ci-device-token-000000000" "generated device token"
+for game_package in net.nullsum.freedoom org.supertuxkart.stk com.blockdrop.game net.vantulder.tessel org.secuso.privacyfriendlymemory; do
+  require_text "$dex_strings" "$game_package" "game catalog package $game_package"
+done
 if [[ "$dex_strings" == *"LLM_PROXY_SECRET"* ]]; then
   printf '%s\n' 'APK contract failed: the LLM Proxy secret boundary reached the Android APK' >&2
   exit 1
