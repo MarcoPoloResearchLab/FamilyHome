@@ -1,6 +1,8 @@
 # FamilyHome Android app
 
-`com.mprlab.portal` is the native Android 9 home app for FamilyHome. It keeps profiles, timers, drawing documents, brush choices, the household weather location, and per-child game availability on the device. Its built-in activities include the family Settings screen, drawing studio, an offline two-octave piano, and a profile-specific game library. Calendar feeds, drawing-link storage, and Ask requests go through the deployed companion service in `../service`.
+`com.mprlab.portal` is the native Android 9 home app for FamilyHome. It keeps profiles, timers, drawing documents, brush choices, the household weather location, a short-lived weather cache, and per-child game availability on the device. Its built-in activities include the family Settings screen, drawing studio, an offline two-octave piano, a native weather card, and a profile-specific game library. Calendar feeds, weather lookup, drawing-link storage, and Ask requests go through the deployed companion service in `../service`.
+
+The weather card is household-wide rather than child-specific. Enter a ZIP code or city in Settings to show it. Clear the field to remove the entire card from the home screen; FamilyHome does not reserve an empty weather slot.
 
 The game catalog contains Adventure (the Portal edition of Freedoom), Kart (SuperTuxKart), Blocks (Block Drop), Tiles (Tessel), and Match (Privacy Friendly Memo Game). Settings stores stable game IDs in each child profile. The library shows only that child’s choices and marks a choice clearly when its separate APK has not been installed.
 
@@ -23,7 +25,7 @@ The script creates an aligned APK under `build/local`. Set `PORTAL_KEYSTORE`, `P
 ## Install and select as Home
 
 ```sh
-adb install -r build/local/Children-Portal-v0.11.0.apk
+adb install -r build/local/Children-Portal-v0.12.0.apk
 adb shell cmd package set-home-activity com.mprlab.portal/.MainActivity
 ```
 

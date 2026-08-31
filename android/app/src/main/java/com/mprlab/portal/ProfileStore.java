@@ -17,6 +17,9 @@ final class ProfileStore {
     private static final String PREFS_PROFILES = "profiles_json";
     private static final String PREFS_ACTIVE = "active_profile_id";
     private static final String PREFS_WEATHER_LOCATION = "weather_location";
+    private static final String PREFS_WEATHER_CACHE_LOCATION = "weather_cache_location";
+    private static final String PREFS_WEATHER_CACHE_JSON = "weather_cache_json";
+    private static final String PREFS_WEATHER_CACHE_UPDATED_AT = "weather_cache_updated_at";
 
     static final class Profile {
         String id;
@@ -94,6 +97,9 @@ final class ProfileStore {
     final ArrayList<Profile> profiles = new ArrayList<>();
     Profile active;
     String weatherLocation = "";
+    String weatherCacheLocation = "";
+    String weatherCacheJson = "";
+    long weatherCacheUpdatedAt;
 
     ProfileStore(Context context) {
         preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -104,6 +110,9 @@ final class ProfileStore {
         profiles.clear();
         active = null;
         weatherLocation = preferences.getString(PREFS_WEATHER_LOCATION, "");
+        weatherCacheLocation = preferences.getString(PREFS_WEATHER_CACHE_LOCATION, "");
+        weatherCacheJson = preferences.getString(PREFS_WEATHER_CACHE_JSON, "");
+        weatherCacheUpdatedAt = preferences.getLong(PREFS_WEATHER_CACHE_UPDATED_AT, 0L);
         String raw = preferences.getString(PREFS_PROFILES, "[]");
         try {
             JSONArray array = new JSONArray(raw);
@@ -137,7 +146,22 @@ final class ProfileStore {
                 .putString(PREFS_PROFILES, array.toString())
                 .putString(PREFS_ACTIVE, active == null ? "" : active.id)
                 .putString(PREFS_WEATHER_LOCATION, weatherLocation == null ? "" : weatherLocation)
+                .putString(PREFS_WEATHER_CACHE_LOCATION, weatherCacheLocation == null ? "" : weatherCacheLocation)
+                .putString(PREFS_WEATHER_CACHE_JSON, weatherCacheJson == null ? "" : weatherCacheJson)
+                .putLong(PREFS_WEATHER_CACHE_UPDATED_AT, weatherCacheUpdatedAt)
                 .apply();
+    }
+
+    void cacheWeather(String location, String json) {
+        weatherCacheLocation = location;
+        weatherCacheJson = json;
+        weatherCacheUpdatedAt = System.currentTimeMillis();
+        save();
+    }
+
+    boolean hasWeatherCacheFor(String location) {
+        return location != null && location.equals(weatherCacheLocation)
+                && weatherCacheJson != null && !weatherCacheJson.isEmpty();
     }
 
     Profile add(String name) {

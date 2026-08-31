@@ -13,6 +13,7 @@ The current build was validated on a 1280 × 800 Portal running Android 9 (API 2
 - a full-screen, two-octave piano with multi-touch chords, note labels, and offline synthesized sound;
 - typed and recorded Ask requests routed through the official provider-neutral LLM Proxy client;
 - a read-only iCalendar/ICS next-event card;
+- an optional native weather card configured by household ZIP code or city;
 - a profile-specific library for Adventure, Kart, Blocks, Tiles, and Match; and
 - a balanced child-facing layout with the activity dock anchored to the bottom of the screen.
 
@@ -46,7 +47,7 @@ Signing variables and installation instructions are documented in [`android/READ
 
 ## Runtime and authentication boundary
 
-The Android application contains no LLM credential. Ask requests go to `https://familyhome-api.mprlab.com`, which uses `github.com/tyemirov/llm-proxy/pkg/llmproxyclient`. Provider, model, and `LLM_PROXY_SECRET` configuration remain on the service host.
+The Android application contains no LLM credential. Ask requests go to `https://familyhome-api.mprlab.com`, which uses `github.com/tyemirov/llm-proxy/pkg/llmproxyclient`. Provider, model, and `LLM_PROXY_SECRET` configuration remain on the service host. Weather location lookup and forecast normalization also stay behind the FamilyHome service; the Portal talks only to the FamilyHome API.
 
 Each Portal build carries one FamilyHome device bearer token. The backend requires it for every `/v1/` request. Drawing share URLs use random capability identifiers and remain accessible to recipients without the device token.
 

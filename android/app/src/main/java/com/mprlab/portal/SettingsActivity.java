@@ -103,7 +103,7 @@ public final class SettingsActivity extends Activity {
         LinearLayout homeColumn = column();
         LinearLayout weatherPanel = panel();
         weatherPanel.addView(sectionLabel("WEATHER LOCATION"));
-        weatherPanel.addView(sectionHelp("Use a ZIP code or city so FamilyHome can show weather for the right place."));
+        weatherPanel.addView(sectionHelp("Use a ZIP code or city for the home-screen weather card. Leave it blank to hide weather."));
         locationInput = new EditText(this);
         locationInput.setSingleLine(true);
         locationInput.setHint("ZIP code or city");
@@ -118,7 +118,7 @@ public final class SettingsActivity extends Activity {
         locationParams.height = dp(58);
         locationParams.topMargin = dp(18);
         weatherPanel.addView(locationInput, locationParams);
-        Button saveLocation = button("Save location", BLUE, Color.WHITE);
+        Button saveLocation = button("Save weather location", BLUE, Color.WHITE);
         saveLocation.setOnClickListener(view -> saveLocation(true));
         LinearLayout.LayoutParams saveParams = matchWrap();
         saveParams.topMargin = dp(12);
@@ -263,12 +263,12 @@ public final class SettingsActivity extends Activity {
         store.weatherLocation = locationInput.getText().toString().trim();
         store.save();
         if (locationStatus != null) locationStatus.setText(locationMessage());
-        if (announce) Toast.makeText(this, store.weatherLocation.isEmpty() ? "Weather location cleared" : "Weather location saved", Toast.LENGTH_SHORT).show();
+        if (announce) Toast.makeText(this, store.weatherLocation.isEmpty() ? "Weather hidden from the home screen" : "Weather location saved", Toast.LENGTH_SHORT).show();
     }
 
     private String locationMessage() {
         return store.weatherLocation == null || store.weatherLocation.isEmpty()
-                ? "Add a location whenever you want weather on the home screen."
+                ? "Weather stays hidden until a location is saved."
                 : "Saved on this Portal: " + store.weatherLocation;
     }
 

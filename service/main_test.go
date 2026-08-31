@@ -138,6 +138,78 @@ func TestCalendarRejectsNonHTTPURL(t *testing.T) {
 	}
 }
 
+func TestWeatherResolvesLocationAndNormalizesForecast(t *testing.T) {
+	provider := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.URL.Path {
+		case "/geocoding":
+			if request.URL.Query().Get("name") != "90210" || request.URL.Query().Get("count") != "1" {
+				t.Fatalf("unexpected geocoding query: %s", request.URL.RawQuery)
+			}
+			_, _ = io.WriteString(writer, `{"results":[{"name":"Beverly Hills","admin1":"California","country":"United States","latitude":34.0901,"longitude":-118.4065}]}`)
+		case "/forecast":
+			query := request.URL.Query()
+			if query.Get("temperature_unit") != "fahrenheit" || query.Get("timezone") != "auto" || query.Get("forecast_days") != "1" {
+				t.Fatalf("unexpected forecast query: %s", request.URL.RawQuery)
+			}
+			if !strings.Contains(query.Get("current"), "weather_code") || !strings.Contains(query.Get("daily"), "temperature_2m_max") {
+				t.Fatalf("missing forecast fields: %s", request.URL.RawQuery)
+			}
+			_, _ = io.WriteString(writer, `{"current":{"temperature_2m":72.6,"apparent_temperature":71.2,"weather_code":2},"daily":{"temperature_2m_max":[78.8],"temperature_2m_min":[59.4],"precipitation_probability_max":[12]}}`)
+		default:
+			http.NotFound(writer, request)
+		}
+	}))
+	defer provider.Close()
+
+	configuration := config{}
+	configuration.Server.DeviceToken = testDeviceToken
+	app := &application{
+		config: configuration, http: provider.Client(),
+		weatherGeocodingURL: provider.URL + "/geocoding",
+		weatherForecastURL:  provider.URL + "/forecast",
+	}
+	request := httptest.NewRequest(http.MethodGet, "/v1/weather?location=90210", nil)
+	authorize(request)
+	response := httptest.NewRecorder()
+	app.routes().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var weather weatherResponse
+	if decodeError := json.NewDecoder(response.Body).Decode(&weather); decodeError != nil {
+		t.Fatal(decodeError)
+	}
+	if weather.Location != "Beverly Hills, California" || weather.Condition != "Partly cloudy" || weather.Icon != "partly_cloudy" {
+		t.Fatalf("weather=%+v", weather)
+	}
+	if weather.TemperatureF != 73 || weather.FeelsLikeF != 71 || weather.HighF != 79 || weather.LowF != 59 || weather.PrecipitationProbability != 12 {
+		t.Fatalf("weather=%+v", weather)
+	}
+}
+
+func TestWeatherRequiresConfiguredLocation(t *testing.T) {
+	configuration := config{}
+	configuration.Server.DeviceToken = testDeviceToken
+	app := &application{config: configuration, http: http.DefaultClient}
+	request := httptest.NewRequest(http.MethodGet, "/v1/weather", nil)
+	authorize(request)
+	response := httptest.NewRecorder()
+	app.routes().ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestWeatherConditionCategories(t *testing.T) {
+	tests := map[int]string{0: "clear", 2: "partly_cloudy", 3: "cloudy", 45: "fog", 61: "rain", 75: "snow", 96: "storm"}
+	for code, expected := range tests {
+		_, icon := describeWeather(code)
+		if icon != expected {
+			t.Fatalf("code=%d icon=%q expected=%q", code, icon, expected)
+		}
+	}
+}
+
 const testDeviceToken = "familyhome-test-device-token-32-characters"
 
 func authorize(request *http.Request) {

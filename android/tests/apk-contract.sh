@@ -44,6 +44,8 @@ require_text "$xmltree" "android.intent.category.LAUNCHER" "launcher intent"
 dex_strings="$(unzip -p "$apk" classes.dex | strings)"
 require_text "$dex_strings" "https://familyhome.invalid" "generated service URL"
 require_text "$dex_strings" "familyhome-ci-device-token-000000000" "generated device token"
+require_text "$dex_strings" "/v1/weather?location=" "weather service route"
+require_text "$dex_strings" "Weather by Open-Meteo" "weather attribution"
 for game_package in net.nullsum.freedoom org.supertuxkart.stk com.blockdrop.game net.vantulder.tessel org.secuso.privacyfriendlymemory; do
   require_text "$dex_strings" "$game_package" "game catalog package $game_package"
 done
@@ -51,5 +53,12 @@ if [[ "$dex_strings" == *"LLM_PROXY_SECRET"* ]]; then
   printf '%s\n' 'APK contract failed: the LLM Proxy secret boundary reached the Android APK' >&2
   exit 1
 fi
+
+weather_contract_classes="$output_dir/weather-contract-classes"
+mkdir -p "$weather_contract_classes"
+javac -source 8 -target 8 -d "$weather_contract_classes" \
+  app/src/main/java/com/mprlab/portal/WeatherVisibility.java \
+  tests/java/com/mprlab/portal/WeatherVisibilityContract.java
+java -cp "$weather_contract_classes" com.mprlab.portal.WeatherVisibilityContract
 
 printf 'Android APK contract passed for com.mprlab.portal %s (%s).\n' "$version_name" "$version_code"

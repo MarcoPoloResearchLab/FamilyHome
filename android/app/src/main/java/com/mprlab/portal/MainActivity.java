@@ -48,15 +48,20 @@ public final class MainActivity extends Activity {
     private static final int MUSIC_BLUE = Color.rgb(67, 114, 235);
     private static final int PALE_BLUE = Color.rgb(232, 243, 255);
     private static final int PALE_GREEN = Color.rgb(234, 249, 240);
+    private static final int PALE_YELLOW = Color.rgb(255, 244, 204);
     private static final int ICON_DRAW = 1;
     private static final int ICON_ASK = 2;
     private static final int ICON_PLAY = 3;
     private static final int ICON_RACE = 4;
     private static final int ICON_MUSIC = 5;
     private static final long READING_MS = 20L * 60L * 1000L;
+    private static final long WEATHER_CACHE_MS = 15L * 60L * 1000L;
     private final Handler handler = new Handler();
     private ProfileStore store;
     private TextView clock, eventTitle, eventTime, timerText;
+    private TextView weatherTemperature, weatherCondition, weatherDetails, weatherPlace;
+    private LinearLayout weatherCard;
+    private WeatherIconView weatherIcon;
     private Button timerButton;
     private ActivityTile gameButton, kartButton;
     private boolean setupPrompted;
@@ -160,10 +165,20 @@ public final class MainActivity extends Activity {
         timerActions.addView(reset, spacedWeighted(1f, 58, true));
         timerCard.addView(timerActions, matchWrap());
 
-        LinearLayout.LayoutParams left = weighted(1f, 300); left.topMargin = dp(28); left.rightMargin = dp(12);
-        LinearLayout.LayoutParams right = weighted(1f, 300); right.topMargin = dp(28); right.leftMargin = dp(12);
-        cards.addView(calendarCard, left);
-        cards.addView(timerCard, right);
+        boolean showWeather = WeatherVisibility.isConfigured(store.weatherLocation);
+        cards.addView(calendarCard, cardParams(0, showWeather ? 3 : 2));
+        cards.addView(timerCard, cardParams(1, showWeather ? 3 : 2));
+        if (showWeather) {
+            weatherCard = createWeatherCard();
+            cards.addView(weatherCard, cardParams(2, 3));
+        } else {
+            weatherCard = null;
+            weatherIcon = null;
+            weatherTemperature = null;
+            weatherCondition = null;
+            weatherDetails = null;
+            weatherPlace = null;
+        }
         root.addView(cards, matchWrap());
 
         View activitySpacer = new View(this);
@@ -188,6 +203,7 @@ public final class MainActivity extends Activity {
         updateGameButton();
         updateKartButton();
         refreshCalendar();
+        refreshWeather();
     }
 
     private void launch(Class<?> type) {
@@ -295,6 +311,101 @@ public final class MainActivity extends Activity {
         }).start();
     }
 
+    private LinearLayout createWeatherCard() {
+        LinearLayout weather = card(PALE_YELLOW);
+        weather.addView(label("TODAY’S WEATHER"));
+
+        LinearLayout current = row();
+        current.setGravity(Gravity.CENTER_VERTICAL);
+        weatherIcon = new WeatherIconView();
+        current.addView(weatherIcon, new LinearLayout.LayoutParams(dp(78), dp(78)));
+        weatherTemperature = text("—", 46, INK, true);
+        weatherTemperature.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams temperatureParams = new LinearLayout.LayoutParams(0, dp(82), 1f);
+        temperatureParams.leftMargin = dp(10);
+        current.addView(weatherTemperature, temperatureParams);
+        LinearLayout.LayoutParams currentParams = matchWrap();
+        currentParams.topMargin = dp(8);
+        weather.addView(current, currentParams);
+
+        weatherCondition = text("Checking the sky…", 22, INK, true);
+        weather.addView(weatherCondition, matchWrap());
+        weatherDetails = text("", 16, MUTED, false);
+        weatherDetails.setPadding(0, dp(4), 0, 0);
+        weather.addView(weatherDetails, matchWrap());
+        weatherPlace = text(store.weatherLocation, 15, MUTED, true);
+        weatherPlace.setPadding(0, dp(9), 0, 0);
+        weather.addView(weatherPlace, matchWrap());
+        TextView attribution = text("Weather by Open-Meteo", 11, MUTED, false);
+        attribution.setPadding(0, dp(5), 0, 0);
+        weather.addView(attribution, matchWrap());
+
+        if (store.hasWeatherCacheFor(store.weatherLocation)) {
+            try {
+                applyWeather(new JSONObject(store.weatherCacheJson));
+            } catch (Exception ignored) {
+            }
+        }
+        return weather;
+    }
+
+    private void refreshWeather() {
+        if (weatherCard == null || !WeatherVisibility.isConfigured(store.weatherLocation)) return;
+        String requestedLocation = store.weatherLocation.trim();
+        boolean hasCache = store.hasWeatherCacheFor(requestedLocation);
+        if (hasCache && System.currentTimeMillis() - store.weatherCacheUpdatedAt < WEATHER_CACHE_MS) return;
+        new Thread(() -> {
+            try {
+                String endpoint = PortalConfig.serviceURL("/v1/weather?location=" + URLEncoder.encode(requestedLocation, "UTF-8"));
+                HttpURLConnection connection = (HttpURLConnection) new URL(endpoint).openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(12000);
+                PortalConfig.authorize(connection);
+                String raw = read(connection);
+                JSONObject weather = new JSONObject(raw);
+                runOnUiThread(() -> {
+                    if (weatherCard == null || store.weatherLocation == null || !requestedLocation.equals(store.weatherLocation.trim())) return;
+                    if (!isWeatherPayload(weather)) return;
+                    store.cacheWeather(requestedLocation, raw);
+                    applyWeather(weather);
+                });
+            } catch (Exception error) {
+                if (hasCache) return;
+                runOnUiThread(() -> {
+                    if (weatherCard == null || store.weatherLocation == null || !requestedLocation.equals(store.weatherLocation.trim())) return;
+                    weatherTemperature.setText("—");
+                    weatherCondition.setText("Weather is resting");
+                    weatherDetails.setText("Please try again soon.");
+                    weatherIcon.setCondition("cloudy");
+                });
+            }
+        }).start();
+    }
+
+    private void applyWeather(JSONObject weather) {
+        if (weatherCard == null || !isWeatherPayload(weather)) return;
+        int temperature = weather.optInt("temperature_f");
+        int high = weather.optInt("high_f");
+        int low = weather.optInt("low_f");
+        int precipitation = weather.optInt("precipitation_probability");
+        String condition = weather.optString("condition", "Changing skies");
+        String place = weather.optString("location", store.weatherLocation);
+        weatherTemperature.setText(temperature + "°");
+        weatherCondition.setText(condition);
+        String details = "High " + high + "°  •  Low " + low + "°";
+        if (precipitation > 0) details += "  •  Rain " + precipitation + "%";
+        weatherDetails.setText(details);
+        weatherPlace.setText(place);
+        weatherIcon.setCondition(weather.optString("icon", "cloudy"));
+        weatherCard.setContentDescription("Weather for " + place + ". " + temperature + " degrees and " + condition + ". " + details);
+    }
+
+    private boolean isWeatherPayload(JSONObject weather) {
+        return weather != null && weather.has("temperature_f") && weather.has("high_f")
+                && weather.has("low_f") && weather.has("condition") && weather.has("icon")
+                && weather.has("location");
+    }
+
     static String read(HttpURLConnection connection) throws Exception {
         int status = connection.getResponseCode();
         BufferedReader reader = new BufferedReader(new InputStreamReader(status >= 400 ? connection.getErrorStream() : connection.getInputStream(), "UTF-8"));
@@ -325,6 +436,14 @@ public final class MainActivity extends Activity {
     private LinearLayout.LayoutParams weighted(float weight, int height) { return new LinearLayout.LayoutParams(0, dp(height), weight); }
     private LinearLayout.LayoutParams spacedWeighted(float weight, int height, boolean left) { LinearLayout.LayoutParams p = weighted(weight, height); if (left) p.leftMargin = dp(8); else p.rightMargin = dp(8); return p; }
     private LinearLayout.LayoutParams actionParams() { LinearLayout.LayoutParams p = weighted(1f, 92); p.leftMargin = dp(6); p.rightMargin = dp(6); return p; }
+    private LinearLayout.LayoutParams cardParams(int position, int count) {
+        LinearLayout.LayoutParams params = weighted(1f, 300);
+        params.topMargin = dp(28);
+        int gap = count == 3 ? 8 : 12;
+        if (position > 0) params.leftMargin = dp(gap);
+        if (position < count - 1) params.rightMargin = dp(gap);
+        return params;
+    }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 
     private final class ActivityTile extends LinearLayout {
@@ -456,6 +575,100 @@ public final class MainActivity extends Activity {
             paint.setStyle(Paint.Style.FILL);
             canvas.drawRect(new RectF(16.5f, 14.5f, 27, 22), paint);
             canvas.drawRect(new RectF(27, 22, 37.5f, 29.5f), paint);
+        }
+    }
+
+    private final class WeatherIconView extends View {
+        private final Paint weatherPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private String condition = "partly_cloudy";
+
+        WeatherIconView() {
+            super(MainActivity.this);
+            setContentDescription("Weather illustration");
+        }
+
+        void setCondition(String value) {
+            condition = value == null ? "cloudy" : value;
+            invalidate();
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float scaleX = getWidth() / 80f;
+            float scaleY = getHeight() / 80f;
+            canvas.save();
+            canvas.scale(scaleX, scaleY);
+            if (condition.equals("clear")) {
+                drawSun(canvas, 40, 40, 18);
+            } else {
+                if (condition.equals("partly_cloudy")) drawSun(canvas, 29, 28, 14);
+                drawCloud(canvas);
+                if (condition.equals("rain")) drawRain(canvas);
+                else if (condition.equals("snow")) drawSnow(canvas);
+                else if (condition.equals("storm")) drawStorm(canvas);
+                else if (condition.equals("fog")) drawFog(canvas);
+            }
+            canvas.restore();
+        }
+
+        private void drawSun(Canvas canvas, float centerX, float centerY, float radius) {
+            weatherPaint.setColor(Color.rgb(255, 181, 45));
+            weatherPaint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(centerX, centerY, radius, weatherPaint);
+            weatherPaint.setStrokeWidth(3f);
+            weatherPaint.setStrokeCap(Paint.Cap.ROUND);
+            for (int angle = 0; angle < 360; angle += 45) {
+                double radians = Math.toRadians(angle);
+                canvas.drawLine(
+                        centerX + (float) Math.cos(radians) * (radius + 5),
+                        centerY + (float) Math.sin(radians) * (radius + 5),
+                        centerX + (float) Math.cos(radians) * (radius + 10),
+                        centerY + (float) Math.sin(radians) * (radius + 10), weatherPaint);
+            }
+        }
+
+        private void drawCloud(Canvas canvas) {
+            weatherPaint.setColor(condition.equals("cloudy") || condition.equals("fog") ? Color.rgb(125, 145, 168) : Color.rgb(85, 151, 220));
+            weatherPaint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(28, 43, 13, weatherPaint);
+            canvas.drawCircle(43, 35, 17, weatherPaint);
+            canvas.drawCircle(58, 44, 12, weatherPaint);
+            canvas.drawRoundRect(new RectF(20, 42, 68, 58), 8, 8, weatherPaint);
+        }
+
+        private void drawRain(Canvas canvas) {
+            weatherPaint.setColor(Color.rgb(63, 132, 255));
+            weatherPaint.setStyle(Paint.Style.STROKE);
+            weatherPaint.setStrokeWidth(4f);
+            weatherPaint.setStrokeCap(Paint.Cap.ROUND);
+            canvas.drawLine(29, 63, 25, 71, weatherPaint);
+            canvas.drawLine(45, 63, 41, 71, weatherPaint);
+            canvas.drawLine(61, 63, 57, 71, weatherPaint);
+        }
+
+        private void drawSnow(Canvas canvas) {
+            weatherPaint.setColor(Color.WHITE);
+            weatherPaint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(28, 68, 3, weatherPaint);
+            canvas.drawCircle(45, 65, 3, weatherPaint);
+            canvas.drawCircle(61, 70, 3, weatherPaint);
+        }
+
+        private void drawStorm(Canvas canvas) {
+            weatherPaint.setColor(Color.rgb(255, 181, 45));
+            weatherPaint.setStyle(Paint.Style.FILL);
+            Path bolt = new Path();
+            bolt.moveTo(43, 58); bolt.lineTo(35, 72); bolt.lineTo(44, 70); bolt.lineTo(40, 79); bolt.lineTo(56, 63); bolt.lineTo(47, 65); bolt.close();
+            canvas.drawPath(bolt, weatherPaint);
+        }
+
+        private void drawFog(Canvas canvas) {
+            weatherPaint.setColor(Color.rgb(125, 145, 168));
+            weatherPaint.setStyle(Paint.Style.STROKE);
+            weatherPaint.setStrokeWidth(3f);
+            weatherPaint.setStrokeCap(Paint.Cap.ROUND);
+            canvas.drawLine(22, 65, 64, 65, weatherPaint);
+            canvas.drawLine(28, 72, 58, 72, weatherPaint);
         }
     }
 }

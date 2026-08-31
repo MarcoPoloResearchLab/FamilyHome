@@ -1,6 +1,8 @@
 # FamilyHome service
 
-This service keeps LLM Proxy credentials and model routing off the Portal. It also fetches iCalendar feeds and stores shareable PNG drawings. The production service runs on the MPR gateway host and is available through `https://familyhome-api.mprlab.com`.
+This service keeps LLM Proxy credentials and model routing off the Portal. It also fetches iCalendar feeds, resolves household weather locations, normalizes current forecasts, and stores shareable PNG drawings. The production service runs on the MPR gateway host and is available through `https://familyhome-api.mprlab.com`.
+
+`GET /v1/weather?location=<ZIP or city>` uses Open-Meteo’s geocoding and forecast APIs and returns only the location label, child-facing condition, icon category, current and apparent temperatures, daily high and low, and precipitation probability. It requires the normal FamilyHome device token and no weather-provider key. The Android app displays Open-Meteo attribution in the weather card.
 
 ## Authentication
 

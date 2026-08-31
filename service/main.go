@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,7 +24,12 @@ import (
 	"github.com/tyemirov/llm-proxy/pkg/llmproxyclient"
 )
 
-const maxRequestBytes = 12 << 20
+const (
+	maxRequestBytes          = 12 << 20
+	openMeteoGeocodingURL    = "https://geocoding-api.open-meteo.com/v1/search"
+	openMeteoForecastURL     = "https://api.open-meteo.com/v1/forecast"
+	weatherResponseByteLimit = 1 << 20
+)
 
 type config struct {
 	Server struct {
@@ -42,9 +48,11 @@ type config struct {
 }
 
 type application struct {
-	config config
-	client llmproxyclient.Client
-	http   *http.Client
+	config              config
+	client              llmproxyclient.Client
+	http                *http.Client
+	weatherGeocodingURL string
+	weatherForecastURL  string
 }
 
 type askInput struct {
@@ -56,6 +64,17 @@ type askInput struct {
 type calendarEvent struct {
 	Title string `json:"title"`
 	Start string `json:"start"`
+}
+
+type weatherResponse struct {
+	Location                 string `json:"location"`
+	Condition                string `json:"condition"`
+	Icon                     string `json:"icon"`
+	TemperatureF             int    `json:"temperature_f"`
+	FeelsLikeF               int    `json:"feels_like_f"`
+	HighF                    int    `json:"high_f"`
+	LowF                     int    `json:"low_f"`
+	PrecipitationProbability int    `json:"precipitation_probability"`
 }
 
 func main() {
@@ -76,7 +95,11 @@ func main() {
 	if clientError != nil {
 		log.Fatalf("llm proxy client: %v", clientError)
 	}
-	app := &application{config: configuration, client: client, http: httpClient}
+	app := &application{
+		config: configuration, client: client, http: httpClient,
+		weatherGeocodingURL: openMeteoGeocodingURL,
+		weatherForecastURL:  openMeteoForecastURL,
+	}
 	if directoryError := os.MkdirAll(filepath.Join(configuration.Server.DataDir, "drawings"), 0o750); directoryError != nil {
 		log.Fatalf("create data directory: %v", directoryError)
 	}
@@ -158,6 +181,7 @@ func (app *application) routes() http.Handler {
 	api.HandleFunc("POST /v1/ask", app.ask)
 	api.HandleFunc("POST /v1/ask/audio", app.askAudio)
 	api.HandleFunc("GET /v1/calendar/next", app.nextCalendarEvent)
+	api.HandleFunc("GET /v1/weather", app.weather)
 	api.HandleFunc("POST /v1/drawings", app.saveDrawing)
 
 	root := http.NewServeMux()
@@ -309,6 +333,151 @@ func (app *application) nextCalendarEvent(writer http.ResponseWriter, request *h
 		return
 	}
 	writeJSON(writer, http.StatusOK, map[string]any{"event": event})
+}
+
+func (app *application) weather(writer http.ResponseWriter, request *http.Request) {
+	locationQuery := strings.TrimSpace(request.URL.Query().Get("location"))
+	if locationQuery == "" || len(locationQuery) > 120 {
+		writeError(writer, http.StatusBadRequest, "A ZIP code or city is required.")
+		return
+	}
+	geocodingBaseURL := app.weatherGeocodingURL
+	forecastBaseURL := app.weatherForecastURL
+	if geocodingBaseURL == "" {
+		geocodingBaseURL = openMeteoGeocodingURL
+	}
+	if forecastBaseURL == "" {
+		forecastBaseURL = openMeteoForecastURL
+	}
+
+	geocodingValues := url.Values{
+		"name":     {locationQuery},
+		"count":    {"1"},
+		"language": {"en"},
+		"format":   {"json"},
+	}
+	var geocoding struct {
+		Results []struct {
+			Name      string  `json:"name"`
+			Admin1    string  `json:"admin1"`
+			Country   string  `json:"country"`
+			Latitude  float64 `json:"latitude"`
+			Longitude float64 `json:"longitude"`
+		} `json:"results"`
+	}
+	if fetchError := app.fetchWeatherJSON(request.Context(), geocodingBaseURL+"?"+geocodingValues.Encode(), &geocoding); fetchError != nil {
+		log.Printf("weather geocoding failed location=%q: %v", locationQuery, fetchError)
+		writeError(writer, http.StatusBadGateway, "Weather is temporarily unavailable.")
+		return
+	}
+	if len(geocoding.Results) == 0 {
+		writeError(writer, http.StatusNotFound, "That weather location could not be found.")
+		return
+	}
+	place := geocoding.Results[0]
+
+	forecastValues := url.Values{
+		"latitude":         {strconv.FormatFloat(place.Latitude, 'f', -1, 64)},
+		"longitude":        {strconv.FormatFloat(place.Longitude, 'f', -1, 64)},
+		"current":          {"temperature_2m,apparent_temperature,weather_code"},
+		"daily":            {"temperature_2m_max,temperature_2m_min,precipitation_probability_max"},
+		"temperature_unit": {"fahrenheit"},
+		"timezone":         {"auto"},
+		"forecast_days":    {"1"},
+	}
+	var forecast struct {
+		Current struct {
+			Temperature *float64 `json:"temperature_2m"`
+			FeelsLike   *float64 `json:"apparent_temperature"`
+			WeatherCode *int     `json:"weather_code"`
+		} `json:"current"`
+		Daily struct {
+			High                     []float64 `json:"temperature_2m_max"`
+			Low                      []float64 `json:"temperature_2m_min"`
+			PrecipitationProbability []int     `json:"precipitation_probability_max"`
+		} `json:"daily"`
+	}
+	if fetchError := app.fetchWeatherJSON(request.Context(), forecastBaseURL+"?"+forecastValues.Encode(), &forecast); fetchError != nil {
+		log.Printf("weather forecast failed location=%q: %v", locationQuery, fetchError)
+		writeError(writer, http.StatusBadGateway, "Weather is temporarily unavailable.")
+		return
+	}
+	if forecast.Current.Temperature == nil || forecast.Current.FeelsLike == nil || forecast.Current.WeatherCode == nil || len(forecast.Daily.High) == 0 || len(forecast.Daily.Low) == 0 {
+		writeError(writer, http.StatusBadGateway, "The weather forecast was incomplete.")
+		return
+	}
+	condition, icon := describeWeather(*forecast.Current.WeatherCode)
+	precipitation := 0
+	if len(forecast.Daily.PrecipitationProbability) > 0 {
+		precipitation = forecast.Daily.PrecipitationProbability[0]
+	}
+	writeJSON(writer, http.StatusOK, weatherResponse{
+		Location:                 weatherLocationLabel(place.Name, place.Admin1, place.Country),
+		Condition:                condition,
+		Icon:                     icon,
+		TemperatureF:             int(math.Round(*forecast.Current.Temperature)),
+		FeelsLikeF:               int(math.Round(*forecast.Current.FeelsLike)),
+		HighF:                    int(math.Round(forecast.Daily.High[0])),
+		LowF:                     int(math.Round(forecast.Daily.Low[0])),
+		PrecipitationProbability: precipitation,
+	})
+}
+
+func (app *application) fetchWeatherJSON(ctx context.Context, requestURL string, destination any) error {
+	weatherRequest, requestError := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+	if requestError != nil {
+		return requestError
+	}
+	weatherRequest.Header.Set("User-Agent", "FamilyHome/1.0 (+https://github.com/MarcoPoloResearchLab/FamilyHome)")
+	response, fetchError := app.http.Do(weatherRequest)
+	if fetchError != nil {
+		return fetchError
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return fmt.Errorf("provider returned status %d", response.StatusCode)
+	}
+	decoder := json.NewDecoder(io.LimitReader(response.Body, weatherResponseByteLimit))
+	if decodeError := decoder.Decode(destination); decodeError != nil {
+		return decodeError
+	}
+	return nil
+}
+
+func weatherLocationLabel(name, admin1, country string) string {
+	parts := make([]string, 0, 2)
+	if strings.TrimSpace(name) != "" {
+		parts = append(parts, strings.TrimSpace(name))
+	}
+	region := strings.TrimSpace(admin1)
+	if region == "" {
+		region = strings.TrimSpace(country)
+	}
+	if region != "" && (len(parts) == 0 || !strings.EqualFold(parts[0], region)) {
+		parts = append(parts, region)
+	}
+	return strings.Join(parts, ", ")
+}
+
+func describeWeather(code int) (string, string) {
+	switch {
+	case code == 0:
+		return "Sunny", "clear"
+	case code == 1 || code == 2:
+		return "Partly cloudy", "partly_cloudy"
+	case code == 3:
+		return "Cloudy", "cloudy"
+	case code == 45 || code == 48:
+		return "Foggy", "fog"
+	case (code >= 51 && code <= 67) || (code >= 80 && code <= 82):
+		return "Rainy", "rain"
+	case (code >= 71 && code <= 77) || code == 85 || code == 86:
+		return "Snowy", "snow"
+	case code >= 95:
+		return "Stormy", "storm"
+	default:
+		return "Changing skies", "cloudy"
+	}
 }
 
 func (app *application) saveDrawing(writer http.ResponseWriter, request *http.Request) {
