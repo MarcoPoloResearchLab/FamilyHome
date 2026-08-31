@@ -4,7 +4,11 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -45,11 +49,16 @@ public final class MainActivity extends Activity {
     private static final int PINK = Color.rgb(232, 84, 145);
     private static final int PALE_BLUE = Color.rgb(232, 243, 255);
     private static final int PALE_GREEN = Color.rgb(234, 249, 240);
+    private static final int ICON_DRAW = 1;
+    private static final int ICON_ASK = 2;
+    private static final int ICON_PLAY = 3;
+    private static final int ICON_RACE = 4;
     private static final long READING_MS = 20L * 60L * 1000L;
     private final Handler handler = new Handler();
     private ProfileStore store;
     private TextView clock, eventTitle, eventTime, timerText;
-    private Button timerButton, gameButton, kartButton;
+    private Button timerButton;
+    private ActivityTile gameButton, kartButton;
     private boolean setupPrompted;
 
     private final Runnable ticker = new Runnable() {
@@ -149,10 +158,10 @@ public final class MainActivity extends Activity {
         root.addView(activitySpacer, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         LinearLayout actions = row();
-        Button draw = actionButton("Draw\nMake a picture", CORAL); draw.setOnClickListener(v -> launch(DrawingActivity.class));
-        Button ask = actionButton("Ask\nLearn something", PURPLE); ask.setOnClickListener(v -> launch(AskActivity.class));
-        gameButton = actionButton("Play\nAdventure game", TEAL); gameButton.setOnClickListener(v -> launchFreedoom());
-        kartButton = actionButton("Race\nKart Adventure", PINK); kartButton.setOnClickListener(v -> launchKart());
+        ActivityTile draw = actionTile("Draw", "Make a picture", CORAL, ICON_DRAW); draw.setOnClickListener(v -> launch(DrawingActivity.class));
+        ActivityTile ask = actionTile("Ask", "Learn something", PURPLE, ICON_ASK); ask.setOnClickListener(v -> launch(AskActivity.class));
+        gameButton = actionTile("Play", "Adventure game", TEAL, ICON_PLAY); gameButton.setOnClickListener(v -> launchFreedoom());
+        kartButton = actionTile("Race", "Kart Adventure", PINK, ICON_RACE); kartButton.setOnClickListener(v -> launchKart());
         actions.addView(draw, actionParams());
         actions.addView(ask, actionParams());
         actions.addView(gameButton, actionParams());
@@ -301,19 +310,15 @@ public final class MainActivity extends Activity {
     private void updateGameButton() {
         if (gameButton == null) return;
         boolean enabled = store.active != null && store.active.freedoomEnabled;
-        gameButton.setText(enabled ? "Play\nAdventure game" : "Add a game\nChoose in profile");
-        gameButton.setBackground(rounded(enabled ? TEAL : Color.rgb(217, 220, 228), 24));
-        gameButton.setTextColor(enabled ? Color.WHITE : MUTED);
-        gameButton.setAlpha(1f);
+        gameButton.setContent(enabled ? "Play" : "Add a game", enabled ? "Adventure game" : "Choose in profile",
+                enabled ? TEAL : Color.rgb(217, 220, 228), enabled ? Color.WHITE : MUTED);
     }
 
     private void updateKartButton() {
         if (kartButton == null) return;
         boolean enabled = store.active != null && store.active.kartEnabled;
-        kartButton.setText(enabled ? "Race\nKart Adventure" : "Add kart racing\nChoose in profile");
-        kartButton.setBackground(rounded(enabled ? PINK : Color.rgb(217, 220, 228), 24));
-        kartButton.setTextColor(enabled ? Color.WHITE : MUTED);
-        kartButton.setAlpha(1f);
+        kartButton.setContent(enabled ? "Race" : "Add kart racing", enabled ? "Kart Adventure" : "Choose in profile",
+                enabled ? PINK : Color.rgb(217, 220, 228), enabled ? Color.WHITE : MUTED);
     }
 
     private void refreshCalendar() {
@@ -361,11 +366,136 @@ public final class MainActivity extends Activity {
     private TextView text(String value, int size, int color, boolean bold) { TextView v = new TextView(this); v.setText(value); v.setTextSize(size); v.setTextColor(color); v.setTypeface(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL); return v; }
     private Button button(String value, int color) { return button(value, color, Color.WHITE); }
     private Button button(String value, int color, int textColor) { Button v = new Button(this); v.setText(value); v.setTextSize(18); v.setTextColor(textColor); v.setAllCaps(false); v.setTypeface(Typeface.create("sans-serif", Typeface.BOLD)); v.setBackground(rounded(color, 20)); v.setPadding(dp(18), dp(8), dp(18), dp(8)); return v; }
-    private Button actionButton(String value, int color) { Button v = button(value, color); v.setTextSize(18); v.setGravity(Gravity.CENTER); v.setLineSpacing(dp(3), 1f); v.setElevation(dp(4)); return v; }
+    private ActivityTile actionTile(String title, String subtitle, int color, int icon) { return new ActivityTile(title, subtitle, color, icon); }
     private GradientDrawable rounded(int color, int radius) { GradientDrawable drawable = new GradientDrawable(); drawable.setColor(color); drawable.setCornerRadius(dp(radius)); return drawable; }
     private LinearLayout.LayoutParams matchWrap() { return new LinearLayout.LayoutParams(-1, -2); }
     private LinearLayout.LayoutParams weighted(float weight, int height) { return new LinearLayout.LayoutParams(0, dp(height), weight); }
     private LinearLayout.LayoutParams spacedWeighted(float weight, int height, boolean left) { LinearLayout.LayoutParams p = weighted(weight, height); if (left) p.leftMargin = dp(8); else p.rightMargin = dp(8); return p; }
     private LinearLayout.LayoutParams actionParams() { LinearLayout.LayoutParams p = weighted(1f, 92); p.leftMargin = dp(8); p.rightMargin = dp(8); return p; }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+
+    private final class ActivityTile extends LinearLayout {
+        private final TileIconView icon;
+        private final TextView title;
+        private final TextView subtitle;
+
+        ActivityTile(String titleValue, String subtitleValue, int color, int iconKind) {
+            super(MainActivity.this);
+            setOrientation(HORIZONTAL);
+            setGravity(Gravity.CENTER_VERTICAL);
+            setPadding(dp(14), 0, dp(12), 0);
+            setElevation(dp(4));
+            setClickable(true);
+            setFocusable(true);
+
+            icon = new TileIconView(iconKind);
+            addView(icon, new LinearLayout.LayoutParams(dp(50), dp(50)));
+
+            LinearLayout words = column();
+            words.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+            title = text(titleValue, 18, Color.WHITE, true);
+            title.setGravity(Gravity.LEFT);
+            subtitle = text(subtitleValue, 15, Color.WHITE, true);
+            subtitle.setGravity(Gravity.LEFT);
+            subtitle.setPadding(0, dp(2), 0, 0);
+            words.addView(title, matchWrap());
+            words.addView(subtitle, matchWrap());
+            LinearLayout.LayoutParams wordsParams = new LinearLayout.LayoutParams(0, -2, 1f);
+            wordsParams.leftMargin = dp(12);
+            addView(words, wordsParams);
+
+            setContent(titleValue, subtitleValue, color, Color.WHITE);
+        }
+
+        void setContent(String titleValue, String subtitleValue, int color, int contentColor) {
+            title.setText(titleValue);
+            subtitle.setText(subtitleValue);
+            title.setTextColor(contentColor);
+            subtitle.setTextColor(contentColor);
+            icon.setInkColor(contentColor);
+            setBackground(rounded(color, 24));
+            setContentDescription(titleValue + ". " + subtitleValue);
+            setAlpha(1f);
+        }
+    }
+
+    private final class TileIconView extends View {
+        private final int kind;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private int inkColor = Color.WHITE;
+
+        TileIconView(int kind) {
+            super(MainActivity.this);
+            this.kind = kind;
+        }
+
+        void setInkColor(int color) {
+            inkColor = color;
+            invalidate();
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float scaleX = getWidth() / 52f;
+            float scaleY = getHeight() / 52f;
+            canvas.save();
+            canvas.scale(scaleX, scaleY);
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.argb(34, 0, 0, 0));
+            canvas.drawCircle(26, 26, 24, paint);
+
+            paint.setColor(inkColor);
+            paint.setStrokeWidth(3.2f);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setStrokeJoin(Paint.Join.ROUND);
+            paint.setStyle(Paint.Style.STROKE);
+
+            if (kind == ICON_DRAW) drawPencil(canvas);
+            else if (kind == ICON_ASK) drawQuestion(canvas);
+            else if (kind == ICON_PLAY) drawController(canvas);
+            else drawFlag(canvas);
+
+            canvas.restore();
+        }
+
+        private void drawPencil(Canvas canvas) {
+            canvas.drawLine(16, 36, 35, 17, paint);
+            canvas.drawLine(20, 39, 39, 20, paint);
+            canvas.drawLine(35, 17, 39, 20, paint);
+            Path tip = new Path();
+            tip.moveTo(16, 36); tip.lineTo(20, 39); tip.lineTo(13, 42); tip.close();
+            canvas.drawPath(tip, paint);
+            canvas.drawLine(22, 33, 25, 36, paint);
+        }
+
+        private void drawQuestion(Canvas canvas) {
+            canvas.drawRoundRect(new RectF(12, 12, 40, 35), 11, 11, paint);
+            Path tail = new Path();
+            tail.moveTo(20, 34); tail.lineTo(17, 41); tail.lineTo(27, 35);
+            canvas.drawPath(tail, paint);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setTypeface(Typeface.DEFAULT_BOLD);
+            paint.setTextSize(24);
+            canvas.drawText("?", 26, 31, paint);
+        }
+
+        private void drawController(Canvas canvas) {
+            canvas.drawRoundRect(new RectF(10, 17, 42, 36), 8, 8, paint);
+            canvas.drawLine(18, 22, 18, 31, paint);
+            canvas.drawLine(14, 26.5f, 22, 26.5f, paint);
+            paint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(33, 24, 2, paint);
+            canvas.drawCircle(37, 29, 2, paint);
+        }
+
+        private void drawFlag(Canvas canvas) {
+            canvas.drawLine(14, 11, 14, 41, paint);
+            canvas.drawRect(new RectF(15, 13, 39, 31), paint);
+            paint.setStyle(Paint.Style.FILL);
+            canvas.drawRect(new RectF(16.5f, 14.5f, 27, 22), paint);
+            canvas.drawRect(new RectF(27, 22, 37.5f, 29.5f), paint);
+        }
+    }
 }
