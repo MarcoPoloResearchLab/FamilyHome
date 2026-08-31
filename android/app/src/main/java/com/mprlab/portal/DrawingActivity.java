@@ -14,6 +14,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -127,7 +128,7 @@ public final class DrawingActivity extends Activity {
 
         sizeControl = new StrokeSizeControl(drawingCanvas.strokeWidth / getResources().getDisplayMetrics().density);
         sizeControl.setOnSizeChanged(widthDp -> drawingCanvas.strokeWidth = dp(widthDp));
-        palette.addView(sizeControl, paletteParams(430));
+        palette.addView(sizeControl, paletteParams(420));
 
         eraserButton = toolIconButton("Eraser", PALE_PURPLE, INK, ICON_ERASER);
         eraserButton.setOnClickListener(v -> {
@@ -136,7 +137,7 @@ public final class DrawingActivity extends Activity {
             updateToolSelection();
             drawingCanvas.invalidate();
         });
-        palette.addView(eraserButton, paletteParams(70));
+        palette.addView(eraserButton, paletteParams(62));
         updateToolSelection();
         FrameLayout.LayoutParams paletteParams = new FrameLayout.LayoutParams(-1, dp(78), Gravity.BOTTOM);
         paletteParams.leftMargin = dp(14); paletteParams.rightMargin = dp(14); paletteParams.bottomMargin = dp(10);
@@ -368,11 +369,8 @@ public final class DrawingActivity extends Activity {
         private static final float MIN_SIZE = 3f;
         private static final float MAX_SIZE = 28f;
         private final Paint controlPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Path track = new Path();
         private float widthDp;
-        private boolean previewVisible;
         private OnSizeChangedListener listener;
-        private final Runnable hidePreview = () -> { previewVisible = false; invalidate(); };
 
         StrokeSizeControl(float initialWidthDp) {
             super(DrawingActivity.this);
@@ -387,51 +385,41 @@ public final class DrawingActivity extends Activity {
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            float startX = dp(26);
-            float endX = getWidth() - dp(26);
-            float centerY = getHeight() - dp(17);
-            float thumbX = startX + (endX - startX) * ((widthDp - MIN_SIZE) / (MAX_SIZE - MIN_SIZE));
+            float startX = dp(30);
+            float endX = getWidth() - dp(34);
+            float centerY = getHeight() / 2f;
+            float fraction = (widthDp - MIN_SIZE) / (MAX_SIZE - MIN_SIZE);
+            float thumbX = startX + (endX - startX) * fraction;
 
-            track.reset();
-            track.moveTo(startX, centerY - dp(2));
-            track.lineTo(endX, centerY - dp(11));
-            track.lineTo(endX, centerY + dp(11));
-            track.lineTo(startX, centerY + dp(2));
-            track.close();
+            controlPaint.setStyle(Paint.Style.STROKE);
+            controlPaint.setStrokeCap(Paint.Cap.ROUND);
+            controlPaint.setStrokeWidth(dp(4));
+            controlPaint.setColor(Color.rgb(196, 199, 213));
+            canvas.drawLine(startX, centerY, endX, centerY, controlPaint);
+            controlPaint.setColor(PURPLE);
+            canvas.drawLine(startX, centerY, thumbX, centerY, controlPaint);
+
             controlPaint.setStyle(Paint.Style.FILL);
             controlPaint.setColor(Color.rgb(196, 199, 213));
-            canvas.drawPath(track, controlPaint);
-            canvas.save();
-            canvas.clipRect(startX, 0, thumbX, getHeight());
-            controlPaint.setColor(PURPLE);
-            canvas.drawPath(track, controlPaint);
-            canvas.restore();
+            canvas.drawCircle(startX, centerY, dp(3), controlPaint);
+            canvas.drawCircle(endX, centerY, dp(8), controlPaint);
 
             controlPaint.setColor(Color.WHITE);
             canvas.drawCircle(thumbX, centerY, dp(12), controlPaint);
+            controlPaint.setStyle(Paint.Style.STROKE);
+            controlPaint.setStrokeWidth(dp(1));
+            controlPaint.setColor(Color.rgb(224, 221, 235));
+            canvas.drawCircle(thumbX, centerY, dp(12), controlPaint);
+            controlPaint.setStyle(Paint.Style.FILL);
             controlPaint.setColor(PURPLE);
-            canvas.drawCircle(thumbX, centerY, dp(6), controlPaint);
-
-            if (previewVisible) {
-                float previewRadius = Math.max(dp(3), dp(widthDp) / 2f);
-                float previewY = Math.max(previewRadius + dp(1), dp(14));
-                controlPaint.setStyle(Paint.Style.FILL);
-                controlPaint.setColor(PURPLE);
-                canvas.drawCircle(thumbX, previewY, previewRadius, controlPaint);
-                controlPaint.setStyle(Paint.Style.STROKE);
-                controlPaint.setStrokeWidth(dp(2));
-                controlPaint.setColor(Color.WHITE);
-                canvas.drawCircle(thumbX, previewY, previewRadius, controlPaint);
-                controlPaint.setStyle(Paint.Style.FILL);
-            }
+            float thumbRadius = dp(3) + fraction * dp(6);
+            canvas.drawCircle(thumbX, centerY, thumbRadius, controlPaint);
         }
 
         @Override public boolean onTouchEvent(MotionEvent event) {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     getParent().requestDisallowInterceptTouchEvent(true);
-                    previewVisible = true;
-                    removeCallbacks(hidePreview);
                     updateFromTouch(event.getX());
                     return true;
                 case MotionEvent.ACTION_MOVE:
@@ -441,12 +429,10 @@ public final class DrawingActivity extends Activity {
                     updateFromTouch(event.getX());
                     saveToolSettings();
                     performClick();
-                    postDelayed(hidePreview, 850);
                     getParent().requestDisallowInterceptTouchEvent(false);
                     return true;
                 case MotionEvent.ACTION_CANCEL:
                     saveToolSettings();
-                    postDelayed(hidePreview, 850);
                     getParent().requestDisallowInterceptTouchEvent(false);
                     return true;
                 default:
@@ -460,8 +446,8 @@ public final class DrawingActivity extends Activity {
         }
 
         private void updateFromTouch(float x) {
-            float startX = dp(26);
-            float endX = Math.max(startX + 1, getWidth() - dp(26));
+            float startX = dp(30);
+            float endX = Math.max(startX + 1, getWidth() - dp(34));
             float fraction = Math.max(0f, Math.min(1f, (x - startX) / (endX - startX)));
             widthDp = MIN_SIZE + fraction * (MAX_SIZE - MIN_SIZE);
             updateAccessibilityLabel();
@@ -478,15 +464,19 @@ public final class DrawingActivity extends Activity {
         private final int kind;
         private int inkColor;
         private final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Drawable standardIcon;
 
         ToolIconView(int kind, int inkColor) {
             super(DrawingActivity.this);
             this.kind = kind;
             this.inkColor = inkColor;
+            standardIcon = kind == ICON_ERASER ? getDrawable(R.drawable.ic_ink_eraser).mutate() : null;
+            if (standardIcon != null) standardIcon.setTint(inkColor);
         }
 
         void setInkColor(int color) {
             inkColor = color;
+            if (standardIcon != null) standardIcon.setTint(color);
             invalidate();
         }
 
@@ -503,12 +493,19 @@ public final class DrawingActivity extends Activity {
             iconPaint.setStrokeCap(Paint.Cap.ROUND);
             iconPaint.setStrokeJoin(Paint.Join.ROUND);
 
+            if (standardIcon != null) {
+                standardIcon.setBounds(5, 5, 31, 31);
+                standardIcon.draw(canvas);
+                canvas.restore();
+                return;
+            }
+
             switch (kind) {
                 case ICON_LIBRARY: drawLibrary(canvas); break;
                 case ICON_NEW: drawNew(canvas); break;
                 case ICON_SHARE: drawShare(canvas); break;
                 case ICON_DONE: drawDone(canvas); break;
-                default: drawEraser(canvas); break;
+                default: break;
             }
             canvas.restore();
         }
@@ -539,12 +536,6 @@ public final class DrawingActivity extends Activity {
             canvas.drawLine(15, 24, 28, 10, iconPaint);
         }
 
-        private void drawEraser(Canvas canvas) {
-            Path eraser = new Path();
-            eraser.moveTo(9, 24); eraser.lineTo(21, 10); eraser.lineTo(29, 17); eraser.lineTo(17, 29); eraser.lineTo(11, 29); eraser.close();
-            canvas.drawPath(eraser, iconPaint);
-            canvas.drawLine(14, 20, 22, 27, iconPaint);
-        }
     }
 
     private static final class DrawingDocument {

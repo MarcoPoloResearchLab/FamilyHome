@@ -19,7 +19,7 @@ The script creates an aligned APK under `build/local`. Set `PORTAL_KEYSTORE`, `P
 ## Install and select as Home
 
 ```sh
-adb install -r build/local/Children-Portal-v0.9.0.apk
+adb install -r build/local/Children-Portal-v0.9.1.apk
 adb shell cmd package set-home-activity com.mprlab.portal/.MainActivity
 ```
 
