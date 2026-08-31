@@ -144,6 +144,12 @@ wait_for_activity() {
 wait_for_activity MainActivity
 sleep 0.5
 
+"$adb" -s "$serial" shell input tap 1215 110
+wait_for_activity SettingsActivity
+"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
+wait_for_activity MainActivity
+sleep 0.5
+
 "$adb" -s "$serial" shell input tap 155 695
 wait_for_activity DrawingActivity
 sleep 0.25
@@ -160,7 +166,7 @@ wait_for_activity PianoActivity
 wait_for_activity MainActivity
 
 preferences="$($adb -s "$serial" exec-out run-as "$package_name" cat shared_prefs/children_portal.xml)"
-for expected in Alice Bob alice-profile bob-profile Sunset sunset-drawing legacy_marker preserve-me 555000 \
+for expected in Alice Bob alice-profile bob-profile Sunset sunset-drawing legacy_marker preserve-me 90210 555000 \
     freedoom_enabled kart_enabled drawing_color_alice-profile drawing_size_alice-profile \
     drawing_eraser_alice-profile; do
   if [[ "$preferences" != *"$expected"* ]]; then

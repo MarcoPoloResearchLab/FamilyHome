@@ -1,7 +1,6 @@
 package com.mprlab.portal;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
@@ -19,8 +18,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -81,7 +79,7 @@ public final class MainActivity extends Activity {
         store = new ProfileStore(this);
         render();
         if (store.profiles.isEmpty()) handler.postDelayed(() -> {
-            if (!setupPrompted) { setupPrompted = true; editProfile(null, true); }
+            if (!setupPrompted) { setupPrompted = true; openSettings(); }
         }, 300L);
     }
 
@@ -108,12 +106,24 @@ public final class MainActivity extends Activity {
         scroll.addView(root, new ScrollView.LayoutParams(-1, -1));
 
         LinearLayout header = row();
-        Button profile = button(store.active == null ? "Create a child space" : "Hi, " + store.active.name + "!  ▾", PURPLE);
-        profile.setOnClickListener(v -> showProfiles());
+        Button profile = button(store.active == null ? "Set up FamilyHome" : "Hi, " + store.active.name + "!  ▾", PURPLE);
+        profile.setOnClickListener(v -> {
+            if (store.profiles.isEmpty()) openSettings();
+            else showProfiles();
+        });
         header.addView(profile, weighted(1f, 62));
         clock = text("", 22, INK, true);
         clock.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         header.addView(clock, weighted(1.35f, 62));
+        ImageButton settings = new ImageButton(this);
+        settings.setImageResource(R.drawable.ic_settings);
+        settings.setContentDescription("Open settings");
+        settings.setPadding(dp(15), dp(15), dp(15), dp(15));
+        settings.setBackground(rounded(PALE_BLUE, 20));
+        settings.setOnClickListener(view -> openSettings());
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(dp(62), dp(62));
+        settingsParams.leftMargin = dp(14);
+        header.addView(settings, settingsParams);
         root.addView(header, matchWrap());
 
         LinearLayout cards = row();
@@ -125,7 +135,7 @@ public final class MainActivity extends Activity {
         eventTime = text("Add a calendar to see the next adventure.", 18, MUTED, false);
         calendarCard.addView(eventTime);
         Button connect = button("Add or change calendar", BLUE);
-        connect.setOnClickListener(v -> editProfile(store.active, store.active == null));
+        connect.setOnClickListener(v -> openSettings());
         LinearLayout.LayoutParams connectParams = matchWrap();
         connectParams.topMargin = dp(24);
         calendarCard.addView(connect, connectParams);
@@ -182,7 +192,7 @@ public final class MainActivity extends Activity {
     }
 
     private void launch(Class<?> type) {
-        if (store.active == null) { editProfile(null, true); return; }
+        if (store.active == null) { openSettings(); return; }
         Intent intent = new Intent(this, type);
         intent.putExtra("profile_id", store.active.id);
         intent.putExtra("profile_name", store.active.name);
@@ -192,7 +202,7 @@ public final class MainActivity extends Activity {
     private void launchFreedoom() {
         if (store.active == null || !store.active.freedoomEnabled) {
             Toast.makeText(this, "Add the adventure game to this child’s space.", Toast.LENGTH_LONG).show();
-            if (store.active != null) editProfile(store.active, false);
+            openSettings();
             return;
         }
         try {
@@ -214,7 +224,7 @@ public final class MainActivity extends Activity {
     private void launchKart() {
         if (store.active == null || !store.active.kartEnabled) {
             Toast.makeText(this, "Add Kart Adventure to this child’s space.", Toast.LENGTH_LONG).show();
-            if (store.active != null) editProfile(store.active, false);
+            openSettings();
             return;
         }
         try {
@@ -236,54 +246,28 @@ public final class MainActivity extends Activity {
     }
 
     private void showProfiles() {
-        String[] names = new String[store.profiles.size() + 1];
+        if (store.profiles.isEmpty()) {
+            openSettings();
+            return;
+        }
+        String[] names = new String[store.profiles.size()];
         for (int i = 0; i < store.profiles.size(); i++) names[i] = store.profiles.get(i).name;
-        names[names.length - 1] = "+ Add another child";
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Whose turn is it?")
+        new android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Whose turn is it?")
                 .setItems(names, (dialog, which) -> {
-                    if (which == store.profiles.size()) editProfile(null, false);
-                    else { store.active = store.profiles.get(which); store.save(); render(); }
-                }).setNegativeButton("Close", null);
-        if (store.active != null) builder.setNeutralButton("Edit " + store.active.name, (dialog, which) -> editProfile(store.active, false));
-        builder.show();
+                    store.active = store.profiles.get(which);
+                    store.save();
+                    render();
+                })
+                .setNegativeButton("Close", null)
+                .show();
     }
 
-    private void editProfile(final ProfileStore.Profile profile, final boolean required) {
-        LinearLayout form = column();
-        form.setPadding(dp(28), dp(8), dp(28), 0);
-        form.setBackgroundColor(Color.WHITE);
-        TextView formTitle = text(profile == null ? "Create a child space" : "Change this child space", 26, INK, true);
-        formTitle.setPadding(0, dp(8), 0, dp(12));
-        form.addView(formTitle, matchWrap());
-        EditText name = new EditText(this); name.setHint("Child's name"); name.setSingleLine(); name.setText(profile == null ? "" : profile.name); name.setTextColor(Color.BLACK); name.setHintTextColor(Color.DKGRAY);
-        EditText calendar = new EditText(this); calendar.setHint("Private iCalendar / ICS link (optional)"); calendar.setSingleLine(); calendar.setText(profile == null ? "" : profile.calendarUrl); calendar.setTextColor(Color.BLACK); calendar.setHintTextColor(Color.DKGRAY);
-        CheckBox game = new CheckBox(this); game.setText("Add Adventure Game"); game.setTextSize(18); game.setTextColor(INK); game.setChecked(profile != null && profile.freedoomEnabled);
-        CheckBox kart = new CheckBox(this); kart.setText("Add Kart Adventure"); kart.setTextSize(18); kart.setTextColor(INK); kart.setChecked(profile != null && profile.kartEnabled);
-        form.addView(name, matchWrap());
-        LinearLayout.LayoutParams cp = matchWrap(); cp.topMargin = dp(12); form.addView(calendar, cp);
-        LinearLayout.LayoutParams gp = matchWrap(); gp.topMargin = dp(14); form.addView(game, gp);
-        LinearLayout.LayoutParams kp = matchWrap(); kp.topMargin = dp(8); form.addView(kart, kp);
-        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setView(form)
-                .setPositiveButton("Save", null).setNegativeButton(required ? null : "Cancel", null).create();
-        dialog.setCanceledOnTouchOutside(!required);
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String value = name.getText().toString().trim();
-            if (value.isEmpty()) { name.setError("Enter a name"); return; }
-            ProfileStore.Profile saved = profile == null ? store.add(value) : profile;
-            saved.name = value;
-            saved.calendarUrl = calendar.getText().toString().trim();
-            saved.freedoomEnabled = game.isChecked();
-            saved.kartEnabled = kart.isChecked();
-            store.active = saved;
-            store.save();
-            dialog.dismiss();
-            render();
-        }));
-        dialog.show();
+    private void openSettings() {
+        startActivity(new Intent(this, SettingsActivity.class));
     }
 
     private void toggleTimer() {
-        if (store.active == null) { editProfile(null, true); return; }
+        if (store.active == null) { openSettings(); return; }
         long now = System.currentTimeMillis();
         if (store.active.timerRunning) {
             store.active.remainingMs = Math.max(0L, store.active.timerEndEpochMs - now);

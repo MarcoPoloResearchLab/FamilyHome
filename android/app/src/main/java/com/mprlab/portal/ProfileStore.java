@@ -14,6 +14,7 @@ final class ProfileStore {
     static final String PREFS_NAME = "children_portal";
     private static final String PREFS_PROFILES = "profiles_json";
     private static final String PREFS_ACTIVE = "active_profile_id";
+    private static final String PREFS_WEATHER_LOCATION = "weather_location";
 
     static final class Profile {
         String id;
@@ -73,6 +74,7 @@ final class ProfileStore {
     private final SharedPreferences preferences;
     final ArrayList<Profile> profiles = new ArrayList<>();
     Profile active;
+    String weatherLocation = "";
 
     ProfileStore(Context context) {
         preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -82,6 +84,7 @@ final class ProfileStore {
     void load() {
         profiles.clear();
         active = null;
+        weatherLocation = preferences.getString(PREFS_WEATHER_LOCATION, "");
         String raw = preferences.getString(PREFS_PROFILES, "[]");
         try {
             JSONArray array = new JSONArray(raw);
@@ -114,6 +117,7 @@ final class ProfileStore {
         preferences.edit()
                 .putString(PREFS_PROFILES, array.toString())
                 .putString(PREFS_ACTIVE, active == null ? "" : active.id)
+                .putString(PREFS_WEATHER_LOCATION, weatherLocation == null ? "" : weatherLocation)
                 .apply();
     }
 

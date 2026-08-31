@@ -35,7 +35,7 @@ require_text "$badging" "sdkVersion:'28'" "minimum Android version"
 require_text "$badging" "targetSdkVersion:'28'" "target Android version"
 
 xmltree="$($aapt dump xmltree "$apk" AndroidManifest.xml)"
-for component in MainActivity AskActivity DrawingActivity PianoActivity ShareProvider; do
+for component in MainActivity AskActivity DrawingActivity PianoActivity SettingsActivity ShareProvider; do
   require_text "$xmltree" "$component" "manifest component $component"
 done
 require_text "$xmltree" "android.intent.category.HOME" "HOME intent"

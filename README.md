@@ -7,6 +7,7 @@ The current build was validated on a 1280 × 800 Portal running Android 9 (API 2
 ## What it provides
 
 - named child profiles with direct switching;
+- a dedicated Settings screen for adding and editing children, calendars, games, and the household weather location;
 - separate calendars, reading timers, drawings, brush choices, and game availability for each child;
 - a full-screen drawing studio with illustrated controls, colors, brushes, zoom, local saving, and sharing;
 - a full-screen, two-octave piano with multi-touch chords, note labels, and offline synthesized sound;

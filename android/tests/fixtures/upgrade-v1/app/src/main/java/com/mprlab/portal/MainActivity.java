@@ -48,6 +48,7 @@ public final class MainActivity extends Activity {
                 .putInt("drawing_color_alice-profile", 4)
                 .putFloat("drawing_size_alice-profile", 22f)
                 .putBoolean("drawing_eraser_alice-profile", true)
+                .putString("weather_location", "90210")
                 .putString("legacy_marker", "preserve-me")
                 .commit();
         try (FileOutputStream output = new FileOutputStream(new File(getFilesDir(), "upgrade-sentinel.txt"))) {
