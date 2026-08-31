@@ -19,7 +19,7 @@ The current build was validated on a 1280 × 800 Portal running Android 9 (API 2
 | Path | Purpose |
 | --- | --- |
 | `android/` | Native Android 9 home application, package `com.mprlab.portal` |
-| `service/` | LAN companion service for Ask, calendar fetching, and drawing sharing |
+| `service/` | Deployed companion service for Ask, calendar fetching, and drawing sharing |
 | `games/freedoom-portal/` | Source of the small Portal-specific adapter for Freedoom for Android |
 
 SuperTuxKart is used unmodified and is installed from its official Android release. It is not vendored in this repository.
@@ -37,11 +37,30 @@ ANDROID_SDK_ROOT=/path/to/android-sdk ./build.sh
 
 Signing variables and installation instructions are documented in [`android/README.md`](android/README.md). Service configuration is documented in [`service/README.md`](service/README.md).
 
-## Runtime boundary
+## Runtime and authentication boundary
 
-The Android application contains no LLM credential. Ask requests go to the LAN companion service, which uses `github.com/tyemirov/llm-proxy/pkg/llmproxyclient`. Provider, model, and `LLM_PROXY_SECRET` configuration remain on the service host.
+The Android application contains no LLM credential. Ask requests go to `https://familyhome-api.mprlab.com`, which uses `github.com/tyemirov/llm-proxy/pkg/llmproxyclient`. Provider, model, and `LLM_PROXY_SECRET` configuration remain on the service host.
 
-Update the example LAN address in `service/config.yml` and `android/app/src/main/java/com/mprlab/portal/PortalConfig.java` for the target network before building.
+Each Portal build carries one FamilyHome device bearer token. The backend requires it for every `/v1/` request. Drawing share URLs use random capability identifiers and remain accessible to recipients without the device token.
+
+## MPR deployment
+
+The application owns its deployment resources in `.mprlab/deploy/resources.yml`. The manifest builds a non-root container, retains drawing data, exposes the service through the MPR Caddy runtime, and verifies `https://familyhome-api.mprlab.com/healthz`.
+
+Create the ignored `.mprlab/deploy/.env` file with mode `0600`:
+
+```dotenv
+FAMILYHOME_DEVICE_TOKEN=<64-character installation token>
+LLM_PROXY_SECRET=<LLM Proxy key>
+```
+
+The production lifecycle is:
+
+```sh
+make release && make publish && make deploy
+```
+
+The operator runs this command after the `familyhome-api.mprlab.com` DNS record points to the MPR gateway and the private input is present.
 
 ## Device safety and rollback
 

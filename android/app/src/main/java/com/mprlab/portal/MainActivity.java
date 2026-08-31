@@ -327,9 +327,10 @@ public final class MainActivity extends Activity {
         eventTitle.setText("Loading calendar…"); eventTime.setText("Connecting through the Portal service");
         new Thread(() -> {
             try {
-                String endpoint = PortalConfig.SERVICE_BASE_URL + "/v1/calendar/next?url=" + URLEncoder.encode(profile.calendarUrl, "UTF-8");
+                String endpoint = PortalConfig.serviceURL("/v1/calendar/next?url=" + URLEncoder.encode(profile.calendarUrl, "UTF-8"));
                 HttpURLConnection connection = (HttpURLConnection) new URL(endpoint).openConnection();
                 connection.setConnectTimeout(5000); connection.setReadTimeout(12000);
+                PortalConfig.authorize(connection);
                 JSONObject event = new JSONObject(read(connection)).optJSONObject("event");
                 runOnUiThread(() -> {
                     if (store.active == null || !store.active.id.equals(profile.id)) return;
@@ -337,7 +338,7 @@ public final class MainActivity extends Activity {
                     else { eventTitle.setText(event.optString("title", "Upcoming event")); eventTime.setText(formatTime(event.optString("start"))); }
                 });
             } catch (Exception error) {
-                runOnUiThread(() -> { eventTitle.setText("Calendar unavailable"); eventTime.setText("Start the Portal service on the Mac, then try again."); });
+                runOnUiThread(() -> { eventTitle.setText("Calendar unavailable"); eventTime.setText("Please try again soon."); });
             }
         }).start();
     }

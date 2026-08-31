@@ -12,3 +12,4 @@ android/build/
 service/data/
 service/portal-service
 service/config.local.yml
+.mprlab/deploy/.env

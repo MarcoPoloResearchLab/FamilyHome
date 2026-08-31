@@ -202,10 +202,11 @@ public final class AskActivity extends Activity implements TextToSpeech.OnInitLi
     }
 
     private HttpURLConnection open(String path, String contentType) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(PortalConfig.SERVICE_BASE_URL + path).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) new URL(PortalConfig.serviceURL(path)).openConnection();
         connection.setRequestMethod("POST"); connection.setDoOutput(true);
         connection.setConnectTimeout(6000); connection.setReadTimeout(60000);
         connection.setRequestProperty("Content-Type", contentType);
+        PortalConfig.authorize(connection);
         return connection;
     }
 
@@ -218,7 +219,7 @@ public final class AskActivity extends Activity implements TextToSpeech.OnInitLi
     }
 
     private void showFailure(Exception error) {
-        String message = "Ask is unavailable. Start the Portal service on the Mac and try again.";
+        String message = "Ask is unavailable right now. Please try again soon.";
         try {
             String raw = error.getMessage();
             int start = raw == null ? -1 : raw.indexOf('{');

@@ -217,16 +217,17 @@ public final class DrawingActivity extends Activity {
         new Thread(() -> {
             String sharedURL = "";
             try {
-                HttpURLConnection connection = (HttpURLConnection) new URL(PortalConfig.SERVICE_BASE_URL + "/v1/drawings").openConnection();
+                HttpURLConnection connection = (HttpURLConnection) new URL(PortalConfig.serviceURL("/v1/drawings")).openConnection();
                 connection.setRequestMethod("POST"); connection.setDoOutput(true); connection.setConnectTimeout(5000); connection.setReadTimeout(15000);
                 connection.setRequestProperty("Content-Type", "image/png");
                 connection.setRequestProperty("X-Portal-Profile", profileID);
                 connection.setRequestProperty("X-Portal-Title", active.title);
+                PortalConfig.authorize(connection);
                 try (OutputStream output = connection.getOutputStream(); FileInputStream input = new FileInputStream(image)) {
                     byte[] buffer = new byte[8192]; int count;
                     while ((count = input.read(buffer)) >= 0) output.write(buffer, 0, count);
                 }
-                sharedURL = new JSONObject(MainActivity.read(connection)).optString("url", "");
+                sharedURL = PortalConfig.absoluteServiceURL(new JSONObject(MainActivity.read(connection)).optString("url", ""));
             } catch (Exception ignored) { }
             final String webURL = sharedURL;
             runOnUiThread(() -> showShareDialog(image, webURL));

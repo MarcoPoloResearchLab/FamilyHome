@@ -1,0 +1,96 @@
+---
+mprlab_resources:
+  owner: familyhome
+  release:
+    scheme: semver
+  resources:
+    - kind: private_values
+      id: private
+      bindings:
+        device-token: FAMILYHOME_DEVICE_TOKEN
+        llm-proxy-secret: LLM_PROXY_SECRET
+    - kind: compose_project
+      id: runtime
+      images:
+        - id: service-image
+          repository: ghcr.io/marcopoloresearchlab/familyhome-service
+          build:
+            context: .
+            dockerfile: Dockerfile
+            platforms:
+              - linux/amd64
+      volumes:
+        - id: data
+          name: familyhome-data
+          retention: retain
+      services:
+        - id: api
+          image: service-image
+          placement:
+            group: gateway
+            cardinality: one
+          environment:
+            FAMILYHOME_LISTEN_ADDRESS:
+              value: 0.0.0.0:8765
+            FAMILYHOME_DATA_DIR:
+              value: /data
+            FAMILYHOME_DEVICE_TOKEN:
+              resource: private
+              output: device-token
+            LLM_PROXY_BASE_URL:
+              value: https://llm-proxy-api.mprlab.com
+            LLM_PROXY_SECRET:
+              resource: private
+              output: llm-proxy-secret
+            LLM_PROXY_PROVIDER:
+              value: openai
+            LLM_PROXY_MODEL:
+              value: gpt-5-mini
+            LLM_PROXY_REASONING_EFFORT:
+              value: low
+            LLM_PROXY_REQUEST_TIMEOUT_SECONDS:
+              value: "45"
+          mounts:
+            - volume: data
+              target: /data
+          ports:
+            - container_port: 8765
+          readiness:
+            protocol: http
+            port: 8765
+            path: /healthz
+            expected_status: 200
+    - kind: runtime_capability
+      id: http
+      name: familyhome.http
+      version: 1
+      project: runtime
+      service: api
+      endpoint:
+        scope: same_host
+        scheme: http
+        alias: familyhome-api
+        port: 8765
+      health:
+        protocol: http
+        path: /healthz
+        expected_status: 200
+    - kind: caddy_route
+      id: public-api
+      hostname: familyhome-api.mprlab.com
+      listener: https
+      handlers:
+        - id: api
+          path_prefix: /
+          upstream: familyhome.http
+      tls:
+        mode: automatic
+      access:
+        rate_limit:
+          events: 120
+          window_seconds: 60
+    - kind: health_check
+      id: public-health
+      protocol: http
+      url: https://familyhome-api.mprlab.com/healthz
+      expected_status: 200

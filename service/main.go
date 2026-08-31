@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,29 +16,29 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/tyemirov/llm-proxy/pkg/llmproxyclient"
-	"gopkg.in/yaml.v3"
 )
 
 const maxRequestBytes = 12 << 20
 
 type config struct {
 	Server struct {
-		ListenAddress string `yaml:"listen_address"`
-		PublicBaseURL string `yaml:"public_base_url"`
-		DataDir       string `yaml:"data_dir"`
-	} `yaml:"server"`
+		ListenAddress string
+		DataDir       string
+		DeviceToken   string
+	}
 	LLMProxy struct {
-		BaseURL               string `yaml:"base_url"`
-		Secret                string `yaml:"secret"`
-		Provider              string `yaml:"provider"`
-		Model                 string `yaml:"model"`
-		ReasoningEffort       string `yaml:"reasoning_effort"`
-		RequestTimeoutSeconds int    `yaml:"request_timeout_seconds"`
-	} `yaml:"llm_proxy"`
+		BaseURL               string
+		Secret                string
+		Provider              string
+		Model                 string
+		ReasoningEffort       string
+		RequestTimeoutSeconds int
+	}
 }
 
 type application struct {
@@ -56,11 +59,7 @@ type calendarEvent struct {
 }
 
 func main() {
-	configPath := "config.yml"
-	if len(os.Args) > 1 {
-		configPath = os.Args[1]
-	}
-	configuration, configError := loadConfig(configPath)
+	configuration, configError := loadConfig()
 	if configError != nil {
 		log.Fatal(configError)
 	}
@@ -93,37 +92,102 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-func loadConfig(path string) (config, error) {
-	raw, readError := os.ReadFile(path)
-	if readError != nil {
-		return config{}, fmt.Errorf("read config: %w", readError)
-	}
-	expanded := os.ExpandEnv(string(raw))
+func loadConfig() (config, error) {
 	var value config
-	if decodeError := yaml.Unmarshal([]byte(expanded), &value); decodeError != nil {
-		return config{}, fmt.Errorf("decode config: %w", decodeError)
+	var configError error
+	value.Server.ListenAddress, configError = requiredEnvironment("FAMILYHOME_LISTEN_ADDRESS")
+	if configError != nil {
+		return config{}, configError
 	}
-	if strings.TrimSpace(value.Server.ListenAddress) == "" || strings.TrimSpace(value.Server.PublicBaseURL) == "" || strings.TrimSpace(value.Server.DataDir) == "" {
-		return config{}, errors.New("server listen_address, public_base_url, and data_dir are required")
+	value.Server.DataDir, configError = requiredEnvironment("FAMILYHOME_DATA_DIR")
+	if configError != nil {
+		return config{}, configError
 	}
-	if _, parseError := url.ParseRequestURI(value.Server.PublicBaseURL); parseError != nil {
-		return config{}, fmt.Errorf("server public_base_url: %w", parseError)
+	value.Server.DeviceToken, configError = requiredEnvironment("FAMILYHOME_DEVICE_TOKEN")
+	if configError != nil {
+		return config{}, configError
 	}
-	if strings.TrimSpace(value.LLMProxy.Model) == "" || value.LLMProxy.RequestTimeoutSeconds <= 0 {
-		return config{}, errors.New("llm_proxy model and positive request_timeout_seconds are required")
+	if len(value.Server.DeviceToken) < 32 {
+		return config{}, errors.New("FAMILYHOME_DEVICE_TOKEN must contain at least 32 characters")
+	}
+	value.LLMProxy.BaseURL, configError = requiredEnvironment("LLM_PROXY_BASE_URL")
+	if configError != nil {
+		return config{}, configError
+	}
+	parsedProxyURL, parseError := url.ParseRequestURI(value.LLMProxy.BaseURL)
+	if parseError != nil || parsedProxyURL.Host == "" || (parsedProxyURL.Scheme != "http" && parsedProxyURL.Scheme != "https") {
+		return config{}, errors.New("LLM_PROXY_BASE_URL must be an HTTP or HTTPS URL")
+	}
+	value.LLMProxy.Secret, configError = requiredEnvironment("LLM_PROXY_SECRET")
+	if configError != nil {
+		return config{}, configError
+	}
+	value.LLMProxy.Provider, configError = requiredEnvironment("LLM_PROXY_PROVIDER")
+	if configError != nil {
+		return config{}, configError
+	}
+	value.LLMProxy.Model, configError = requiredEnvironment("LLM_PROXY_MODEL")
+	if configError != nil {
+		return config{}, configError
+	}
+	value.LLMProxy.ReasoningEffort, configError = requiredEnvironment("LLM_PROXY_REASONING_EFFORT")
+	if configError != nil {
+		return config{}, configError
+	}
+	timeoutRaw, configError := requiredEnvironment("LLM_PROXY_REQUEST_TIMEOUT_SECONDS")
+	if configError != nil {
+		return config{}, configError
+	}
+	value.LLMProxy.RequestTimeoutSeconds, configError = strconv.Atoi(timeoutRaw)
+	if configError != nil || value.LLMProxy.RequestTimeoutSeconds <= 0 {
+		return config{}, errors.New("LLM_PROXY_REQUEST_TIMEOUT_SECONDS must be a positive integer")
+	}
+	return value, nil
+}
+
+func requiredEnvironment(name string) (string, error) {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return "", fmt.Errorf("%s is required", name)
 	}
 	return value, nil
 }
 
 func (app *application) routes() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", app.health)
-	mux.HandleFunc("POST /v1/ask", app.ask)
-	mux.HandleFunc("POST /v1/ask/audio", app.askAudio)
-	mux.HandleFunc("GET /v1/calendar/next", app.nextCalendarEvent)
-	mux.HandleFunc("POST /v1/drawings", app.saveDrawing)
-	mux.Handle("GET /drawings/", http.StripPrefix("/drawings/", http.FileServer(http.Dir(filepath.Join(app.config.Server.DataDir, "drawings")))))
-	return securityHeaders(mux)
+	api := http.NewServeMux()
+	api.HandleFunc("POST /v1/ask", app.ask)
+	api.HandleFunc("POST /v1/ask/audio", app.askAudio)
+	api.HandleFunc("GET /v1/calendar/next", app.nextCalendarEvent)
+	api.HandleFunc("POST /v1/drawings", app.saveDrawing)
+
+	root := http.NewServeMux()
+	root.HandleFunc("GET /healthz", app.health)
+	root.HandleFunc("GET /drawings/{name}", app.getDrawing)
+	root.Handle("/v1/", app.authenticate(api))
+	return securityHeaders(root)
+}
+
+func (app *application) authenticate(next http.Handler) http.Handler {
+	expected := sha256.Sum256([]byte(app.config.Server.DeviceToken))
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		header := request.Header.Get("Authorization")
+		if !strings.HasPrefix(header, "Bearer ") {
+			app.unauthorized(writer)
+			return
+		}
+		provided := strings.TrimPrefix(header, "Bearer ")
+		actual := sha256.Sum256([]byte(provided))
+		if subtle.ConstantTimeCompare(actual[:], expected[:]) != 1 {
+			app.unauthorized(writer)
+			return
+		}
+		next.ServeHTTP(writer, request)
+	})
+}
+
+func (app *application) unauthorized(writer http.ResponseWriter) {
+	writer.Header().Set("WWW-Authenticate", `Bearer realm="FamilyHome"`)
+	writeError(writer, http.StatusUnauthorized, "This Portal is not authorized.")
 }
 
 func securityHeaders(next http.Handler) http.Handler {
@@ -264,7 +328,12 @@ func (app *application) saveDrawing(writer http.ResponseWriter, request *http.Re
 	}
 	title := strings.TrimSpace(request.Header.Get("X-Portal-Title"))
 	stamp := time.Now().UTC().Format("20060102T150405Z")
-	fileName := profileID + "-" + stamp + ".png"
+	randomBytes := make([]byte, 16)
+	if _, randomError := rand.Read(randomBytes); randomError != nil {
+		writeError(writer, http.StatusInternalServerError, "The drawing could not be saved.")
+		return
+	}
+	fileName := fmt.Sprintf("%s-%s-%x.png", profileID, stamp, randomBytes)
 	filePath := filepath.Join(app.config.Server.DataDir, "drawings", fileName)
 	if writeErrorValue := os.WriteFile(filePath, body, 0o640); writeErrorValue != nil {
 		writeError(writer, http.StatusInternalServerError, "The drawing could not be saved.")
@@ -273,8 +342,24 @@ func (app *application) saveDrawing(writer http.ResponseWriter, request *http.Re
 	if title == "" {
 		title = "Drawing " + time.Now().Format("Jan 2, 3:04 PM")
 	}
-	publicURL := strings.TrimRight(app.config.Server.PublicBaseURL, "/") + "/drawings/" + fileName
-	writeJSON(writer, http.StatusCreated, map[string]string{"title": title, "url": publicURL, "file_name": fileName})
+	writeJSON(writer, http.StatusCreated, map[string]string{"title": title, "url": "/drawings/" + fileName, "file_name": fileName})
+}
+
+var drawingFileName = regexp.MustCompile(`^[a-zA-Z0-9_-]+\.png$`)
+
+func (app *application) getDrawing(writer http.ResponseWriter, request *http.Request) {
+	name := request.PathValue("name")
+	if !drawingFileName.MatchString(name) {
+		http.NotFound(writer, request)
+		return
+	}
+	path := filepath.Join(app.config.Server.DataDir, "drawings", name)
+	if _, statError := os.Stat(path); statError != nil {
+		http.NotFound(writer, request)
+		return
+	}
+	writer.Header().Set("Content-Type", "image/png")
+	http.ServeFile(writer, request, path)
 }
 
 var unsafeName = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
