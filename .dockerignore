@@ -1,4 +1,5 @@
 *
+.mprlab/deploy/.env
 !Dockerfile
 !service/
 !service/*.go
