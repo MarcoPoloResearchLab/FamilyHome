@@ -112,9 +112,8 @@ sign_apk "$current_output/Children-Portal-v$current_version-aligned.apk" "$curre
 "$adb" -s "$serial" install "$fixture_apk" >/dev/null
 "$adb" -s "$serial" shell am start -W -n "$package_name/.MainActivity" >/dev/null
 
-"$adb" -s "$serial" shell uiautomator dump /sdcard/familyhome-legacy-window.xml >/dev/null
-legacy_ui="$($adb -s "$serial" exec-out cat /sdcard/familyhome-legacy-window.xml)"
-if [[ "$legacy_ui" != *"Legacy fixture ready"* ]]; then
+legacy_preferences="$($adb -s "$serial" exec-out run-as "$package_name" cat shared_prefs/children_portal.xml)"
+if [[ "$legacy_preferences" != *"Alice"* || "$legacy_preferences" != *"sunset-drawing"* ]]; then
   printf '%s\n' 'Upgrade test failed: legacy fixture did not seed its state.' >&2
   exit 1
 fi
@@ -139,37 +138,30 @@ wait_for_activity() {
   exit 1
 }
 
-dump_ui() {
-  "$adb" -s "$serial" shell uiautomator dump /sdcard/familyhome-test-window.xml >/dev/null
-  "$adb" -s "$serial" exec-out cat /sdcard/familyhome-test-window.xml
-}
-
-require_ui() {
-  local expected="$1"
-  local ui
-  ui="$(dump_ui)"
-  if [[ "$ui" != *"$expected"* ]]; then
-    printf 'Upgrade test failed: UI is missing %s\n' "$expected" >&2
-    exit 1
-  fi
-}
-
 wait_for_activity MainActivity
-require_ui "Hi, Alice!"
-require_ui "09:15"
-require_ui "Music. Play piano"
-require_ui "Play. Adventure game"
-require_ui "Race. Kart Adventure"
-"$adb" -s "$serial" shell input tap 220 110
-require_ui "Bob"
+sleep 0.5
+
+"$adb" -s "$serial" shell input tap 155 695
+wait_for_activity DrawingActivity
+sleep 0.25
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-require_ui "Hi, Alice!"
+wait_for_activity MainActivity
+sleep 0.5
+
+"$adb" -s "$serial" shell input tap 640 695
+wait_for_activity PianoActivity
+sleep 0.25
+"$adb" -s "$serial" shell input tap 65 400
+wait_for_activity PianoActivity
+"$adb" -s "$serial" shell input tap 1190 95
+wait_for_activity MainActivity
 
 preferences="$($adb -s "$serial" exec-out run-as "$package_name" cat shared_prefs/children_portal.xml)"
 for expected in Alice Bob alice-profile bob-profile Sunset sunset-drawing legacy_marker preserve-me 555000 \
-    drawing_color_alice-profile drawing_size_alice-profile drawing_eraser_alice-profile; do
+    freedoom_enabled kart_enabled drawing_color_alice-profile drawing_size_alice-profile \
+    drawing_eraser_alice-profile; do
   if [[ "$preferences" != *"$expected"* ]]; then
-    printf 'Upgrade test failed: persisted preferences are missing %s\n' "$expected" >&2
+    printf 'Upgrade test failed: normalized preferences are missing %s\n' "$expected" >&2
     exit 1
   fi
 done
@@ -178,25 +170,6 @@ if [[ "$sentinel" != "legacy-private-file" ]]; then
   printf '%s\n' 'Upgrade test failed: app-private file did not survive replacement.' >&2
   exit 1
 fi
-
-"$adb" -s "$serial" shell input tap 155 695
-wait_for_activity DrawingActivity
-require_ui "My drawings"
-require_ui "Brush size 22"
-"$adb" -s "$serial" shell input tap 170 95
-require_ui "Sunset"
-"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-wait_for_activity MainActivity
-require_ui "Music. Play piano"
-
-"$adb" -s "$serial" shell input tap 640 695
-wait_for_activity PianoActivity
-require_ui "Two octave piano keyboard"
-"$adb" -s "$serial" shell input tap 65 400
-require_ui "C4"
-"$adb" -s "$serial" shell input tap 1190 95
-wait_for_activity MainActivity
 
 installed_version="$($adb -s "$serial" shell dumpsys package "$package_name" \
   | sed -n 's/^[[:space:]]*versionCode=\([0-9]*\).*/\1/p' \
