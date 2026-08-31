@@ -13,3 +13,7 @@ service/data/
 service/portal-service
 service/config.local.yml
 .mprlab/deploy/.env
+
+# BEGIN MPRLAB-GOVERNANCE
+/.mprlab/*-PLAN.md
+# END MPRLAB-GOVERNANCE
