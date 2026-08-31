@@ -1,0 +1,12 @@
+server:
+  listen_address: "0.0.0.0:8765"
+  public_base_url: "http://192.168.1.121:8765"
+  data_dir: "./data"
+
+llm_proxy:
+  base_url: "https://llm-proxy-api.mprlab.com"
+  secret: "${LLM_PROXY_SECRET}"
+  provider: "openai"
+  model: "gpt-5-mini"
+  reasoning_effort: "low"
+  request_timeout_seconds: 45

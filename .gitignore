@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.idea/
+.gradle/
+*.aab
+*.apk
+*.idsig
+*.jks
+*.keystore
+
+android/build/
+service/data/
+service/portal-service
+service/config.local.yml
