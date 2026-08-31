@@ -1,7 +1,11 @@
-*
+.git
+.gitignore
+.mprlab
 .mprlab/deploy/.env
-!Dockerfile
-!service/
-!service/*.go
-!service/go.mod
-!service/go.sum
+android
+games
+Makefile
+README.md
+service/data
+service/config.local.yml
+service/portal-service
