@@ -156,7 +156,7 @@ wait_for_activity PianoActivity
 sleep 0.25
 "$adb" -s "$serial" shell input tap 65 400
 wait_for_activity PianoActivity
-"$adb" -s "$serial" shell input tap 1190 95
+"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 
 preferences="$($adb -s "$serial" exec-out run-as "$package_name" cat shared_prefs/children_portal.xml)"
