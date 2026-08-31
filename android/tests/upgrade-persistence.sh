@@ -129,12 +129,15 @@ wait_for_activity() {
   for attempt in $(seq 1 20); do
     resumed="$($adb -s "$serial" shell dumpsys activity activities \
       | grep -m1 -E 'mResumedActivity|topResumedActivity' || true)"
-    if [[ "$resumed" == *"$package_name/.$activity"* ]]; then
+    if [[ "$resumed" == *"$package_name/.$activity"* \
+        || "$resumed" == *"$package_name/$package_name.$activity"* ]]; then
       return 0
     fi
     sleep 0.25
   done
   printf 'Upgrade test failed: activity did not open: %s\n' "$activity" >&2
+  printf 'Resumed activity: %s\n' "$resumed" >&2
+  "$adb" -s "$serial" logcat -d -t 300 '*:E' >&2 || true
   exit 1
 }
 
