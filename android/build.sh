@@ -46,7 +46,7 @@ printf '%s\n' \
   '}' > "$generated_package_dir/RuntimeConfig.java"
 "$tools_dir/aapt2" compile --dir "$source_dir/res" -o "$output_dir/compiled.zip"
 "$tools_dir/aapt2" link -I "$android_jar" --manifest "$source_dir/AndroidManifest.xml" --java "$output_dir" \
-  --min-sdk-version 28 --target-sdk-version 28 --version-code 14 --version-name 0.9.1 \
+  --min-sdk-version 28 --target-sdk-version 28 --version-code 15 --version-name 0.9.2 \
   -o "$output_dir/portal-unsigned.apk" "$output_dir/compiled.zip"
 find "$source_dir/java" -name '*.java' -print | sort > "$output_dir/java-sources.txt"
 printf '%s\n' "$generated_package_dir/RuntimeConfig.java" >> "$output_dir/java-sources.txt"
@@ -56,13 +56,13 @@ find "$output_dir/classes" -name '*.class' -print | sort > "$output_dir/class-fi
 "$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$output_dir/dex" @"$output_dir/class-files.txt"
 cp "$output_dir/portal-unsigned.apk" "$output_dir/portal-with-dex.apk"
 zip -j -q "$output_dir/portal-with-dex.apk" "$output_dir/dex/classes.dex"
-"$tools_dir/zipalign" -f 4 "$output_dir/portal-with-dex.apk" "$output_dir/Children-Portal-v0.9.1-aligned.apk"
+"$tools_dir/zipalign" -f 4 "$output_dir/portal-with-dex.apk" "$output_dir/Children-Portal-v0.9.2-aligned.apk"
 
 if [[ -n "${PORTAL_KEYSTORE:-}" ]]; then
   : "${PORTAL_KEYSTORE_PASSWORD:?Set PORTAL_KEYSTORE_PASSWORD}"
   : "${PORTAL_KEY_PASSWORD:?Set PORTAL_KEY_PASSWORD}"
   "$tools_dir/apksigner" sign --ks "$PORTAL_KEYSTORE" --ks-pass "pass:$PORTAL_KEYSTORE_PASSWORD" \
-    --key-pass "pass:$PORTAL_KEY_PASSWORD" --out "$output_dir/Children-Portal-v0.9.1.apk" \
-    "$output_dir/Children-Portal-v0.9.1-aligned.apk"
-  "$tools_dir/apksigner" verify --verbose "$output_dir/Children-Portal-v0.9.1.apk"
+    --key-pass "pass:$PORTAL_KEY_PASSWORD" --out "$output_dir/Children-Portal-v0.9.2.apk" \
+    "$output_dir/Children-Portal-v0.9.2-aligned.apk"
+  "$tools_dir/apksigner" verify --verbose "$output_dir/Children-Portal-v0.9.2.apk"
 fi

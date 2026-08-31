@@ -9,6 +9,7 @@ The current build was validated on a 1280 × 800 Portal running Android 9 (API 2
 - named child profiles with direct switching;
 - separate calendars, reading timers, drawings, brush choices, and game availability for each child;
 - a full-screen drawing studio with illustrated controls, colors, brushes, zoom, local saving, and sharing;
+- a full-screen, two-octave piano with multi-touch chords, note labels, and offline synthesized sound;
 - typed and recorded Ask requests routed through the official provider-neutral LLM Proxy client;
 - a read-only iCalendar/ICS next-event card;
 - optional Adventure Game and Kart Adventure launchers; and

@@ -1,6 +1,6 @@
 # FamilyHome Android app
 
-`com.mprlab.portal` is the native Android 9 home app for FamilyHome. It keeps profiles, timers, drawing documents, brush choices, and per-child game availability on the device. Calendar feeds, drawing-link storage, and Ask requests go through the deployed companion service in `../service`. The game choices are Adventure Game (the Portal edition of Freedoom) and Kart Adventure (the official SuperTuxKart Android app).
+`com.mprlab.portal` is the native Android 9 home app for FamilyHome. It keeps profiles, timers, drawing documents, brush choices, and per-child game availability on the device. Its built-in activities include the drawing studio and an offline two-octave piano. Calendar feeds, drawing-link storage, and Ask requests go through the deployed companion service in `../service`. The game choices are Adventure Game (the Portal edition of Freedoom) and Kart Adventure (the official SuperTuxKart Android app).
 
 The build injects the deployed service address and installation-specific device token into a generated class. Neither value is tracked in Git.
 
@@ -19,7 +19,7 @@ The script creates an aligned APK under `build/local`. Set `PORTAL_KEYSTORE`, `P
 ## Install and select as Home
 
 ```sh
-adb install -r build/local/Children-Portal-v0.9.1.apk
+adb install -r build/local/Children-Portal-v0.9.2.apk
 adb shell cmd package set-home-activity com.mprlab.portal/.MainActivity
 ```
 

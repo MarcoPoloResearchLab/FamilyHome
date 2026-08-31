@@ -10,6 +10,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -47,12 +48,14 @@ public final class MainActivity extends Activity {
     private static final int CORAL = Color.rgb(255, 105, 105);
     private static final int TEAL = Color.rgb(0, 166, 153);
     private static final int PINK = Color.rgb(232, 84, 145);
+    private static final int MUSIC_BLUE = Color.rgb(67, 114, 235);
     private static final int PALE_BLUE = Color.rgb(232, 243, 255);
     private static final int PALE_GREEN = Color.rgb(234, 249, 240);
     private static final int ICON_DRAW = 1;
     private static final int ICON_ASK = 2;
     private static final int ICON_PLAY = 3;
     private static final int ICON_RACE = 4;
+    private static final int ICON_MUSIC = 5;
     private static final long READING_MS = 20L * 60L * 1000L;
     private final Handler handler = new Handler();
     private ProfileStore store;
@@ -160,10 +163,12 @@ public final class MainActivity extends Activity {
         LinearLayout actions = row();
         ActivityTile draw = actionTile("Draw", "Make a picture", CORAL, ICON_DRAW); draw.setOnClickListener(v -> launch(DrawingActivity.class));
         ActivityTile ask = actionTile("Ask", "Learn something", PURPLE, ICON_ASK); ask.setOnClickListener(v -> launch(AskActivity.class));
+        ActivityTile music = actionTile("Music", "Play piano", MUSIC_BLUE, ICON_MUSIC); music.setOnClickListener(v -> launch(PianoActivity.class));
         gameButton = actionTile("Play", "Adventure game", TEAL, ICON_PLAY); gameButton.setOnClickListener(v -> launchFreedoom());
         kartButton = actionTile("Race", "Kart Adventure", PINK, ICON_RACE); kartButton.setOnClickListener(v -> launchKart());
         actions.addView(draw, actionParams());
         actions.addView(ask, actionParams());
+        actions.addView(music, actionParams());
         actions.addView(gameButton, actionParams());
         actions.addView(kartButton, actionParams());
         LinearLayout.LayoutParams actionRow = matchWrap(); actionRow.topMargin = dp(20);
@@ -372,7 +377,7 @@ public final class MainActivity extends Activity {
     private LinearLayout.LayoutParams matchWrap() { return new LinearLayout.LayoutParams(-1, -2); }
     private LinearLayout.LayoutParams weighted(float weight, int height) { return new LinearLayout.LayoutParams(0, dp(height), weight); }
     private LinearLayout.LayoutParams spacedWeighted(float weight, int height, boolean left) { LinearLayout.LayoutParams p = weighted(weight, height); if (left) p.leftMargin = dp(8); else p.rightMargin = dp(8); return p; }
-    private LinearLayout.LayoutParams actionParams() { LinearLayout.LayoutParams p = weighted(1f, 92); p.leftMargin = dp(8); p.rightMargin = dp(8); return p; }
+    private LinearLayout.LayoutParams actionParams() { LinearLayout.LayoutParams p = weighted(1f, 92); p.leftMargin = dp(6); p.rightMargin = dp(6); return p; }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 
     private final class ActivityTile extends LinearLayout {
@@ -423,15 +428,19 @@ public final class MainActivity extends Activity {
     private final class TileIconView extends View {
         private final int kind;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Drawable standardIcon;
         private int inkColor = Color.WHITE;
 
         TileIconView(int kind) {
             super(MainActivity.this);
             this.kind = kind;
+            standardIcon = kind == ICON_MUSIC ? getDrawable(R.drawable.ic_music_note).mutate() : null;
+            if (standardIcon != null) standardIcon.setTint(inkColor);
         }
 
         void setInkColor(int color) {
             inkColor = color;
+            if (standardIcon != null) standardIcon.setTint(color);
             invalidate();
         }
 
@@ -452,7 +461,10 @@ public final class MainActivity extends Activity {
             paint.setStrokeJoin(Paint.Join.ROUND);
             paint.setStyle(Paint.Style.STROKE);
 
-            if (kind == ICON_DRAW) drawPencil(canvas);
+            if (standardIcon != null) {
+                standardIcon.setBounds(13, 12, 39, 40);
+                standardIcon.draw(canvas);
+            } else if (kind == ICON_DRAW) drawPencil(canvas);
             else if (kind == ICON_ASK) drawQuestion(canvas);
             else if (kind == ICON_PLAY) drawController(canvas);
             else drawFlag(canvas);
