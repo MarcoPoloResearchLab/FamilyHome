@@ -57,10 +57,7 @@ public final class DrawingActivity extends Activity {
     private static final int ICON_NEW = 2;
     private static final int ICON_SHARE = 3;
     private static final int ICON_DONE = 4;
-    private static final int ICON_THIN = 5;
-    private static final int ICON_MEDIUM = 6;
-    private static final int ICON_THICK = 7;
-    private static final int ICON_ERASER = 8;
+    private static final int ICON_ERASER = 5;
     private String profileID;
     private String profileName;
     private SharedPreferences preferences;
@@ -69,8 +66,9 @@ public final class DrawingActivity extends Activity {
     private DrawingCanvas drawingCanvas;
     private LinearLayout topBar;
     private LinearLayout palette;
-    private final ArrayList<ToolButton> strokeButtons = new ArrayList<>();
-    private ToolButton lastLineButton;
+    private final ArrayList<Button> colorButtons = new ArrayList<>();
+    private StrokeSizeControl sizeControl;
+    private ToolButton eraserButton;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -109,25 +107,37 @@ public final class DrawingActivity extends Activity {
         palette.setBackground(rounded(SURFACE, 24));
         palette.setElevation(dp(4));
         int[] colors = drawingCanvas.colors;
+        colorButtons.clear();
         for (int index = 0; index < colors.length; index++) {
             final int selected = index;
             Button color = button("●", SURFACE, colors[index]);
             color.setTextColor(colors[index]);
             color.setTextSize(30);
+            color.setContentDescription(colorName(index) + " brush");
             color.setOnClickListener(v -> {
                 drawingCanvas.colorIndex = selected;
                 drawingCanvas.eraser = false;
-                if (lastLineButton != null) selectStrokeButton(lastLineButton);
+                saveToolSettings();
+                updateToolSelection();
                 drawingCanvas.invalidate();
             });
+            colorButtons.add(color);
             palette.addView(color, paletteParams(60));
         }
-        strokeButtons.clear();
-        lastLineButton = null;
-        addPaletteButton("Thin", 4f, false, ICON_THIN);
-        addPaletteButton("Medium", 10f, false, ICON_MEDIUM);
-        addPaletteButton("Thick", 22f, false, ICON_THICK);
-        addPaletteButton("Eraser", 30f, true, ICON_ERASER);
+
+        sizeControl = new StrokeSizeControl(drawingCanvas.strokeWidth / getResources().getDisplayMetrics().density);
+        sizeControl.setOnSizeChanged(widthDp -> drawingCanvas.strokeWidth = dp(widthDp));
+        palette.addView(sizeControl, paletteParams(430));
+
+        eraserButton = toolIconButton("Eraser", PALE_PURPLE, INK, ICON_ERASER);
+        eraserButton.setOnClickListener(v -> {
+            drawingCanvas.eraser = !drawingCanvas.eraser;
+            saveToolSettings();
+            updateToolSelection();
+            drawingCanvas.invalidate();
+        });
+        palette.addView(eraserButton, paletteParams(70));
+        updateToolSelection();
         FrameLayout.LayoutParams paletteParams = new FrameLayout.LayoutParams(-1, dp(78), Gravity.BOTTOM);
         paletteParams.leftMargin = dp(14); paletteParams.rightMargin = dp(14); paletteParams.bottomMargin = dp(10);
         frame.addView(palette, paletteParams);
@@ -143,24 +153,12 @@ public final class DrawingActivity extends Activity {
         topBar.addView(button, params);
     }
 
-    private void addPaletteButton(String label, float width, boolean eraser, int iconKind) {
-        ToolButton button = toolButton(label, PALE_PURPLE, INK, iconKind, true);
-        strokeButtons.add(button);
-        if (!eraser && width == 10f) {
-            lastLineButton = button;
-            selectStrokeButton(button);
+    private void updateToolSelection() {
+        if (drawingCanvas == null) return;
+        for (int index = 0; index < colorButtons.size(); index++) {
+            colorButtons.get(index).setBackground(swatchBackground(!drawingCanvas.eraser && index == drawingCanvas.colorIndex));
         }
-        button.setOnClickListener(v -> {
-            drawingCanvas.strokeWidth = dp(width);
-            drawingCanvas.eraser = eraser;
-            if (!eraser) lastLineButton = button;
-            selectStrokeButton(button);
-        });
-        palette.addView(button, paletteParams(105));
-    }
-
-    private void selectStrokeButton(ToolButton selected) {
-        for (ToolButton button : strokeButtons) button.setSelectedVisual(button == selected);
+        if (eraserButton != null) eraserButton.setSelectedVisual(drawingCanvas.eraser);
     }
 
     private LinearLayout.LayoutParams paletteParams(int width) {
@@ -284,6 +282,22 @@ public final class DrawingActivity extends Activity {
         JSONArray array = new JSONArray();
         try { for (DrawingDocument document : documents) array.put(document.toJson()); } catch (Exception ignored) { }
         preferences.edit().putString("drawings_" + profileID, array.toString()).putString("active_drawing_" + profileID, active.id).apply();
+        saveToolSettings();
+    }
+
+    private void saveToolSettings() {
+        if (drawingCanvas == null || preferences == null) return;
+        float density = getResources().getDisplayMetrics().density;
+        preferences.edit()
+                .putInt("drawing_color_" + profileID, drawingCanvas.colorIndex)
+                .putFloat("drawing_size_" + profileID, drawingCanvas.strokeWidth / density)
+                .putBoolean("drawing_eraser_" + profileID, drawingCanvas.eraser)
+                .apply();
+    }
+
+    private String colorName(int index) {
+        String[] names = {"Blue", "Red", "Green", "Purple", "Orange", "Black"};
+        return names[Math.max(0, Math.min(index, names.length - 1))];
     }
 
     private static String safeFile(String value) { return value.replaceAll("[^a-zA-Z0-9_-]+", "-").replaceAll("^-|-$", ""); }
@@ -291,7 +305,9 @@ public final class DrawingActivity extends Activity {
     private Button button(String label, int color) { return button(label, color, Color.WHITE); }
     private Button button(String label, int color, int textColor) { Button button = new Button(this); button.setText(label); button.setAllCaps(false); button.setTextColor(textColor); button.setTextSize(17); button.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)); button.setBackground(rounded(color, 18)); button.setPadding(dp(10), dp(6), dp(10), dp(6)); return button; }
     private ToolButton toolButton(String label, int color, int textColor, int iconKind, boolean compact) { return new ToolButton(label, color, textColor, iconKind, compact); }
+    private ToolButton toolIconButton(String label, int color, int textColor, int iconKind) { return new ToolButton(label, color, textColor, iconKind, true, true); }
     private GradientDrawable rounded(int color, int radius) { GradientDrawable drawable = new GradientDrawable(); drawable.setColor(color); drawable.setCornerRadius(dp(radius)); return drawable; }
+    private GradientDrawable swatchBackground(boolean selected) { GradientDrawable drawable = rounded(SURFACE, 18); drawable.setStroke(dp(selected ? 4 : 1), selected ? PURPLE : Color.rgb(230, 230, 235)); return drawable; }
     private int dp(float value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 
     private final class ToolButton extends LinearLayout {
@@ -301,12 +317,16 @@ public final class DrawingActivity extends Activity {
         private final TextView words;
 
         ToolButton(String label, int color, int textColor, int iconKind, boolean compact) {
+            this(label, color, textColor, iconKind, compact, false);
+        }
+
+        ToolButton(String label, int color, int textColor, int iconKind, boolean compact, boolean iconOnly) {
             super(DrawingActivity.this);
             normalColor = color;
             normalTextColor = textColor;
             setOrientation(HORIZONTAL);
-            setGravity(Gravity.CENTER_VERTICAL);
-            setPadding(dp(compact ? 8 : 12), 0, dp(compact ? 7 : 10), 0);
+            setGravity(iconOnly ? Gravity.CENTER : Gravity.CENTER_VERTICAL);
+            setPadding(iconOnly ? 0 : dp(compact ? 8 : 12), 0, iconOnly ? 0 : dp(compact ? 7 : 10), 0);
             setBackground(rounded(color, 18));
             setClickable(true);
             setFocusable(true);
@@ -316,24 +336,140 @@ public final class DrawingActivity extends Activity {
             int iconSize = dp(compact ? 30 : 34);
             addView(icon, new LinearLayout.LayoutParams(iconSize, iconSize));
 
-            words = new TextView(DrawingActivity.this);
-            words.setText(label);
-            words.setTextColor(textColor);
-            words.setTextSize(compact ? 13 : 15);
-            words.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD));
-            words.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
-            words.setSingleLine(true);
-            LinearLayout.LayoutParams wordParams = new LinearLayout.LayoutParams(0, -1, 1f);
-            wordParams.leftMargin = dp(compact ? 6 : 8);
-            addView(words, wordParams);
+            if (iconOnly) {
+                words = null;
+            } else {
+                words = new TextView(DrawingActivity.this);
+                words.setText(label);
+                words.setTextColor(textColor);
+                words.setTextSize(compact ? 13 : 15);
+                words.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD));
+                words.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+                words.setSingleLine(true);
+                LinearLayout.LayoutParams wordParams = new LinearLayout.LayoutParams(0, -1, 1f);
+                wordParams.leftMargin = dp(compact ? 6 : 8);
+                addView(words, wordParams);
+            }
         }
 
         void setSelectedVisual(boolean selected) {
             int color = selected ? PURPLE : normalColor;
             int textColor = selected ? Color.WHITE : normalTextColor;
             setBackground(rounded(color, 18));
-            words.setTextColor(textColor);
+            if (words != null) words.setTextColor(textColor);
             icon.setInkColor(textColor);
+        }
+    }
+
+    private interface OnSizeChangedListener { void onSizeChanged(float widthDp); }
+
+    private final class StrokeSizeControl extends View {
+        private static final float MIN_SIZE = 3f;
+        private static final float MAX_SIZE = 28f;
+        private final Paint controlPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path track = new Path();
+        private float widthDp;
+        private boolean previewVisible;
+        private OnSizeChangedListener listener;
+        private final Runnable hidePreview = () -> { previewVisible = false; invalidate(); };
+
+        StrokeSizeControl(float initialWidthDp) {
+            super(DrawingActivity.this);
+            widthDp = Math.max(MIN_SIZE, Math.min(MAX_SIZE, initialWidthDp));
+            setBackground(rounded(PALE_PURPLE, 18));
+            setClickable(true);
+            setFocusable(true);
+            updateAccessibilityLabel();
+        }
+
+        void setOnSizeChanged(OnSizeChangedListener value) { listener = value; }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float startX = dp(26);
+            float endX = getWidth() - dp(26);
+            float centerY = getHeight() - dp(17);
+            float thumbX = startX + (endX - startX) * ((widthDp - MIN_SIZE) / (MAX_SIZE - MIN_SIZE));
+
+            track.reset();
+            track.moveTo(startX, centerY - dp(2));
+            track.lineTo(endX, centerY - dp(11));
+            track.lineTo(endX, centerY + dp(11));
+            track.lineTo(startX, centerY + dp(2));
+            track.close();
+            controlPaint.setStyle(Paint.Style.FILL);
+            controlPaint.setColor(Color.rgb(196, 199, 213));
+            canvas.drawPath(track, controlPaint);
+            canvas.save();
+            canvas.clipRect(startX, 0, thumbX, getHeight());
+            controlPaint.setColor(PURPLE);
+            canvas.drawPath(track, controlPaint);
+            canvas.restore();
+
+            controlPaint.setColor(Color.WHITE);
+            canvas.drawCircle(thumbX, centerY, dp(12), controlPaint);
+            controlPaint.setColor(PURPLE);
+            canvas.drawCircle(thumbX, centerY, dp(6), controlPaint);
+
+            if (previewVisible) {
+                float previewRadius = Math.max(dp(3), dp(widthDp) / 2f);
+                float previewY = Math.max(previewRadius + dp(1), dp(14));
+                controlPaint.setStyle(Paint.Style.FILL);
+                controlPaint.setColor(PURPLE);
+                canvas.drawCircle(thumbX, previewY, previewRadius, controlPaint);
+                controlPaint.setStyle(Paint.Style.STROKE);
+                controlPaint.setStrokeWidth(dp(2));
+                controlPaint.setColor(Color.WHITE);
+                canvas.drawCircle(thumbX, previewY, previewRadius, controlPaint);
+                controlPaint.setStyle(Paint.Style.FILL);
+            }
+        }
+
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                    previewVisible = true;
+                    removeCallbacks(hidePreview);
+                    updateFromTouch(event.getX());
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    updateFromTouch(event.getX());
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    updateFromTouch(event.getX());
+                    saveToolSettings();
+                    performClick();
+                    postDelayed(hidePreview, 850);
+                    getParent().requestDisallowInterceptTouchEvent(false);
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                    saveToolSettings();
+                    postDelayed(hidePreview, 850);
+                    getParent().requestDisallowInterceptTouchEvent(false);
+                    return true;
+                default:
+                    return super.onTouchEvent(event);
+            }
+        }
+
+        @Override public boolean performClick() {
+            super.performClick();
+            return true;
+        }
+
+        private void updateFromTouch(float x) {
+            float startX = dp(26);
+            float endX = Math.max(startX + 1, getWidth() - dp(26));
+            float fraction = Math.max(0f, Math.min(1f, (x - startX) / (endX - startX)));
+            widthDp = MIN_SIZE + fraction * (MAX_SIZE - MIN_SIZE);
+            updateAccessibilityLabel();
+            if (listener != null) listener.onSizeChanged(widthDp);
+            invalidate();
+        }
+
+        private void updateAccessibilityLabel() {
+            setContentDescription("Brush size " + Math.round(widthDp));
         }
     }
 
@@ -371,9 +507,6 @@ public final class DrawingActivity extends Activity {
                 case ICON_NEW: drawNew(canvas); break;
                 case ICON_SHARE: drawShare(canvas); break;
                 case ICON_DONE: drawDone(canvas); break;
-                case ICON_THIN: drawLineWeight(canvas, 1.8f); break;
-                case ICON_MEDIUM: drawLineWeight(canvas, 3.8f); break;
-                case ICON_THICK: drawLineWeight(canvas, 6.5f); break;
                 default: drawEraser(canvas); break;
             }
             canvas.restore();
@@ -405,13 +538,6 @@ public final class DrawingActivity extends Activity {
             canvas.drawLine(15, 24, 28, 10, iconPaint);
         }
 
-        private void drawLineWeight(Canvas canvas, float width) {
-            float oldWidth = iconPaint.getStrokeWidth();
-            iconPaint.setStrokeWidth(width);
-            canvas.drawLine(8, 18, 28, 18, iconPaint);
-            iconPaint.setStrokeWidth(oldWidth);
-        }
-
         private void drawEraser(Canvas canvas) {
             Path eraser = new Path();
             eraser.moveTo(9, 24); eraser.lineTo(21, 10); eraser.lineTo(29, 17); eraser.lineTo(17, 29); eraser.lineTo(11, 29); eraser.close();
@@ -439,9 +565,13 @@ public final class DrawingActivity extends Activity {
     private final class DrawingCanvas extends View {
         final int[] colors = {Color.rgb(8,102,255), Color.rgb(232,65,66), Color.rgb(47,168,79), Color.rgb(139,92,246), Color.rgb(255,138,0), Color.rgb(30,30,30)};
         final Paint paper = new Paint(); final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG); final ScaleGestureDetector scaleDetector;
-        int colorIndex; float strokeWidth = dp(10); boolean eraser; float scale = 1f, panX, panY, lastFocusX, lastFocusY; Stroke current;
+        int colorIndex; float strokeWidth; boolean eraser; float scale = 1f, panX, panY, lastFocusX, lastFocusY; Stroke current;
         DrawingCanvas() {
             super(DrawingActivity.this); paper.setColor(Color.rgb(250,247,239));
+            colorIndex = Math.max(0, Math.min(colors.length - 1, preferences.getInt("drawing_color_" + profileID, 0)));
+            float savedWidth = preferences.getFloat("drawing_size_" + profileID, 10f);
+            strokeWidth = dp(Math.max(3f, Math.min(28f, savedWidth)));
+            eraser = preferences.getBoolean("drawing_eraser_" + profileID, false);
             strokePaint.setStyle(Paint.Style.STROKE); strokePaint.setStrokeCap(Paint.Cap.ROUND); strokePaint.setStrokeJoin(Paint.Join.ROUND);
             scaleDetector = new ScaleGestureDetector(DrawingActivity.this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
                 @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
