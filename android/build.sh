@@ -17,9 +17,18 @@ fi
 build_tools_version="${BUILD_TOOLS_VERSION:-36.1.0}"
 android_platform="${ANDROID_PLATFORM:-android-35}"
 output_dir="${1:-build/local}"
-source_dir="app/src/main"
+source_dir="${ANDROID_SOURCE_DIR:-app/src/main}"
+manifest="$source_dir/AndroidManifest.xml"
 tools_dir="$ANDROID_SDK_ROOT/build-tools/$build_tools_version"
 android_jar="$ANDROID_SDK_ROOT/platforms/$android_platform/android.jar"
+
+version_code="${APP_VERSION_CODE:-$(sed -n 's/.*android:versionCode="\([^"]*\)".*/\1/p' "$manifest" | head -1)}"
+version_name="${APP_VERSION_NAME:-$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' "$manifest" | head -1)}"
+if [[ -z "$version_code" || -z "$version_name" ]]; then
+  printf '%s\n' "Android manifest must declare versionCode and versionName: $manifest" >&2
+  exit 2
+fi
+apk_basename="${APK_BASENAME:-Children-Portal-v$version_name}"
 
 generated_dir="$output_dir/generated"
 generated_package_dir="$generated_dir/com/mprlab/portal"
@@ -45,8 +54,19 @@ printf '%s\n' \
   '    }' \
   '}' > "$generated_package_dir/RuntimeConfig.java"
 "$tools_dir/aapt2" compile --dir "$source_dir/res" -o "$output_dir/compiled.zip"
-"$tools_dir/aapt2" link -I "$android_jar" --manifest "$source_dir/AndroidManifest.xml" --java "$output_dir" \
-  --min-sdk-version 28 --target-sdk-version 28 --version-code 15 --version-name 0.9.2 \
+link_arguments=(
+  -I "$android_jar"
+  --manifest "$manifest"
+  --java "$output_dir"
+  --min-sdk-version 28
+  --target-sdk-version 28
+  --version-code "$version_code"
+  --version-name "$version_name"
+)
+if [[ "${ANDROID_DEBUGGABLE:-0}" == "1" ]]; then
+  link_arguments+=(--debug-mode)
+fi
+"$tools_dir/aapt2" link "${link_arguments[@]}" \
   -o "$output_dir/portal-unsigned.apk" "$output_dir/compiled.zip"
 find "$source_dir/java" -name '*.java' -print | sort > "$output_dir/java-sources.txt"
 printf '%s\n' "$generated_package_dir/RuntimeConfig.java" >> "$output_dir/java-sources.txt"
@@ -56,13 +76,13 @@ find "$output_dir/classes" -name '*.class' -print | sort > "$output_dir/class-fi
 "$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$output_dir/dex" @"$output_dir/class-files.txt"
 cp "$output_dir/portal-unsigned.apk" "$output_dir/portal-with-dex.apk"
 zip -j -q "$output_dir/portal-with-dex.apk" "$output_dir/dex/classes.dex"
-"$tools_dir/zipalign" -f 4 "$output_dir/portal-with-dex.apk" "$output_dir/Children-Portal-v0.9.2-aligned.apk"
+"$tools_dir/zipalign" -f 4 "$output_dir/portal-with-dex.apk" "$output_dir/$apk_basename-aligned.apk"
 
 if [[ -n "${PORTAL_KEYSTORE:-}" ]]; then
   : "${PORTAL_KEYSTORE_PASSWORD:?Set PORTAL_KEYSTORE_PASSWORD}"
   : "${PORTAL_KEY_PASSWORD:?Set PORTAL_KEY_PASSWORD}"
   "$tools_dir/apksigner" sign --ks "$PORTAL_KEYSTORE" --ks-pass "pass:$PORTAL_KEYSTORE_PASSWORD" \
-    --key-pass "pass:$PORTAL_KEY_PASSWORD" --out "$output_dir/Children-Portal-v0.9.2.apk" \
-    "$output_dir/Children-Portal-v0.9.2-aligned.apk"
-  "$tools_dir/apksigner" verify --verbose "$output_dir/Children-Portal-v0.9.2.apk"
+    --key-pass "pass:$PORTAL_KEY_PASSWORD" --out "$output_dir/$apk_basename.apk" \
+    "$output_dir/$apk_basename-aligned.apk"
+  "$tools_dir/apksigner" verify --verbose "$output_dir/$apk_basename.apk"
 fi

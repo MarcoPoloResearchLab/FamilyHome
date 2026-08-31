@@ -27,13 +27,17 @@ SuperTuxKart is used unmodified and is installed from its official Android relea
 
 ## Build and test
 
-The service requires Go and the Android app requires an Android SDK containing platform 35 and build-tools 36.1.0.
+The service requires Go 1.26.5. The Android app requires a JDK, `zip`, and an Android SDK containing platform-tools, platform 35, and build-tools 36.1.0.
 
 ```sh
-make test
+export ANDROID_SDK_ROOT=/path/to/android-sdk
+make ci
+```
 
-cd android
-ANDROID_SDK_ROOT=/path/to/android-sdk ./build.sh
+`make ci` runs the Go tests and build plus the host-side Android APK contract test with safe development configuration. The destructive upgrade/persistence test requires a dedicated running emulator:
+
+```sh
+ANDROID_SERIAL=emulator-5554 make test-android-upgrade
 ```
 
 Signing variables and installation instructions are documented in [`android/README.md`](android/README.md). Service configuration is documented in [`service/README.md`](service/README.md).

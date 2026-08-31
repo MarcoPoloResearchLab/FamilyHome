@@ -1,8 +1,8 @@
-.PHONY: ci test test-service build-service build-android release publish deploy
+.PHONY: ci test test-service build-service build-android test-android test-android-contract test-android-upgrade release publish deploy
 
-ci: test-service build-service
+ci: test-service build-service test-android-contract
 
-test: test-service
+test: test-service test-android-contract
 
 test-service:
 	cd service && go test ./...
@@ -12,6 +12,14 @@ build-service:
 
 build-android:
 	cd android && ./build.sh
+
+test-android: test-android-contract test-android-upgrade
+
+test-android-contract:
+	cd android && ./tests/apk-contract.sh
+
+test-android-upgrade:
+	cd android && ./tests/upgrade-persistence.sh
 
 release publish deploy:
 	@application_root="$$(git rev-parse --show-toplevel)"; \

@@ -28,3 +28,23 @@ Restore the Meta launcher with:
 ```sh
 adb shell cmd package set-home-activity com.facebook.alohaapps.launcher/com.facebook.aloha.app.home.touch.HomeActivity
 ```
+
+## Regression tests
+
+The fast APK contract test builds a debuggable APK with non-production configuration and verifies its package identity, SDK contract, activities, provider, and generated runtime boundary:
+
+```sh
+ANDROID_SDK_ROOT=/path/to/android-sdk ./tests/apk-contract.sh
+```
+
+The upgrade test uses a frozen legacy APK fixture signed with the same temporary test key as the current APK. It seeds two profiles, timer and game settings, a drawing, drawing-tool preferences, and an app-private sentinel; installs the current APK with `adb install -r`; then verifies that the data and child-facing activities survive the replacement.
+
+Run it only against a dedicated emulator. The script refuses physical devices and emulators that already contain `com.mprlab.portal` unless the corresponding explicit override is set.
+
+```sh
+ANDROID_SDK_ROOT=/path/to/android-sdk \
+ANDROID_SERIAL=emulator-5554 \
+./tests/upgrade-persistence.sh
+```
+
+The upgrade test sets the emulator to the Portal's 1280 × 800 geometry for its UI smoke checks and restores the previous display override afterward.
