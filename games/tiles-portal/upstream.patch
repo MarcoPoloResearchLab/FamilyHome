@@ -1,0 +1,136 @@
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -7,8 +7,8 @@
+         applicationId "net.vantulder.tessel"
+         minSdkVersion rootProject.ext.minSdkVersion
+         targetSdkVersion rootProject.ext.targetSdkVersion
+-        versionCode 10023
+-        versionName "1.0.23"
++        versionCode 10024
++        versionName "1.0.23-portal1"
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+         aaptOptions {
+              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+--- a/android/app/src/main/java/net/vantulder/tessel/MainActivity.java
++++ b/android/app/src/main/java/net/vantulder/tessel/MainActivity.java
+@@ -1,5 +1,21 @@
+ package net.vantulder.tessel;
+ 
++import android.os.Bundle;
++import android.view.View;
++import android.view.WindowManager;
+ import com.getcapacitor.BridgeActivity;
+ 
+-public class MainActivity extends BridgeActivity {}
++public class MainActivity extends BridgeActivity {
++    @Override public void onCreate(Bundle state) {
++        registerPlugin(PortalNavigationPlugin.class);
++        super.onCreate(state);
++    }
++    @Override public void onWindowFocusChanged(boolean focused) {
++        super.onWindowFocusChanged(focused);
++        if (focused) {
++            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
++            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN |
++                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
++        }
++    }
++}
+--- a/babel.config.js
++++ b/babel.config.js
+@@ -1,9 +1,4 @@
+-import child_process from "child_process";
+-
+-function git(command) {
+-  return child_process.execSync(`git ${command}`, { encoding: "utf8" }).trim();
+-}
+-
++// @ts-check
+ export default {
+   plugins: [
+     ...(process.env["NODE_ENV"] != "production"
+@@ -13,7 +8,7 @@
+     [
+       "transform-define",
+       {
+-        ENV_VERSION: `${process.env.npm_package_version} (${git("rev-parse --short HEAD")})`,
++        ENV_VERSION: "1.0.23-portal1 (7da4fa6)",
+         ENV_INCLUDE_SERVICE_WORKER:
+           process.env["NODE_ENV"] == "production" &&
+           !process.env["SKIP_SERVICE_WORKER"],
+--- a/src/index.capacitor.html
++++ b/src/index.capacitor.html
+@@ -93,6 +93,7 @@
+       }
+     </style>
+     <link rel="stylesheet" href="../style/main.scss" crossorigin="anonymous" />
++  <link rel="stylesheet" href="../style/portal.scss" />
+   </head>
+   <body>
+     <script type="text/javascript">
+--- a/src/main.capacitor.ts
++++ b/src/main.capacitor.ts
+@@ -3,7 +3,7 @@
+  * SPDX-FileCopyrightText: Copyright (C) 2025 Gijs van Tulder
+  */
+ 
+-import { Capacitor } from "@capacitor/core";
++import { Capacitor, registerPlugin } from "@capacitor/core";
+ import { App } from "@capacitor/app";
+ import { Device } from "@capacitor/device";
+ import { Share, ShareOptions } from "@capacitor/share";
+@@ -14,6 +14,32 @@
+ import { setShareBackend, ShareI } from "./lib/share-backend";
+ 
+ StatusBar.hide();
++
++const navigation = registerPlugin<{ home(): Promise<void> }>("PortalNavigation");
++const toolbar = document.createElement("nav");
++toolbar.className = "portal-toolbar";
++toolbar.setAttribute("aria-label", "Screen toolbar");
++const actions: [string, string, () => void][] = [
++    ["Back", '<path d="m15 5-7 7 7 7M8 12h13"/>', () => {
++        if (!globalThis.gameController.navigateBack()) App.exitApp();
++    }],
++    ["Home", '<path d="m3 11 9-8 9 8M5 9v12h5v-7h4v7h5V9"/>', () => {
++        globalThis.gameController.saveControllerState();
++        navigation.home();
++    }],
++];
++for (const [label, path, action] of actions) {
++    const button = document.createElement("button");
++    button.setAttribute("aria-label", label);
++    button.title = label;
++    button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${path}</svg>`;
++    button.addEventListener("pointerup", action);
++    button.addEventListener("keydown", (event) => {
++        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); action(); }
++    });
++    toolbar.appendChild(button);
++}
++document.body.appendChild(toolbar);
+ 
+ class PreferencesStorage implements StorageI {
+     constructor(group: string) {
+--- a/src/ui/shared/Button.ts
++++ b/src/ui/shared/Button.ts
+@@ -25,6 +25,8 @@
+         button.title = (title as MessageDescriptor).id
+             ? t(title as MessageDescriptor)
+             : (title as string);
++        wrapper.setAttribute("role", "button");
++        wrapper.setAttribute("aria-label", button.title === "Home" ? "Tiles menu" : button.title);
+         button.innerHTML = icon;
+         if (showLabel) {
+             const span = createElement("span", null, button);
+--- a/src/ui/shared/ScreenCarrousel.ts
++++ b/src/ui/shared/ScreenCarrousel.ts
+@@ -70,7 +70,7 @@
+     }
+ 
+     build(): ScreenCarrousel {
+-        return new ScreenCarrousel(this.def);
++        return new ScreenCarrousel(this.def.flatMap(item => "items" in item ? item.items : item));
+     }
+ 
+     has(page: string): boolean {
