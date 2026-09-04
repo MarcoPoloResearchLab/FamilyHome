@@ -1,86 +1,107 @@
 # FamilyHome
 
-FamilyHome is a reversible, child-friendly home experience for first-generation Meta Portal devices. It replaces the Android home screen with large, profile-aware activities while preserving Meta's original launcher and system packages.
+**A new home for your Meta Portal.**
 
-The current build was validated on a 1280 × 800 Portal running Android 9 (API 28).
+FamilyHome turns a first-generation Meta Portal into a family activity station.
+Children can draw, play piano and guitar, use timers, and open games from one home screen.
+Each child has a profile with separate drawings and settings.
+The weather widget shows the forecast and suggests clothes for the day.
 
-## What it provides
+[Setup guide](docs/INSTALL.md) · [Screenshots and demo](screenshots/README.md) · [Development](docs/DEVELOPMENT.md) · [Family authentication plan](docs/MULTI-FAMILY.md)
 
-- named child profiles with direct switching;
-- a dedicated Settings screen for adding and editing children, calendars, games, and the household weather location;
-- separate calendars, reading timers, drawings, brush choices, and game availability for each child;
-- a full-screen drawing studio with illustrated controls, colors, brushes, zoom, local saving, and sharing;
-- a full-screen, two-octave piano with multi-touch chords, note labels, and offline synthesized sound;
-- typed and recorded Ask requests routed through the official provider-neutral LLM Proxy client;
-- a read-only iCalendar/ICS next-event card;
-- an optional native weather card configured by household ZIP code or city;
-- a profile-specific library for Adventure, Kart, Blocks, Tiles, and Match; and
-- a balanced child-facing layout with the activity dock anchored to the bottom of the screen.
+![FamilyHome home screen with a sample profile, timer choices, weather, and clothing suggestions](screenshots/home.png)
 
-## Repository layout
+*Development preview: version 0.13.0, 1280 × 800 Android emulator, with sample data, including an example weather report. See the [capture details](screenshots/README.md).*
 
-| Path | Purpose |
+## Music: piano and guitar
+
+![Music screen with separate Piano and Guitar activities](screenshots/music.png)
+
+| Piano | Guitar |
 | --- | --- |
-| `android/` | Native Android 9 home application, package `com.mprlab.portal` |
-| `service/` | Deployed companion service for Ask, calendar fetching, and drawing sharing |
-| `games/freedoom-portal/` | Source of the small Portal-specific adapter for Freedoom for Android |
+| ![Two octaves of piano keys with note labels](screenshots/piano.png) | ![Guitar strings and fret positions for the C chord](screenshots/guitar.png) |
+| Play notes and chords with multiple fingers. | Touch the frets, choose a chord, and strum six strings. |
 
-SuperTuxKart, Block Drop, Tessel, and Privacy Friendly Memo Game are installed separately from their reviewed upstream or F-Droid builds. Their APKs are not vendored in this repository.
-The accepted package versions, hashes, signatures, and permission audit are recorded in [`android/GAMES.md`](android/GAMES.md).
+Both instruments generate sound on the device and work without a service connection.
 
-## Build and test
+## Games: puzzles, patterns, and matching pairs
 
-The service requires Go 1.26.5. The Android app requires a JDK, `zip`, and an Android SDK containing platform-tools, platform 35, and build-tools 36.1.0.
+![The game library with Kart, Blocks, Tiles, and Match installed](screenshots/games.png)
 
-```sh
-export ANDROID_SDK_ROOT=/path/to/android-sdk
-make ci
-```
+| Tiles | Blocks |
+| --- | --- |
+| ![A colorful triangular tile puzzle in Tessel](screenshots/tiles.png) | ![Falling shapes in Block Drop](screenshots/blocks.png) |
+| Connect colors to make patterns. | Move and rotate shapes to fill rows. |
 
-`make ci` runs the Go tests and build plus the host-side Android APK contract test with safe development configuration. The destructive upgrade/persistence test requires a dedicated running emulator:
+| Match | Drawing |
+| --- | --- |
+| ![A card turned over in Privacy Friendly Memo Game](screenshots/match.png) | ![A sample house and rainbow in the drawing studio](screenshots/drawing.png) |
+| Turn over cards to find matching pairs. | Choose colors and brushes. Save pictures for each child. |
 
-```sh
-ANDROID_SERIAL=emulator-5554 make test-android-upgrade
-```
+Games use separately installed APKs with their own licenses.
+These captures show the Portal adaptations of Tessel, Block Drop, and Privacy Friendly Memo Game.
+The library also has entries for Kart and Freedoom.
+See the [game guide](android/GAMES.md) and [third-party notices](THIRD_PARTY.md).
 
-Signing variables and installation instructions are documented in [`android/README.md`](android/README.md). Service configuration is documented in [`service/README.md`](service/README.md).
+## Weather and daily routines
 
-## Runtime and authentication boundary
+The home screen combines timers, the next calendar event, and the weather widget.
+Weather includes the temperature, expected rain, and clothing suggestions.
+Enter a ZIP code or city in Settings to show the widget.
 
-The Android application contains no LLM credential. Ask requests go to `https://familyhome-api.mprlab.com`, which uses `github.com/tyemirov/llm-proxy/pkg/llmproxyclient`. Provider, model, and `LLM_PROXY_SECRET` configuration remain on the service host. Weather location lookup and forecast normalization also stay behind the FamilyHome service; the Portal talks only to the FamilyHome API.
+Each child has a turn and a profile with separate drawings and timer settings.
+[See the profile selector](screenshots/profiles.png).
 
-Each Portal build carries one FamilyHome device bearer token. The backend requires it for every `/v1/` request. Drawing share URLs use random capability identifiers and remain accessible to recipients without the device token.
+[Watch the short, silent demo](screenshots/familyhome-demo.mp4).
 
-## MPR deployment
+## What works today
 
-The application owns its deployment resources in `.mprlab/deploy/resources.yml`. The manifest builds a non-root container, retains drawing data, exposes the service through the MPR Caddy runtime, and verifies `https://familyhome-api.mprlab.com/healthz`.
+| Feature | Connection |
+| --- | --- |
+| Child profiles, local drawings, brush choices, and timers | Works on the device without a service connection. |
+| Piano and guitar | Generates sound on the device without a service connection. |
+| Game library | Opens separately installed games. Each game has its own network requirements. |
+| Next calendar event | Requires the companion service and a configured ICS feed. |
+| Weather | Requires the companion service and a configured ZIP code or city. |
+| Ask by text or recorded voice | Requires the companion service and its LLM Proxy connection. |
+| Drawing share links | Requires the companion service. Recipients can open a link in a browser. |
 
-Create the ignored `.mprlab/deploy/.env` file with mode `0600`:
+The game library contains entries for Freedoom, Kart, Blocks, Tiles, and Match.
+Game installation is separate from FamilyHome installation.
+The [game guide](android/GAMES.md) records the reviewed builds.
 
-```dotenv
-FAMILYHOME_DEVICE_TOKEN=<64-character installation token>
-LLM_PROXY_SECRET=<LLM Proxy key>
-```
+## Current status
 
-The production lifecycle is:
+FamilyHome is a developer preview for first-generation Meta Portal hardware with Android 9 (API 28).
+The [setup guide](docs/INSTALL.md) describes the current build and ADB installation process.
+The images above show an emulator build. They do not establish hardware acceptance for that build.
 
-```sh
-make release && make publish && make deploy
-```
+The current service uses one shared installation credential.
+Parent sign-in, individual device credentials, and family isolation are planned in **P002**.
+The first hosted pilot will serve invited households after that work passes acceptance.
+See the [multi-family design](docs/MULTI-FAMILY.md) for the technical scope.
 
-The operator runs this command after the `familyhome-api.mprlab.com` DNS record points to the MPR gateway and the private input is present.
+Child profiles currently organize local data. Profile selection and Settings have no parent authentication.
+LLM credentials stay on the service host. The APK contains the FamilyHome installation credential.
+A drawing share link grants access to its image to anyone who has the link.
 
-## Device safety and rollback
+## Keep the choice of home screen
 
-Installation uses ordinary ADB sideloading and Android's preferred-HOME mechanism. The original Meta launcher remains installed. Restore it with:
+FamilyHome uses Android's home-app selection.
+The original Meta launcher remains installed.
+The [setup guide](docs/INSTALL.md#restore-the-meta-home-screen) includes the command to restore it.
 
-```sh
-adb shell cmd package set-home-activity \
-  com.facebook.alohaapps.launcher/com.facebook.aloha.app.home.touch.HomeActivity
-```
+## Build and contribute
 
-Factory reset and system-package removal are outside the FamilyHome installation process.
+The Android app uses native Java. The companion service uses Go.
+The [development guide](docs/DEVELOPMENT.md) contains build requirements, checks, and service operations.
+The [Android guide](android/README.md) and [service guide](service/README.md) describe each component.
 
-## Third-party games
+For a bug report, include the Portal model, Android version, FamilyHome version, and steps to reproduce the problem.
+Use sample data in screenshots and logs.
 
-Freedoom for Android, SuperTuxKart, Block Drop, Tessel, and Privacy Friendly Memo Game remain subject to their upstream licenses. FamilyHome includes no commercial Doom data, game APKs, signing keys, or generated binaries.
+## License
+
+FamilyHome's original application code uses the [MIT License](LICENSE).
+Third-party code, icons, and game adaptations retain their own licenses.
+See [third-party notices](THIRD_PARTY.md).
