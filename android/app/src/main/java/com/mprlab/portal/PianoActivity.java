@@ -1,6 +1,5 @@
 package com.mprlab.portal;
 
-import android.app.Activity;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -9,8 +8,10 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.view.Gravity;
@@ -18,14 +19,15 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.Locale;
 
-public final class PianoActivity extends Activity {
+public final class PianoActivity extends PortalActivity {
+    private static final String TAG = "PianoActivity";
+    private static final String AUDIO_ERROR = "Sound unavailable";
     private static final int BG = Color.rgb(255, 248, 234);
     private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
     private static final int INK = Color.rgb(36, 49, 71);
@@ -40,6 +42,7 @@ public final class PianoActivity extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
         Window window = getWindow();
         window.setStatusBarColor(SYSTEM_BAR);
         window.setNavigationBarColor(SYSTEM_BAR);
@@ -56,16 +59,8 @@ public final class PianoActivity extends Activity {
         toolbar.setPadding(dp(22), dp(12), dp(20), dp(12));
         toolbar.setBackgroundColor(Color.WHITE);
 
-        LinearLayout heading = new LinearLayout(this);
-        heading.setOrientation(LinearLayout.VERTICAL);
-        TextView title = text("Piano", 27, INK, true);
-        String profileName = getIntent().getStringExtra("profile_name");
-        TextView subtitle = text(profileName == null || profileName.trim().isEmpty()
-                ? "Make some music" : profileName + "’s music", 16, MUTED, false);
-        subtitle.setPadding(0, dp(2), 0, 0);
-        heading.addView(title);
-        heading.addView(subtitle);
-        toolbar.addView(heading, new LinearLayout.LayoutParams(0, -2, 1f));
+        toolbar.addView(text("Piano", 27, INK, true), new LinearLayout.LayoutParams(0, -2, 1f));
+        PortalToolbar.navigation(this, toolbar);
 
         noteReadout = text("Tap a key", 18, PURPLE, true);
         noteReadout.setGravity(Gravity.CENTER);
@@ -75,16 +70,7 @@ public final class PianoActivity extends Activity {
         readoutParams.rightMargin = dp(14);
         toolbar.addView(noteReadout, readoutParams);
 
-        Button done = new Button(this);
-        done.setText("Done");
-        done.setAllCaps(false);
-        done.setTextSize(17);
-        done.setTextColor(Color.WHITE);
-        done.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        done.setBackground(rounded(BLUE, 18));
-        done.setOnClickListener(v -> finish());
-        toolbar.addView(done, new LinearLayout.LayoutParams(dp(140), dp(54)));
-        root.addView(toolbar, new LinearLayout.LayoutParams(-1, dp(86)));
+        root.addView(toolbar, new LinearLayout.LayoutParams(-1, dp(PortalToolbar.HEIGHT_DP)));
 
         FrameLayout keyboardSurface = new FrameLayout(this);
         keyboardSurface.setPadding(dp(18), dp(18), dp(18), dp(18));
@@ -253,9 +239,14 @@ public final class PianoActivity extends Activity {
             if (oldNote >= 0) pressedCounts[oldNote] = Math.max(0, pressedCounts[oldNote] - 1);
             if (newNote >= 0) {
                 pressedCounts[newNote]++;
-                notePlayer.play(newNote);
-                int octave = 4 + newNote / 12;
-                noteReadout.setText(String.format(Locale.US, "%s%d", noteNames[newNote % 12], octave));
+                try {
+                    notePlayer.play(newNote);
+                    int octave = 4 + newNote / 12;
+                    noteReadout.setText(String.format(Locale.US, "%s%d", noteNames[newNote % 12], octave));
+                } catch (IllegalStateException error) {
+                    Log.e(TAG, "Cannot play piano semitone " + newNote, error);
+                    noteReadout.setText(AUDIO_ERROR);
+                }
             }
             pointerKeys.put(pointerID, newNote);
             invalidate();
@@ -295,21 +286,19 @@ public final class PianoActivity extends Activity {
             AudioTrack track = tracks.get(semitone);
             if (track == null) {
                 track = createTrack(semitone);
-                if (track == null) return;
                 tracks.put(semitone, track);
             }
-            try {
-                if (track.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) track.stop();
-                track.setPlaybackHeadPosition(0);
-                track.play();
-            } catch (IllegalStateException ignored) {
+            if (track.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) track.stop();
+            int result = track.setPlaybackHeadPosition(0);
+            if (result != AudioTrack.SUCCESS) {
+                throw new IllegalStateException("Cannot reset piano semitone " + semitone + ": " + result);
             }
+            track.play();
         }
 
         void close() {
             for (int index = 0; index < tracks.size(); index++) {
                 AudioTrack track = tracks.valueAt(index);
-                try { track.stop(); } catch (IllegalStateException ignored) { }
                 track.release();
             }
             tracks.clear();
@@ -340,12 +329,18 @@ public final class PianoActivity extends Activity {
                     .setBufferSizeInBytes(samples.length * 2)
                     .setTransferMode(AudioTrack.MODE_STATIC)
                     .build();
-            if (track.getState() != AudioTrack.STATE_INITIALIZED) {
+            try {
+                // MODE_STATIC becomes initialized only after samples are loaded.
+                int written = track.write(samples, 0, samples.length);
+                if (written != samples.length || track.getState() != AudioTrack.STATE_INITIALIZED) {
+                    throw new IllegalStateException("Cannot load piano semitone " + semitone
+                            + ": wrote " + written + " of " + samples.length + " samples");
+                }
+                return track;
+            } catch (RuntimeException error) {
                 track.release();
-                return null;
+                throw error;
             }
-            track.write(samples, 0, samples.length);
-            return track;
         }
     }
 }

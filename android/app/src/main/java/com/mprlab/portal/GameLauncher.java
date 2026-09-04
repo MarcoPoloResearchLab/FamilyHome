@@ -19,7 +19,7 @@ final class GameLauncher {
     static void open(Activity activity, ProfileStore.Profile profile, GameCatalog.Game game) {
         if (game == null || profile == null) return;
         if (!isInstalled(activity, game)) {
-            Toast.makeText(activity, game.name + " is ready to choose, but it is not installed on this Portal yet.", Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, game.name + " is not installed on this Portal yet.", Toast.LENGTH_LONG).show();
             return;
         }
         Intent launch = new Intent(Intent.ACTION_MAIN);

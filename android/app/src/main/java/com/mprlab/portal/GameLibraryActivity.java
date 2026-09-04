@@ -1,7 +1,5 @@
 package com.mprlab.portal;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -10,20 +8,17 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public final class GameLibraryActivity extends Activity {
+public final class GameLibraryActivity extends PortalActivity {
     private static final int BG = Color.rgb(255, 248, 234);
     private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
     private static final int INK = Color.rgb(36, 49, 71);
     private static final int MUTED = Color.rgb(92, 104, 124);
-    private static final int PURPLE = Color.rgb(124, 92, 252);
     private static final int DISABLED = Color.rgb(217, 220, 228);
 
     private ProfileStore store;
@@ -49,76 +44,33 @@ public final class GameLibraryActivity extends Activity {
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
         LinearLayout root = column();
-        root.setPadding(dp(38), dp(26), dp(38), dp(30));
+        root.setPadding(dp(38), dp(4), dp(38), dp(30));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -1));
 
         LinearLayout header = row();
-        LinearLayout heading = column();
-        String childName = store.active == null ? "Your" : store.active.name + "’s";
-        heading.addView(text(childName + " games", 34, INK, true), matchWrap());
-        TextView help = text("Pick one and have fun.", 18, MUTED, false);
-        help.setPadding(0, dp(3), 0, 0);
-        heading.addView(help, matchWrap());
-        header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1f));
-        Button done = button("Done", PURPLE, Color.WHITE);
-        done.setOnClickListener(view -> finish());
-        header.addView(done, new LinearLayout.LayoutParams(dp(126), dp(58)));
-        root.addView(header, matchWrap());
+        header.addView(text("Games", 27, INK, true), new LinearLayout.LayoutParams(0, -2, 1f));
 
-        List<GameCatalog.Game> games = enabledGames();
-        if (games.isEmpty()) {
-            LinearLayout empty = column();
-            empty.setGravity(Gravity.CENTER);
-            empty.setPadding(dp(30), dp(60), dp(30), dp(60));
-            empty.setBackground(rounded(Color.WHITE, 24));
-            empty.setElevation(dp(3));
-            TextView icon = text("★", 58, PURPLE, true);
-            icon.setGravity(Gravity.CENTER);
-            empty.addView(icon, matchWrap());
-            TextView title = text("Choose some games", 28, INK, true);
-            title.setGravity(Gravity.CENTER);
-            empty.addView(title, matchWrap());
-            TextView message = text("A grown-up can choose games for this child in Settings.", 18, MUTED, false);
-            message.setGravity(Gravity.CENTER);
-            message.setPadding(0, dp(8), 0, dp(22));
-            empty.addView(message, matchWrap());
-            Button settings = button("Open Settings", PURPLE, Color.WHITE);
-            settings.setOnClickListener(view -> startActivity(new Intent(this, SettingsActivity.class)));
-            empty.addView(settings, new LinearLayout.LayoutParams(dp(230), dp(60)));
-            LinearLayout.LayoutParams emptyParams = matchWrap();
-            emptyParams.topMargin = dp(34);
-            root.addView(empty, emptyParams);
-        } else {
-            LinearLayout grid = column();
-            LinearLayout currentRow = null;
-            for (int index = 0; index < games.size(); index++) {
-                if (index % 3 == 0) {
-                    currentRow = row();
-                    LinearLayout.LayoutParams rowParams = matchWrap();
-                    rowParams.topMargin = dp(22);
-                    grid.addView(currentRow, rowParams);
-                }
-                currentRow.addView(gameCard(games.get(index)), gameParams());
+        List<GameCatalog.Game> games = GameCatalog.all();
+        LinearLayout grid = column();
+        LinearLayout currentRow = null;
+        for (int index = 0; index < games.size(); index++) {
+            if (index % 3 == 0) {
+                currentRow = row();
+                LinearLayout.LayoutParams rowParams = matchWrap();
+                rowParams.topMargin = dp(22);
+                grid.addView(currentRow, rowParams);
             }
-            int remainder = games.size() % 3;
-            if (remainder > 0 && currentRow != null) {
-                for (int index = remainder; index < 3; index++) {
-                    currentRow.addView(new View(this), gameParams());
-                }
+            currentRow.addView(gameCard(games.get(index)), gameParams());
+        }
+        int remainder = games.size() % 3;
+        if (remainder > 0 && currentRow != null) {
+            for (int index = remainder; index < 3; index++) {
+                currentRow.addView(new View(this), gameParams());
             }
-            root.addView(grid, matchWrap());
         }
+        root.addView(grid, matchWrap());
 
-        setContentView(scroll);
-    }
-
-    private List<GameCatalog.Game> enabledGames() {
-        ArrayList<GameCatalog.Game> games = new ArrayList<>();
-        if (store.active == null) return games;
-        for (GameCatalog.Game game : GameCatalog.all()) {
-            if (store.active.isGameEnabled(game.id)) games.add(game);
-        }
-        return games;
+        setContentView(PortalToolbar.screen(this, header, scroll, BG));
     }
 
     private View gameCard(GameCatalog.Game game) {
@@ -173,17 +125,6 @@ public final class GameLibraryActivity extends Activity {
         text.setTextColor(color);
         text.setTypeface(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL);
         return text;
-    }
-
-    private Button button(String value, int color, int textColor) {
-        Button button = new Button(this);
-        button.setText(value);
-        button.setTextSize(17);
-        button.setTextColor(textColor);
-        button.setAllCaps(false);
-        button.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        button.setBackground(rounded(color, 16));
-        return button;
     }
 
     private GradientDrawable rounded(int color, int radius) {

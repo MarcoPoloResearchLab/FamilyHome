@@ -1,8 +1,6 @@
 package com.mprlab.portal;
 
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -13,17 +11,13 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-public final class SettingsActivity extends Activity {
+public final class SettingsActivity extends PortalActivity {
     private static final int BG = Color.rgb(255, 248, 234);
     private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
     private static final int SURFACE = Color.WHITE;
@@ -60,23 +54,11 @@ public final class SettingsActivity extends Activity {
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
         LinearLayout root = column();
-        root.setPadding(dp(34), dp(24), dp(34), dp(28));
+        root.setPadding(dp(34), dp(8), dp(34), dp(28));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -1));
 
         LinearLayout header = row();
-        LinearLayout heading = column();
-        heading.addView(text("Settings", 32, INK, true), matchWrap());
-        TextView subtitle = text("Make FamilyHome fit your family.", 17, MUTED, false);
-        subtitle.setPadding(0, dp(3), 0, 0);
-        heading.addView(subtitle, matchWrap());
-        header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1f));
-        Button done = button("Done", PURPLE, Color.WHITE);
-        done.setOnClickListener(view -> {
-            saveLocation(false);
-            finish();
-        });
-        header.addView(done, new LinearLayout.LayoutParams(dp(126), dp(58)));
-        root.addView(header, matchWrap());
+        header.addView(text("Settings", 27, INK, true), new LinearLayout.LayoutParams(0, -2, 1f));
 
         LinearLayout content = row();
         content.setGravity(Gravity.TOP);
@@ -145,7 +127,7 @@ public final class SettingsActivity extends Activity {
         content.addView(homeColumn, homeParams);
         root.addView(content, matchWrap());
 
-        setContentView(scroll);
+        setContentView(PortalToolbar.screen(this, header, scroll, BG));
     }
 
     private View childRow(ProfileStore.Profile profile) {
@@ -211,23 +193,6 @@ public final class SettingsActivity extends Activity {
         calendarParams.topMargin = dp(12);
         form.addView(calendar, calendarParams);
 
-        TextView gameHeading = text("CHOOSE GAMES", 14, PURPLE, true);
-        gameHeading.setLetterSpacing(.08f);
-        LinearLayout.LayoutParams headingParams = matchWrap();
-        headingParams.topMargin = dp(18);
-        form.addView(gameHeading, headingParams);
-        TextView gameHelp = text("These games appear only in this child’s game library.", 15, MUTED, false);
-        gameHelp.setPadding(0, dp(4), 0, dp(8));
-        form.addView(gameHelp, matchWrap());
-        Map<String, CheckBox> gameChecks = new LinkedHashMap<>();
-        for (GameCatalog.Game game : GameCatalog.all()) {
-            CheckBox choice = gameChoice(game, profile != null && profile.isGameEnabled(game.id));
-            gameChecks.put(game.id, choice);
-            LinearLayout.LayoutParams choiceParams = matchWrap();
-            choiceParams.topMargin = dp(7);
-            form.addView(choice, choiceParams);
-        }
-
         ScrollView formScroll = new ScrollView(this);
         formScroll.setFillViewport(true);
         formScroll.addView(form, new ScrollView.LayoutParams(-1, -2));
@@ -247,9 +212,6 @@ public final class SettingsActivity extends Activity {
             ProfileStore.Profile saved = profile == null ? store.add(value) : profile;
             saved.name = value;
             saved.calendarUrl = calendar.getText().toString().trim();
-            for (Map.Entry<String, CheckBox> entry : gameChecks.entrySet()) {
-                saved.setGameEnabled(entry.getKey(), entry.getValue().isChecked());
-            }
             store.active = saved;
             store.save();
             dialog.dismiss();
@@ -273,16 +235,9 @@ public final class SettingsActivity extends Activity {
     }
 
     private String childSummary(ProfileStore.Profile profile) {
-        StringBuilder summary = new StringBuilder();
-        if (profile.calendarUrl != null && !profile.calendarUrl.trim().isEmpty()) summary.append("Calendar");
-        int gameCount = GameCatalog.enabledCount(profile);
-        if (gameCount > 0) appendSummary(summary, gameCount + (gameCount == 1 ? " game" : " games"));
-        return summary.length() == 0 ? "No calendar or games yet" : summary.toString();
-    }
-
-    private void appendSummary(StringBuilder summary, String value) {
-        if (summary.length() > 0) summary.append("  •  ");
-        summary.append(value);
+        return profile.calendarUrl == null || profile.calendarUrl.trim().isEmpty()
+                ? "No calendar yet"
+                : "Calendar";
     }
 
     private String profileInitial(String name) {
@@ -298,19 +253,6 @@ public final class SettingsActivity extends Activity {
         field.setTextColor(Color.BLACK);
         field.setHintTextColor(Color.DKGRAY);
         return field;
-    }
-
-    private CheckBox gameChoice(GameCatalog.Game game, boolean checked) {
-        CheckBox checkBox = new CheckBox(this);
-        checkBox.setText(game.icon + "   " + game.name + "\n      " + game.description);
-        checkBox.setTextSize(17);
-        checkBox.setTextColor(INK);
-        checkBox.setChecked(checked);
-        checkBox.setButtonTintList(ColorStateList.valueOf(game.color));
-        checkBox.setPadding(dp(14), dp(7), dp(14), dp(7));
-        checkBox.setBackground(rounded(Color.rgb(248, 247, 252), 14));
-        checkBox.setContentDescription(game.name + ". " + game.description);
-        return checkBox;
     }
 
     private LinearLayout panel() {
