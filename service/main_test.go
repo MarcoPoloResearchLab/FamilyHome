@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -246,13 +247,52 @@ func TestAPIRequiresDeviceBearerToken(t *testing.T) {
 func TestHealthDoesNotRequireAuthentication(t *testing.T) {
 	configuration := config{}
 	configuration.Server.DeviceToken = testDeviceToken
-	app := &application{config: configuration}
-	request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
-	response := httptest.NewRecorder()
-	app.routes().ServeHTTP(response, request)
-	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"ok":true`) {
-		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	configuration.Server.DataDir = t.TempDir()
+	drawings := filepath.Join(configuration.Server.DataDir, "drawings")
+	if err := os.Mkdir(drawings, 0o750); err != nil {
+		t.Fatal(err)
 	}
+	app := &application{config: configuration}
+	server := httptest.NewServer(app.routes())
+	defer server.Close()
+	var events bytes.Buffer
+	previousOutput := log.Writer()
+	log.SetOutput(&events)
+	defer log.SetOutput(previousOutput)
+	probe := func(wantStatus int, wantBody string) {
+		t.Helper()
+		response, err := server.Client().Get(server.URL + "/healthz")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != wantStatus || strings.TrimSpace(string(body)) != wantBody || response.Header.Get("Cache-Control") != "no-store" {
+			t.Fatalf("status=%d headers=%v body=%s", response.StatusCode, response.Header, body)
+		}
+	}
+	probe(http.StatusOK, `{"ok":true}`)
+	if events.Len() != 0 {
+		t.Fatalf("successful probe produced events: %s", events.String())
+	}
+	entries, err := os.ReadDir(drawings)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("probe changed drawing storage: %v %v", entries, err)
+	}
+	if err := os.Rename(drawings, drawings+"-unavailable"); err != nil {
+		t.Fatal(err)
+	}
+	probe(http.StatusServiceUnavailable, `{"ok":false}`)
+	if !strings.Contains(events.String(), "health check failed") {
+		t.Fatalf("missing failed probe diagnostics: %s", events.String())
+	}
+	if err := os.Rename(drawings+"-unavailable", drawings); err != nil {
+		t.Fatal(err)
+	}
+	probe(http.StatusOK, `{"ok":true}`)
 }
 
 func TestDrawingShareUsesUnguessableUnauthenticatedLink(t *testing.T) {

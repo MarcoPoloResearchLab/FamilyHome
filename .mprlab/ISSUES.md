@@ -10,6 +10,40 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Improvements
 
+- [x] [I001] (P1) Standardize HTTP health at `/healthz`.
+  Goal:
+  Make `/healthz` the canonical health endpoint for the FamilyHome HTTP
+  origin. Use the endpoint for readiness without application requests.
+
+  Requirements:
+  - Keep unauthenticated `GET /healthz` as the only HTTP health operation.
+  - Return `200` only when the service can serve its current application contract.
+  - Return a non-success status when a required runtime dependency prevents service.
+  - Send `Cache-Control: no-store` on every health response.
+  - Keep the response free from credentials and internal state.
+  - Do not call a paid provider or mutate application state during a probe.
+  - Do not record a probe as application usage or an audit event.
+  - Do not emit routine information-level request events for successful probes.
+  - Keep failed probe evidence in container and deployment diagnostics.
+  - Use `/healthz` for runtime capability health and public health checks.
+  - Keep the selected manifest contract unchanged.
+
+  Deliverables:
+  - Update the endpoint, orchestration, manifest, documentation, and black-box tests as necessary.
+
+  Validation:
+  - Verify unauthenticated `GET /healthz` returns `200` and `Cache-Control: no-store`.
+  - Verify a required dependency failure returns a non-success status without a provider call.
+  - Verify successful probes create no routine request events.
+  - Verify failed probes retain diagnostic evidence.
+  - Run `make ci`.
+
+  Resolution:
+  - Added a read-only drawing storage check with a `503` failure response.
+  - Kept unauthenticated responses, `Cache-Control: no-store`, and private failure diagnostics.
+  - Verified health, storage failure, and recovery through a real HTTP listener.
+  - `make ci` passed, including the Android APK contract.
+
 ## Maintenance
 
 - [ ] [M400R] (P2) Backlog hygiene and archive

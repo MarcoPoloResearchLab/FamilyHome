@@ -55,6 +55,11 @@ Each Portal build carries one FamilyHome device bearer token. The backend requir
 
 The application owns its deployment resources in `.mprlab/deploy/resources.yml`. The manifest builds a non-root container, retains drawing data, exposes the service through the MPR Caddy runtime, and verifies `https://familyhome-api.mprlab.com/healthz`.
 
+Unauthenticated `GET /healthz` returns `200` when drawing storage is readable and `503` when it is unavailable.
+Each response uses `Cache-Control: no-store` and contains only an `ok` boolean.
+The probe does not call providers or change application data. Successful probes produce no request events.
+Failed probes retain storage error details in server logs.
+
 Create the ignored `.mprlab/deploy/.env` file with mode `0600`:
 
 ```dotenv
