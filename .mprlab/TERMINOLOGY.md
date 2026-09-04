@@ -83,6 +83,69 @@ Give each term one meaning. Use the same term for the same concept in all docume
 
 Add repository-specific technical nouns below this line.
 
+- `image generation`: Creation of a new image through an AI model.
+- `image model`: An AI model that creates or changes images.
+- `image job`: A stored request and result for one image generation operation.
+- `prompt`: The text input that tells an AI model what to create.
+- `reference image`: An image input that guides an image model.
+- `output token`: A provider accounting unit for model output.
+- `content moderation`: Examination of model inputs and outputs against the permitted content policy.
+
+- `ICS feed`: An iCalendar document retrieved from a configured URL.
+- `screenshot`: An image captured from an application display.
+- `screen recording`: A video captured from an application display.
+- `signing key`: A private cryptographic key used to sign an APK.
+- `source snapshot`: A fixed copy of the source files used for one build.
+
+- `fret`: A guitar position that determines the vibrating string length.
+- `fretboard`: The guitar surface that contains strings and frets.
+- `chord`: A set of musical notes played together.
+- `strumming area`: The guitar control where a finger crosses strings to play them.
+
+- `authentication`: Verification of the identity that presents a credential.
+- `candidate credential`: A random Portal credential limited to its pairing request until device activation.
+- `capability link`: A URL that grants its holder access to one specified resource.
+- `credential digest`: A cryptographic hash used to verify a presented random credential.
+- `child selector`: The application control that selects the active child profile.
+- `CSRF`: Cross-site request forgery against a browser session.
+- `device credential`: A secret that authenticates one registered Portal.
+- `device enrollment`: The operation that registers a Portal and assigns its family.
+- `DNS rebinding`: A change in address resolution that causes a request to reach an unapproved network destination.
+- `drawing export`: An image that a Portal uploads for recipient access.
+- `family membership`: A stored relationship between a parent identity and a family.
+- `family isolation`: Enforcement of separate resource access for different families.
+- `family record`: The stored identity and settings for one household.
+- `foreign key`: A database constraint that requires a matching referenced record.
+- `identity reference`: The issuer, application tenant, and account ID that identify a parent.
+- `idempotency key`: A caller-supplied value that identifies retries of one operation.
+- `import receipt`: A persistent record of a completed or pending data import and its identity mapping.
+- `membership role`: A closed set of parent permissions within a family.
+- `pairing request`: A temporary request to connect one Portal to a family.
+- `pilot invitation`: An invitation that permits a specified parent to enter the hosted pilot.
+- `principal`: A typed, authenticated caller identity used by an API operation.
+- `quota reservation`: An atomic allocation of service capacity before an operation starts.
+- `request context`: Validated caller identity and resource access data for one API request.
+- `share link`: A revocable capability link for one drawing export.
+- `SQLite`: The embedded relational database proposed for the single-instance pilot.
+- `TAuth tenant`: The application authentication policy within TAuth.
+- `usage record`: A stored record of service consumption by a family and device.
+- `agenda`: A list of calendar events in time order.
+- `calendar`: A Google Calendar collection that contains scheduled events.
+- `calendar ID`: The Google Calendar identifier for one calendar.
+- `calendar event`: A scheduled activity in a calendar.
+- `child profile`: The FamilyHome identity that selects one child's application data.
+- `draft`: Calendar event data that the user has not saved to Google Calendar.
+- `family calendar`: The parent-owned calendar that supplies events to all child profiles in one family.
+- `Google account`: The Google identity that owns the FamilyHome calendars.
+- `OAuth`: The protocol through which a parent authorizes FamilyHome to access Google Calendar.
+- `pairing code`: A temporary code that connects a parent session to a specified Portal.
+- `parent`: The adult who owns the Google account and controls calendar access for a family.
+- `parent session`: An authenticated browser session with authority to control the family's calendar connection.
+- `personal calendar`: The parent-owned calendar assigned to one child profile.
+- `QR code`: A machine-readable image that opens the Portal connection page on another device.
+- `refresh token`: A credential that permits the backend to renew Google API access.
+- `widget`: The Home screen area that shows one FamilyHome function.
+
 ```text
 - `term`: Definition with one meaning.
 ```
@@ -117,7 +180,19 @@ Add repository-specific technical nouns below this line.
 
 Use the simple present, simple past, simple future, imperative, or infinitive form of these verbs.
 
+## Toolbar Technical Nouns
+
+- `adaptation`: The source changes that modify an upstream game for the Portal.
+- `APK`: An Android application installation artifact.
+- `emulator`: A local runtime that represents an Android device.
+- `signing certificate`: The public identity that Android uses to verify an application signer.
+- `source archive`: A compressed file that contains application source code.
+- `toolbar`: One horizontal row of application controls.
+
 ## Repository Technical Verbs
+
+- `combine`: Put navigation and application controls in one toolbar.
+- `save`: Write application data to persistent storage.
 
 Add repository-specific technical verbs below this line.
 
