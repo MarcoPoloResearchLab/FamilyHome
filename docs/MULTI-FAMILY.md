@@ -10,6 +10,8 @@ The first pilot uses an MPR-hosted service for invited households.
 The selected project license is MIT.
 Public announcements follow the authentication and family-isolation work.
 P001 remains the separate Google Calendar plan.
+Google is the only parent sign-in provider for the first implementation.
+After sign-in, the parent connects existing Google calendars or creates new calendars for the family and each child.
 
 ## Current implementation
 
@@ -73,13 +75,14 @@ Role details require confirmation before implementation.
 ## Parent sign-in
 
 TAuth and `mpr-ui` own browser sign-in, session restoration, refresh, and logout.
+The FamilyHome authentication configuration permits Google only.
 FamilyHome supplies `/config-ui.yaml` and responds to the documented authentication lifecycle.
 The backend validates the TAuth session with the official session validator.
 It also checks the configured application tenant and current family membership.
 
 Use the issuer, application tenant, and stable TAuth account ID as the identity reference.
 Email addresses and child names are display or invitation data, not record identifiers.
-TAuth account management supplies stable account IDs across linked providers.
+TAuth account management supplies stable account IDs independently of Google email addresses.
 The released TAuth and `mpr-ui` contracts require verification during implementation.
 
 A FamilyHome invitation controls admission to the hosted pilot.
@@ -90,6 +93,23 @@ The parent website uses GitHub Pages.
 The API remains on its separate hostname.
 The website hostname, authentication profile, cookie names, and exact CORS policy remain open deployment inputs.
 Browser mutations require explicit CSRF protection and permitted-origin checks.
+
+## Calendar setup after parent sign-in
+
+P001 defines the calendar setup contract after Google parent sign-in.
+P002 supplies the parent identity, family membership, and child profile records.
+The existing authentication dependency is TAuth. Confirmation that the requested name `TOS` means TAuth remains open in P001.
+
+The proposed parent onboarding offers a choice between an existing family calendar and a new family calendar.
+Setup for each child profile offers the same choice for that child's personal calendar.
+The child-profile dialog can start setup. The authenticated parent completes Google authorization on a phone or computer.
+Parent settings provide later access to the same flow.
+Exact screen placement and the option to defer setup remain open decisions in P001.
+
+Google sign-in establishes parent identity. Separate Google Calendar consent grants the required calendar access within the same flow.
+The backend records the selected Google calendar IDs and their family or child assignments.
+Google Calendar remains the authoritative source for events.
+P001 defines both connection and creation for the first implementation.
 
 ## Portal pairing
 
@@ -218,7 +238,7 @@ Source tests, hosted browser authentication, backend deployment, and Portal acce
 
 - Confirm this proposed family and device ownership model.
 - Confirm the owner and parent roles.
-- Select the first parent sign-in provider through TAuth.
+- Verify the released TAuth and `mpr-ui` contract for Google-only parent sign-in.
 - Confirm the parent website hostname and authentication profile.
 - Select the database for the pilot.
 - Define device credential expiration and renewal.
