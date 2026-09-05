@@ -12,17 +12,22 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Goal:
   The upgrade test must identify the current Home controls and game cards.
   The GitHub check failed because the Android fullscreen introduction covered Home.
+  The next check exposed an absent UI snapshot while Home updated its clock.
   Requirements:
   - Confirm the fullscreen introduction before the test starts.
   - Restore the previous Android setting after the test.
   - Select cards through `content-desc`.
+  - Capture the active accessibility window without a UI idle requirement.
+  - Fail the test when the capture fails.
   - Keep navigation and saved-data checks after APK replacement.
   Validation:
   - Run `make test-android-upgrade` and `make ci`.
   - Verify the GitHub check after the correction.
   Current result:
   The GitHub UI output identified the Android fullscreen introduction.
-  The final upgrade test passed locally and restored the previous Android setting.
+  The test uses an Android integration helper to capture the active window.
+  The helper reports capture failures directly.
+  The upgrade test passed locally with the capture helper.
   `make ci` passed.
   The language review covered B003.
 

@@ -10,6 +10,7 @@ adb="$ANDROID_SDK_ROOT/platform-tools/adb"
 tools_dir="$ANDROID_SDK_ROOT/build-tools/${BUILD_TOOLS_VERSION:-36.1.0}"
 apksigner="$tools_dir/apksigner"
 package_name="com.mprlab.portal"
+ui_package="com.mprlab.portal.upgradeuitest"
 serial="${ANDROID_SERIAL:-}"
 
 if [[ -z "$serial" ]]; then
@@ -47,6 +48,7 @@ immersive_setting="immersive_mode_confirmations"
 original_immersive_confirmation="$($adb -s "$serial" shell settings get secure "$immersive_setting" | tr -d '\r')"
 
 cleanup() {
+  "$adb" -s "$serial" uninstall "$ui_package" >/dev/null 2>&1 || true
   if [[ "$original_immersive_confirmation" == "null" ]]; then
     "$adb" -s "$serial" shell settings delete secure "$immersive_setting" >/dev/null
   else
@@ -114,6 +116,17 @@ current_apk="$current_output/current-signed.apk"
 sign_apk "$fixture_output/Children-Portal-v0.8.0-upgrade-fixture-aligned.apk" "$fixture_apk"
 sign_apk "$current_output/Children-Portal-v$current_version-aligned.apk" "$current_apk"
 
+android_jar="$ANDROID_SDK_ROOT/platforms/${ANDROID_PLATFORM:-android-35}/android.jar"
+ui_output="$output_root/ui"
+mkdir -p "$ui_output/classes" "$ui_output/dex"
+"$tools_dir/aapt2" link -I "$android_jar" --manifest tests/upgrade-ui/AndroidManifest.xml -o "$ui_output/test.apk"
+javac -source 8 -target 8 -classpath "$android_jar" -d "$ui_output/classes" tests/upgrade-ui/UpgradeUiDump.java
+"$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$ui_output/dex" "$ui_output/classes/com/mprlab/portal/upgradeuitest/"*.class
+zip -j -q "$ui_output/test.apk" "$ui_output/dex/classes.dex"
+"$tools_dir/zipalign" -f 4 "$ui_output/test.apk" "$ui_output/test-aligned.apk"
+sign_apk "$ui_output/test-aligned.apk" "$ui_output/test-signed.apk"
+"$adb" -s "$serial" install "$ui_output/test-signed.apk" >/dev/null
+
 "$adb" -s "$serial" shell wm size 1280x800 >/dev/null
 "$adb" -s "$serial" shell wm density 160 >/dev/null
 "$adb" -s "$serial" shell settings put secure "$immersive_setting" confirmed
@@ -151,16 +164,13 @@ wait_for_activity() {
 
 dump_ui() {
   local path="$1"
-  local attempt
-  for attempt in $(seq 1 5); do
-    if "$adb" -s "$serial" shell uiautomator dump "$path" >/dev/null 2>&1 \
-        && "$adb" -s "$serial" exec-out cat "$path" 2>/dev/null; then
-      return 0
-    fi
-    sleep 0.25
-  done
-  printf 'Upgrade test failed: UI hierarchy is unavailable: %s\n' "$path" >&2
-  exit 1
+  local result
+  result="$("$adb" -s "$serial" shell am instrument -w "$ui_package/.UpgradeUiDump")"
+  if [[ "$result" != *'INSTRUMENTATION_CODE: -1'* || "$result" != *'INSTRUMENTATION_RESULT: ui=<hierarchy>'* ]]; then
+    printf 'Upgrade test failed: UI hierarchy is unavailable: %s\n%s\n' "$path" "$result" >&2
+    exit 1
+  fi
+  printf '%s\n' "$result" | sed -n 's/^INSTRUMENTATION_RESULT: ui=//p' | tr -d '\r' | tee "$output_root/$(basename "$path")"
 }
 
 tap_label() {
