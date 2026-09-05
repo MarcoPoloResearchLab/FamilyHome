@@ -1,0 +1,40 @@
+/* One toolbar shared by FamilyHome navigation and the current Tiles screen. */
+:root { --main-navbar-top: 0px; --inset-top: 0px; }
+.portal-toolbar {
+  position: fixed; top: 0; left: 0; width: 140px; height: 64px; z-index: 90;
+  display: flex; align-items: center; gap: 8px; padding: 0 8px;
+  background: var(--main-bg-color); box-sizing: border-box;
+  button { width: 56px; height: 56px; padding: 14px; border: 0; border-radius: 12px;
+    background: var(--navbar-bg-color); color: var(--text-color); }
+  svg { width: 28px; height: 28px; }
+}
+.screen { padding-top: 64px; }
+.carrousel { padding-top: 0; }
+.screen.with-navbar { padding-bottom: 0; }
+.main-navbar {
+  position: absolute; top: 0; bottom: auto; left: 144px; width: calc(100% - 152px);
+  height: 64px; justify-content: flex-start; --navbar-size: 24px;
+  ul { min-height: 56px; height: 56px; max-width: 100%; box-shadow: none; }
+  .game-button { padding: 4px; }
+  .game-button .bg { height: 48px; min-width: 48px; padding: 0 12px; box-sizing: border-box; }
+  .game-button span { display: none; }
+}
+.button-row.top {
+  position: absolute; top: 8px; z-index: 100; --button-scale: 48px; flex-wrap: nowrap;
+  &.left { left: 144px; }
+  &.right { right: 8px; }
+  .game-button { padding: 0 4px; }
+}
+.dropout-menu {
+  position: absolute; top: 8px; right: 12px; --button-scale: 48px;
+  .game-button.dropout { padding: 0; margin: 0; }
+  &.expanded { margin: 0; }
+  &.expanded .game-button.dropout { padding: 0; }
+  .items { margin-top: 8px; }
+}
+.screen.game-display .side-panel { padding-top: 0; }
+.screen.game-display .floating-controls { top: 80px; }
+.screen.game-display .dropout-menu .game-button.dropout .bg { width: 48px; height: 48px; }
+
+.screen.game-display .dropout-menu .game-button.dropout .bg,
+.button-row.top .game-button .bg { box-sizing: border-box; padding: 8px; width: 48px; height: 48px; }

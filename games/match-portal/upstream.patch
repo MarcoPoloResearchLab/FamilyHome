@@ -1,0 +1,120 @@
+diff --git a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/AppCompatDrawerActivity.java b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/AppCompatDrawerActivity.java
+index 798229a..004f781 100644
+--- a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/AppCompatDrawerActivity.java
++++ b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/AppCompatDrawerActivity.java
+@@ -35,10 +35,8 @@ public abstract class AppCompatDrawerActivity extends AppCompatActivity implemen
+         setSupportActionBar(toolbar);
+ 
+         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.menu_drawer);
+-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+-        drawer.addDrawerListener(toggle);
+-        toggle.syncState();
++        getSupportActionBar().setDisplayShowTitleEnabled(false);
++        PortalToolbar.install(this, toolbar, drawer);
+ 
+         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+         navigationView.setNavigationItemSelectedListener(this);
+@@ -83,6 +81,12 @@ public abstract class AppCompatDrawerActivity extends AppCompatActivity implemen
+         return true;
+     }
+ 
++    @Override
++    public void onWindowFocusChanged(boolean focused) {
++        super.onWindowFocusChanged(focused);
++        if (focused) PortalToolbar.fullscreen(this);
++    }
++
+     @Override
+     public void onBackPressed()
+     {
+diff --git a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/MemoAppCompatDrawerActivity.java b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/MemoAppCompatDrawerActivity.java
+index a3889bd..a1081f1 100644
+--- a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/MemoAppCompatDrawerActivity.java
++++ b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/MemoAppCompatDrawerActivity.java
+@@ -34,10 +34,8 @@ public abstract class MemoAppCompatDrawerActivity extends AppCompatActivity impl
+         setSupportActionBar(toolbar);
+ 
+         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.menu_drawer);
+-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+-        drawer.addDrawerListener(toggle);
+-        toggle.syncState();
++        getSupportActionBar().setDisplayShowTitleEnabled(false);
++        PortalToolbar.install(this, toolbar, drawer);
+ 
+         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view_main);
+         navigationView.setNavigationItemSelectedListener(this);
+@@ -86,6 +84,12 @@ public abstract class MemoAppCompatDrawerActivity extends AppCompatActivity impl
+         return true;
+     }
+ 
++    @Override
++    public void onWindowFocusChanged(boolean focused) {
++        super.onWindowFocusChanged(focused);
++        if (focused) PortalToolbar.fullscreen(this);
++    }
++
+     @Override
+     public void onBackPressed()
+     {
+diff --git a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/AboutActivity.java b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/AboutActivity.java
+index 4dff981..e9292ef 100644
+--- a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/AboutActivity.java
++++ b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/AboutActivity.java
+@@ -25,6 +25,7 @@ public class AboutActivity extends AppCompatActivity {
+         ((TextView)findViewById(R.id.textFieldVersionName)).setText(BuildConfig.VERSION_NAME);
+ 
+         setupActionBar();
++        org.secuso.privacyfriendlymemory.ui.PortalToolbar.install(this, getSupportActionBar());
+     }
+ 
+     private void setupActionBar() {
+diff --git a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/DeckChoiceActivity.java b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/DeckChoiceActivity.java
+index e92218c..ed6f4f2 100644
+--- a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/DeckChoiceActivity.java
++++ b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/DeckChoiceActivity.java
+@@ -40,6 +40,7 @@ public class DeckChoiceActivity extends AppCompatPreferenceActivity {
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+         setupActionBar();
++        org.secuso.privacyfriendlymemory.ui.PortalToolbar.install(this, getSupportActionBar());
+     }
+ 
+     /**
+diff --git a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/HelpActivity.java b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/HelpActivity.java
+index f9a1b62..2671d98 100644
+--- a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/HelpActivity.java
++++ b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/HelpActivity.java
+@@ -22,6 +22,7 @@ public class HelpActivity extends AppCompatPreferenceActivity {
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+         setupActionBar();
++        org.secuso.privacyfriendlymemory.ui.PortalToolbar.install(this, getSupportActionBar());
+     }
+ 
+     /**
+diff --git a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/HighscoreActivity.java b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/HighscoreActivity.java
+index eb01d0a..a178522 100644
+--- a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/HighscoreActivity.java
++++ b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/HighscoreActivity.java
+@@ -28,6 +28,7 @@ public class HighscoreActivity extends AppCompatPreferenceActivity {
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+         setupActionBar();
++        org.secuso.privacyfriendlymemory.ui.PortalToolbar.install(this, getSupportActionBar());
+     }
+ 
+     public FragmentRefreshListener getFragmentRefreshListener() {
+diff --git a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/StatisticsActivity.java b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/StatisticsActivity.java
+index c238063..3195c89 100644
+--- a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/StatisticsActivity.java
++++ b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/navigation/StatisticsActivity.java
+@@ -56,6 +56,7 @@ public class StatisticsActivity extends AppCompatActivity {
+         setContentView(R.layout.activity_statistcs_content);
+         preferences = PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext());
+         setupActionBar();
++        org.secuso.privacyfriendlymemory.ui.PortalToolbar.install(this, getSupportActionBar());
+ 
+         this.statisticsActivity = this;
+         // setup up fragments in sectionspager

@@ -79,9 +79,88 @@ Give each term one meaning. Use the same term for the same concept in all docume
 - `validation`: Evidence that a change obeys its current contract.
 - `worktree`: A Git checkout that has its own working directory.
 
+- `characterization test`: An integration test that records current public behavior before a refactor.
+- `file permission mode`: A number or symbol that gives filesystem access bits.
+- `GitHub Pages`: The GitHub service that hosts a static website from a repository branch.
+- `integration test`: A test of real product logic and component interactions through a public entry point, with controlled dependencies when necessary.
+- `inverted test pyramid`: The MPR Lab test strategy with integration tests as the primary layer and focused unit tests where useful.
+- `production code`: Source code that implements repository behavior outside the test suite.
+- `public entry point`: An interface through which a user or caller uses repository behavior.
+- `static website`: A browser frontend that uses generated files without a website server runtime.
+- `test-driven development`: A coding sequence that uses a failing integration test before a production code change.
+- `unit test`: A test that isolates one code unit from its collaborators.
+- `website hostname`: The hostname that identifies a public static website.
+
+- `dependency injection`: A design that supplies a component's dependencies from outside that component.
+
 ## Repository Technical Nouns
 
 Add repository-specific technical nouns below this line.
+
+- `image generation`: Creation of a new image through an AI model.
+- `image model`: An AI model that creates or changes images.
+- `image job`: A stored request and result for one image generation operation.
+- `prompt`: The text input that tells an AI model what to create.
+- `reference image`: An image input that guides an image model.
+- `output token`: A provider accounting unit for model output.
+- `content moderation`: Examination of model inputs and outputs against the permitted content policy.
+
+- `ICS feed`: An iCalendar document retrieved from a configured URL.
+- `screenshot`: An image captured from an application display.
+- `screen recording`: A video captured from an application display.
+- `signing key`: A private cryptographic key used to sign an APK.
+- `source snapshot`: A fixed copy of the source files used for one build.
+
+- `fret`: A guitar position that determines the vibrating string length.
+- `fretboard`: The guitar surface that contains strings and frets.
+- `chord`: A set of musical notes played together.
+- `strumming area`: The guitar control where a finger crosses strings to play them.
+
+- `authentication`: Verification of the identity that presents a credential.
+- `candidate credential`: A random Portal credential limited to its pairing request until device activation.
+- `capability link`: A URL that grants its holder access to one specified resource.
+- `credential digest`: A cryptographic hash used to verify a presented random credential.
+- `child selector`: The application control that selects the active child profile.
+- `CSRF`: Cross-site request forgery against a browser session.
+- `device credential`: A secret that authenticates one registered Portal.
+- `device enrollment`: The operation that registers a Portal and assigns its family.
+- `DNS rebinding`: A change in address resolution that causes a request to reach an unapproved network destination.
+- `drawing export`: An image that a Portal uploads for recipient access.
+- `family membership`: A stored relationship between a parent identity and a family.
+- `family isolation`: Enforcement of separate resource access for different families.
+- `family record`: The stored identity and settings for one household.
+- `foreign key`: A database constraint that requires a matching referenced record.
+- `identity reference`: The issuer, application tenant, and account ID that identify a parent.
+- `idempotency key`: A caller-supplied value that identifies retries of one operation.
+- `import receipt`: A persistent record of a completed or pending data import and its identity mapping.
+- `membership role`: A closed set of parent permissions within a family.
+- `pairing request`: A temporary request to connect one Portal to a family.
+- `pilot invitation`: An invitation that permits a specified parent to enter the hosted pilot.
+- `principal`: A typed, authenticated caller identity used by an API operation.
+- `quota reservation`: An atomic allocation of service capacity before an operation starts.
+- `request context`: Validated caller identity and resource access data for one API request.
+- `share link`: A revocable capability link for one drawing export.
+- `SQLite`: The embedded relational database proposed for the single-instance pilot.
+- `TAuth tenant`: The application authentication policy within TAuth.
+- `usage record`: A stored record of service consumption by a family and device.
+- `agenda`: A list of calendar events in time order.
+- `calendar`: A Google Calendar collection that contains scheduled events.
+- `calendar ID`: The Google Calendar identifier for one calendar.
+- `calendar event`: A scheduled activity in a calendar.
+- `child profile`: The FamilyHome identity that selects one child's application data.
+- `draft`: Calendar event data that the user has not saved to Google Calendar.
+- `family calendar`: The parent-owned calendar that supplies events to all child profiles in one family.
+- `Google account`: The Google identity that owns the FamilyHome calendars.
+- `OAuth`: The protocol through which a parent authorizes FamilyHome to access Google Calendar.
+- `pairing code`: A temporary code that connects a parent session to a specified Portal.
+- `parent`: The adult who owns the Google account and controls calendar access for a family.
+- `parent session`: An authenticated browser session with authority to control the family's calendar connection.
+- `onboarding`: The initial parent setup flow after authentication.
+- `calendar setup`: The parent flow that connects or creates calendars and records their family or child assignments.
+- `personal calendar`: The parent-owned calendar assigned to one child profile.
+- `QR code`: A machine-readable image that opens the Portal connection page on another device.
+- `refresh token`: A credential that permits the backend to renew Google API access.
+- `widget`: The Home screen area that shows one FamilyHome function.
 
 ```text
 - `term`: Definition with one meaning.
@@ -117,7 +196,37 @@ Add repository-specific technical nouns below this line.
 
 Use the simple present, simple past, simple future, imperative, or infinitive form of these verbs.
 
+## Toolbar Technical Nouns
+
+- `adaptation`: The source changes that modify an upstream game for the Portal.
+- `APK`: An Android application installation artifact.
+- `emulator`: A local runtime that represents an Android device.
+- `signing certificate`: The public identity that Android uses to verify an application signer.
+- `source archive`: A compressed file that contains application source code.
+- `toolbar`: One horizontal row of application controls.
+
+## Display Technical Nouns
+
+- `dialog`: An application window that requests input or shows information above the current screen.
+
+- `screensaver`: The display that replaces the current FamilyHome screen after a specified time without user input.
+- `timeout`: The selected time without user input before the screensaver starts.
+
+## Photo Booth Technical Nouns
+
+- `Photo Booth`: The proposed FamilyHome activity for camera pictures.
+- `camera preview`: The live camera image shown before a picture.
+- `countdown`: The visible count before the camera takes a picture.
+- `photo strip`: One image that combines a sequence of camera pictures.
+- `photo album`: The saved camera pictures associated with one child profile.
+- `decorative frame`: An illustrated border around a camera picture or photo strip.
+- `Camera2`: The Android platform API for camera access and image output.
+- `JPEG`: The image format proposed for saved camera pictures.
+
 ## Repository Technical Verbs
+
+- `combine`: Put navigation and application controls in one toolbar.
+- `save`: Write application data to persistent storage.
 
 Add repository-specific technical verbs below this line.
 

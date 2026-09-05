@@ -141,46 +141,93 @@ wait_for_activity() {
   exit 1
 }
 
+dump_ui() {
+  local path="$1"
+  local attempt
+  for attempt in $(seq 1 5); do
+    if "$adb" -s "$serial" shell uiautomator dump "$path" >/dev/null 2>&1 \
+        && "$adb" -s "$serial" exec-out cat "$path" 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.25
+  done
+  printf 'Upgrade test failed: UI hierarchy is unavailable: %s\n' "$path" >&2
+  exit 1
+}
+
+tap_label() {
+  local label="$1"
+  local position
+  position="$(dump_ui /sdcard/familyhome-tap.xml | python3 -c '
+import re, sys, xml.etree.ElementTree as ET
+root = ET.fromstring(sys.stdin.read())
+label = sys.argv[1]
+node = next(n for n in root.iter("node") if n.get("text") == label or n.get("content-desc") == label)
+left, top, right, bottom = map(int, re.findall(r"\d+", node.get("bounds")))
+print((left + right) // 2, (top + bottom) // 2)
+' "$label")"
+  read -r x y <<< "$position"
+  "$adb" -s "$serial" shell input tap "$x" "$y"
+}
+
 wait_for_activity MainActivity
 sleep 0.5
 
-"$adb" -s "$serial" shell input tap 1215 110
+home_ui="$(dump_ui /sdcard/familyhome-home.xml)"
+games_entries="$(printf '%s' "$home_ui" | grep -o 'text="Games"' | wc -l | tr -d ' ' || true)"
+if [[ "$games_entries" != "1" || "$home_ui" == *'text="Race"'* || "$home_ui" == *"Kart Adventure"* ]]; then
+  printf '%s\n' 'Upgrade test failed: Home does not contain exactly one Games entry.' >&2
+  exit 1
+fi
+
+tap_label "Open settings"
 wait_for_activity SettingsActivity
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 sleep 0.5
 
-"$adb" -s "$serial" shell input tap 155 695
+tap_label Draw
 wait_for_activity DrawingActivity
 sleep 0.25
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 sleep 0.5
 
-"$adb" -s "$serial" shell input tap 640 695
+tap_label Music
+wait_for_activity MusicActivity
+tap_label Piano
 wait_for_activity PianoActivity
 sleep 0.25
 "$adb" -s "$serial" shell input tap 65 400
 wait_for_activity PianoActivity
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
+wait_for_activity MusicActivity
+"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 sleep 0.5
 
-"$adb" -s "$serial" shell input tap 881 695
+tap_label Games
 wait_for_activity GameLibraryActivity
+library_ui="$(dump_ui /sdcard/familyhome-games.xml)"
+for game_name in Freedoom Kart Blocks Tiles Match; do
+  if [[ "$library_ui" != *"text=\"$game_name\""* ]]; then
+    printf 'Upgrade test failed: game library is missing %s.\n' "$game_name" >&2
+    exit 1
+  fi
+done
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 
 preferences="$($adb -s "$serial" exec-out run-as "$package_name" cat shared_prefs/children_portal.xml)"
 for expected in Alice Bob alice-profile bob-profile Sunset sunset-drawing legacy_marker preserve-me 90210 555000 \
-    enabled_game_ids adventure kart drawing_color_alice-profile drawing_size_alice-profile \
+    drawing_color_alice-profile drawing_size_alice-profile \
     drawing_eraser_alice-profile; do
   if [[ "$preferences" != *"$expected"* ]]; then
     printf 'Upgrade test failed: normalized preferences are missing %s\n' "$expected" >&2
     exit 1
   fi
 done
-for removed in freedoom_enabled kart_enabled; do
+for removed in enabled_game_ids freedoom_enabled kart_enabled; do
   if [[ "$preferences" == *"$removed"* ]]; then
     printf 'Upgrade test failed: migrated preferences still contain legacy key %s\n' "$removed" >&2
     exit 1
