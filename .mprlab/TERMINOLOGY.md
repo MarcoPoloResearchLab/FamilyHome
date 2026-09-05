@@ -79,6 +79,18 @@ Give each term one meaning. Use the same term for the same concept in all docume
 - `validation`: Evidence that a change obeys its current contract.
 - `worktree`: A Git checkout that has its own working directory.
 
+- `characterization test`: An integration test that records current public behavior before a refactor.
+- `file permission mode`: A number or symbol that gives filesystem access bits.
+- `GitHub Pages`: The GitHub service that hosts a static website from a repository branch.
+- `integration test`: A test that uses a public entry point and the real repository-owned components on its code path.
+- `inverted test pyramid`: The MPR Lab test strategy with integration tests as the primary layer and no unit-test layer.
+- `production code`: Source code that implements repository behavior outside the test suite.
+- `public entry point`: An interface through which a user or caller uses repository behavior.
+- `static website`: A browser frontend that uses generated files without a website server runtime.
+- `test-driven development`: A coding sequence that uses a failing integration test before a production code change.
+- `unit test`: A test that isolates one code unit from its collaborators.
+- `website hostname`: The hostname that identifies a public static website.
+
 ## Repository Technical Nouns
 
 Add repository-specific technical nouns below this line.
@@ -141,6 +153,8 @@ Add repository-specific technical nouns below this line.
 - `pairing code`: A temporary code that connects a parent session to a specified Portal.
 - `parent`: The adult who owns the Google account and controls calendar access for a family.
 - `parent session`: An authenticated browser session with authority to control the family's calendar connection.
+- `onboarding`: The initial parent setup flow after authentication.
+- `calendar setup`: The parent flow that connects or creates calendars and records their family or child assignments.
 - `personal calendar`: The parent-owned calendar assigned to one child profile.
 - `QR code`: A machine-readable image that opens the Portal connection page on another device.
 - `refresh token`: A credential that permits the backend to renew Google API access.
@@ -188,6 +202,11 @@ Use the simple present, simple past, simple future, imperative, or infinitive fo
 - `signing certificate`: The public identity that Android uses to verify an application signer.
 - `source archive`: A compressed file that contains application source code.
 - `toolbar`: One horizontal row of application controls.
+
+## Display Technical Nouns
+
+- `screensaver`: The display that replaces the current FamilyHome screen after a specified time without user input.
+- `timeout`: The selected time without user input before the screensaver starts.
 
 ## Repository Technical Verbs
 

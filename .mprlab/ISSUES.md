@@ -277,6 +277,33 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Features
 
+- [x] [F002] Add a screensaver with a timeout in Settings.
+  Goal:
+  The user can select a screensaver, including a black screen, and its timeout.
+  Requirements:
+  - Add the screensaver controls to Settings.
+  - Save the selection on this Portal.
+  - Start the screensaver after the selected timeout.
+  Implementation:
+  Settings offers `Clock`, `Black screen`, and `Disabled`.
+  The timeout choices are 30 seconds and 1, 2, 5, 10, 15, or 30 minutes.
+  The default is `Black screen` after five minutes.
+  `Preview screensaver` shows the selected display immediately.
+  A touch or key returns to the same screen without activation of its controls.
+  The clock changes position each minute.
+  The black screen uses minimum brightness. The display remains powered.
+  The controls apply to FamilyHome screens. Separate game applications control their own display behavior.
+  Validation:
+  The Android integration test first failed with `Missing control: Screensaver mode`.
+  The contrast test failed before correction of the selector text.
+  The keyboard test failed before the screensaver closed the keyboard.
+  `make test-android-screensaver` passed, including a process restart and keyboard removal.
+  The test verified timeout changes, touch input, brightness, previews, disabled operation, and activity changes.
+  `make ci` and `make test-android-toolbar` passed.
+  The layout review passed at 1280 by 800.
+  The language review covered F002 and the two added display terms.
+  Physical Portal installation and acceptance remain pending.
+
 - [-] [F001] (P1) Add a guitar to Music.
   Goal:
   Children can play an offline guitar from Music.
@@ -440,6 +467,8 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Prepare the README, screenshots, and local launch drafts while public announcements remain on hold.
   - Preserve existing child profiles and drawings during the eventual migration.
   - Keep P001 as the Google Calendar planning issue.
+  - Use Google as the only parent sign-in provider for the first implementation.
+  - Start calendar setup after parent sign-in through the P001 flow.
   - Retain the selected MIT license as a separate distribution decision.
 
   Current source evidence:
@@ -482,7 +511,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
   Proposed identity and role model:
   A parent identity references `(issuer, tauth_tenant_id, account_id)` from a validated TAuth session.
-  The account ID remains stable when a parent links sign-in providers.
+  The account ID identifies the parent independently of the Google email address.
   Names and email addresses are not primary identity keys.
   One parent can belong to multiple families through separate membership records.
   One family can contain multiple parents, children, and Portals.
@@ -530,6 +559,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
   Proposed parent authentication contract:
   - Use TAuth and `mpr-ui` for browser sign-in, account identity, session restoration, refresh, and logout.
+  - Configure Google as the only permitted parent sign-in provider.
   - Use `/config-ui.yaml` as the application browser-authentication input.
   - Use the official TAuth session validator in the Go backend.
   - Configure the exact issuer, application tenant, session cookie, and signing-key input.
@@ -828,7 +858,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
   Open Decisions:
   - Confirm the proposed family cardinalities and owner/parent role permissions.
-  - Select the first parent sign-in provider and verify its released shared authentication contract.
+  - Verify the released TAuth and `mpr-ui` contract for Google-only parent sign-in.
   - Select the parent website hostname, TAuth profile, cookie names, and CSRF mechanism.
   - Select SQLite and a compatible Go driver, or document the concrete need for another database.
   - Confirm candidate-credential pairing versus a separately owned TAuth device-grant extension.
@@ -882,13 +912,14 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - [OAuth device-flow considerations](https://www.rfc-editor.org/rfc/rfc8628.html).
   - [Android Keystore](https://developer.android.com/privacy-and-security/keystore).
 
-- [ ] [P001] Plan Google Calendar access for parents and children.
+- [ ] [P001] Plan parent sign-in and Google Calendar setup for families and children.
   Goal:
   This issue defines the calendar plan for FamilyHome.
   P002 defines the proposed shared parent, family, device, and child identity model.
   The calendar design requires the same ownership model before implementation.
   Each child sees a combined agenda from the family calendar and that child's personal calendar.
   The parent controls the calendars through Google Calendar.
+  After Google sign-in, the parent connects existing calendars or creates new calendars in the Google account.
   Children can add events to their personal calendars from the Portal.
   This issue authorizes documentation only. Implementation requires a separate request.
 
@@ -901,6 +932,14 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
   Requirements:
   - Keep Google Calendar as the authoritative source for calendar events.
+  - Use Google as the only parent sign-in provider for the first implementation.
+  - Use the parent authentication and family ownership contract from P002 before calendar setup.
+  - Offer calendar setup after the parent signs in and selects the family.
+  - Ask the parent whether to connect an existing family calendar or create a new family calendar.
+  - Ask the same question for each child's personal calendar.
+  - Include both existing-calendar connection and new-calendar creation in the first implementation.
+  - Require parent approval for calendar access and creation.
+  - Keep the parent responsible for Google authorization when setup starts from a child profile.
   - Give the parent ownership of one family calendar and one personal calendar for each child profile.
   - Show family events to every child profile in that family.
   - Show personal events only in the corresponding child profile.
@@ -916,15 +955,37 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Keep automatic email interpretation outside the first implementation.
   - Permit the parent to enter email-derived events through Google Calendar.
 
+  Authentication dependency:
+  The current P002 proposal uses TAuth for parent authentication.
+  This revision interprets the requested dependency name `TOS` as TAuth, pending confirmation of that name.
+  TAuth authenticates the parent. FamilyHome manages calendar consent, connections, and family or child assignments.
+  Parent sign-in establishes identity. Google Calendar consent grants calendar access within the same setup flow.
+
+  Proposed setup placement:
+  1. Complete Google parent sign-in through TAuth and `mpr-ui`.
+  2. Resolve the parent's family membership through P002.
+  3. Offer the family calendar choice during parent onboarding.
+  4. Offer the personal calendar choice during setup for each child profile.
+  5. Obtain Google Calendar consent for the selected connection or creation operation.
+  6. Show eligible existing calendars when the parent selects connection.
+  7. Confirm the name when the parent selects creation.
+  8. Save the confirmed calendar ID against the family or child profile.
+  The child-profile dialog can start this flow. The authenticated parent completes calendar setup on a phone or computer.
+  Parent settings provide later access to the same setup flow.
+  Completed setup shows the stored assignments when the parent returns.
+  A new child profile requires only its personal calendar choice when the family calendar already exists.
+  Exact screen placement and the option to defer calendar setup remain open decisions.
+
   Proposed design:
-  - Create `FamilyHome — Family` and `FamilyHome — <child name>` in the parent's Google account after parent confirmation.
-  - Use the Google scope `calendar.app.created` for those calendars.
+  - Offer `FamilyHome — Family` and `FamilyHome — <child name>` as names when the parent selects calendar creation.
+  - Select Google scopes that support both calendar creation and access to existing calendars.
+  - Verify calendar access before accepting an existing calendar assignment.
   - Reuse the existing FamilyHome backend for Google authorization and calendar API access.
   - Keep Google credentials and refresh tokens in protected backend storage.
   - Record the relationships between the Google account, Portal identity, child profile IDs, and calendar IDs.
   - Give each Portal its own revocable credential.
   - Use a pairing code with an expiration time and a single permitted use.
-  - Show the Portal's existing child profiles on the parent connection page before calendar creation.
+  - Show existing child profiles before calendar connection or creation.
   - Keep the Google OAuth callback on the API hostname.
   - Host the parent browser frontend on GitHub Pages under the current Governor contract.
   - Show the next event and a short agenda in the widget under `My day`.
@@ -938,14 +999,20 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Keep an unsaved draft until Google confirms the save.
   - Define correct behavior for repeated events, all-day events, time zones, and cancellations.
   - Prevent duplicate events after repeated submissions.
+  - Prevent duplicate calendars and assignments after repeated setup requests or interrupted responses.
   - Define conflict handling for simultaneous parent and child changes.
   - Replace the iCalendar link contract in one coordinated client and backend change.
   - Preserve existing child profile IDs and unrelated child data during that change.
 
   Open Decisions:
-  - Confirm calendar creation and names for the first implementation.
-  - Decide whether connection to existing calendars requires later work and different Google permissions.
-  - Select the parent verification method for settings and reconnection.
+  - Confirm that the requested dependency name `TOS` means TAuth.
+  - Confirm the proposed division between parent onboarding and child-profile setup.
+  - Define the option to defer setup independently for the family calendar and each personal calendar.
+  - Confirm the proposed names for newly created calendars.
+  - Select the minimum Google scopes for existing-calendar selection, event access, and calendar creation.
+  - Define eligible calendar ownership and access roles for existing calendars.
+  - Define account selection when the calendar account differs from the parent's sign-in account.
+  - Define parent session renewal for settings and reconnection through the P002 authentication contract.
   - Select the website hostname and publication repository for the parent connection page.
   - Record the separation between the website and API hostnames in the final deployment plan.
   - Select the persistent storage system and credential protection method.
@@ -961,15 +1028,24 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Define the REST resources for device connections, child calendar assignments, agendas, and event creation.
   - Define the backend authorization checks for each resource.
   - Define the persistent data schema and the removal of obsolete calendar fields.
+  - Define separate family and child assignments, including incomplete setup and confirmed calendar IDs.
+  - Define consent denial, interrupted setup, repeated requests, and revoked calendar access.
   - Specify the three implementation stages below.
   - Keep source validation, backend deployment, Android installation, and real-device acceptance as separate gates.
 
   Implementation stages after approval:
-  1. Connect: Complete parent authorization, Portal pairing, calendar creation, and persistent calendar assignments.
+  1. Connect: Complete Google parent sign-in, calendar consent, existing-calendar connection or creation, Portal pairing, and persistent assignments.
   2. Read: Show the combined agenda with changes from Google Calendar and explicit connection status.
   3. Write: Create child events with backend authorization, duplicate prevention, and confirmation from Google Calendar.
 
   Acceptance scenarios for later implementation:
+  - Verify that Google is the only available parent sign-in provider.
+  - Verify that parent sign-in leads to calendar setup for the selected family.
+  - Connect an existing family calendar and an existing personal calendar through parent approval.
+  - Create a new family calendar and a new personal calendar through parent approval.
+  - Verify mixed choices, including an existing family calendar and a new personal calendar.
+  - Verify that a child profile cannot authorize Google access or create calendars without the authenticated parent.
+  - Verify that parent sign-in alone grants no calendar access before Google consent.
   - Connect the physical Portal from a separate phone or computer.
   - Verify that the calendar assignments survive a backend restart and an application restart.
   - Verify that Alice sees events from the family calendar and Alice's personal calendar.
