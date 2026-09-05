@@ -8,6 +8,36 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
+- [x] [B002] Restore the screensaver timeout for text input and dialogs.
+  Goal:
+  User input resets the timeout. An open dialog does not prevent the screensaver.
+  Current failures:
+  Repeated keyboard text input does not reset the timeout.
+  An open selection dialog stops the timeout until the dialog closes.
+  Requirements:
+  - Reset the timeout after user text input.
+  - Track user input in FamilyHome dialogs.
+  - Show the screensaver over an idle dialog.
+  - Preserve unsaved dialog input when the screensaver starts.
+  - Return to the same dialog after a wake touch.
+  - Consume the wake touch before the dialog can use it.
+  Validation:
+  - Verify both failures through the Android integration tests before the correction.
+  - Verify text input, dialog input, timeout, wake behavior, and unsaved input after the correction.
+  - Run `make test-android-screensaver`, `make test-android-toolbar`, and `make ci`.
+  Current result:
+  Both integration tests failed before the production changes.
+  Text input now resets the timeout through the Android text interface.
+  FamilyHome dialogs now track touch, key, and text input.
+  The screensaver covers the complete screen above the current dialog.
+  Wake input returns to the same dialog without a selection change.
+  The typing and dialog tests passed.
+  The dialog test verified input preservation and consumption of the wake touch.
+  Existing screensaver behavior and process restart tests passed.
+  `make ci` and `make test-android-toolbar` passed.
+  The language review covered B002 and the added dialog term.
+  Physical Portal installation remains pending.
+
 - [x] [B001] (P1) Restore piano sound.
   Goal:
   Music shows each note but produces no sound.
@@ -347,6 +377,113 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Its APK hash matches the build. The Music screen passed visual review on the device.
 
 ## Planning
+
+- [ ] [P004] Plan the Photo Booth application.
+  Goal:
+  This issue defines an implementation proposal for Photo Booth in FamilyHome.
+  The user requested a plan. Application implementation requires a separate request.
+
+  Requirements:
+  - Plan the Photo Booth application.
+  - Use the current FamilyHome contracts.
+  - Keep proposed product choices separate from confirmed requirements.
+
+  Current evidence:
+  The source review date is 2026-09-05.
+  FamilyHome uses native Java and a direct Android SDK build.
+  The manifest specifies Android API 28 as its minimum and target.
+  The manifest has no camera permission or Photo Booth activity.
+  Home currently shows Draw, Ask, Music, and Games.
+  `ProfileStore` supplies local child identities. Profile selection does not authenticate a child.
+  `PortalActivity` shows the screensaver as an overlay without an activity pause.
+  Physical Portal camera access remains unverified.
+
+  Proposed first version:
+  The first version works on the Portal without a service connection.
+  A Photo Booth control on Home opens one native FamilyHome activity.
+  Back, Home, and application controls use the common toolbar.
+  The camera preview occupies the main screen area.
+  The child selects one picture or a four-picture photo strip.
+  A three-second countdown precedes each picture.
+  The review screen offers Save, Retake, and Discard.
+  A small selection of decorative frames provides the first effects.
+  Save adds the result to the active child's photo album.
+  The photo album provides picture review and explicit deletion.
+  These choices remain proposals pending the user's scope decision.
+
+  Proposed technical design:
+  `PhotoBoothActivity` owns the screen and user commands.
+  A camera adapter owns camera access, camera preview, image output, and resource release.
+  Camera2 is the initial candidate because the current build uses platform APIs without AndroidX dependencies.
+  Camera2 selection requires physical Portal evidence for camera preview and JPEG output together.
+  The adapter selects supported dimensions from the device characteristics.
+  Image orientation and camera preview reflection require explicit handling.
+  The proposed camera preview reflects the user like a mirror. Saved images preserve normal text direction.
+  A renderer combines pictures and decorative frames within a defined memory limit.
+  A photo store owns image files, thumbnails, and one current metadata schema.
+  Proposed metadata contains `id`, `profile_id`, `created_at`, `kind`, `frame_id`, `width`, `height`, and `bytes`.
+  A capture sequence keeps the profile ID selected at its start.
+  Save completes the image and metadata together before the interface reports success.
+  Repeated Save input produces one photo album entry.
+  Temporary pictures remain separate from saved entries. Cancellation and process restart remove incomplete temporary data.
+  Final images remain in application storage. The proposed first version has no photo upload operation.
+
+  Proposed state and resource behavior:
+  The main states are `permission-required`, `opening`, `preview`, `countdown`, `capturing`, `review`, `saving`, `album`, and `error`.
+  Camera denial, camera loss, and insufficient storage produce explicit errors with applicable next actions.
+  The camera adapter releases its resources on Back, Home, activity pause, and screensaver entry.
+  Screensaver entry cancels an incomplete capture sequence.
+  Screensaver wake returns to camera preview after resource acquisition. The wake touch takes no picture.
+  A screensaver callback in `PortalActivity` is necessary because the current overlay does not pause the activity.
+  Pending camera callbacks must not save a discarded picture or restart the camera after exit.
+
+  Proposed implementation sequence:
+  | Stage | Scope | Proposed exit evidence |
+  | --- | --- | --- |
+  | 1 | Portal camera qualification | Camera permission, supported dimensions, preview, JPEG output, orientation, and repeated release pass on the device |
+  | 2 | One complete picture flow | Home, countdown, picture review, Save, Retake, Discard, and resource release pass through the Android interface |
+  | 3 | Photo album and persistence | Two profiles retain separate entries after restart and APK update, with correct deletion and storage errors |
+  | 4 | Photo strips and decorative frames | Four distinct pictures appear in sequence, with correct crop, orientation, and complete cancellation |
+  | 5 | Full device acceptance | Repeated sessions, screensaver transitions, camera cover behavior, and the Portal layout pass on the physical device |
+  Each stage starts with a failing integration test through the real application entry point before production-code changes.
+  A proposed `make test-android-photobooth` target exercises the Android interface and real camera pipeline with an emulator camera scene.
+  Camera failure scenarios require controlled emulator or device conditions at the platform boundary.
+  Existing toolbar, screensaver, and upgrade tests cover the affected shared behavior.
+  `make ci` runs after the final application change. Physical camera acceptance remains a separate result.
+
+  Open Decisions:
+  - Select an embedded FamilyHome activity or a separate APK.
+  - Select local pictures, AI transformations, or both for the first version.
+  - Confirm the picture count, countdown duration, decorative frames, and image reflection behavior.
+  - Select image dimensions, JPEG quality, and memory limits after the camera qualification.
+  - Define photo album limits, deletion controls, and storage duration.
+  - Select whether saved photo strips also keep their individual pictures.
+  - Define treatment of local pictures when a profile is removed or a Portal changes families.
+  - Select whether a parent can export pictures from the first version.
+  - If connected features are selected, define photo ownership and parent authorization with P002.
+  - If AI transformations are selected, define photo inputs, provider access, parent controls, and cost limits with P003.
+  AI provider routing requires current contract verification before selection because the P003 source and later architecture notes differ.
+  Local camera work can proceed independently after its scope is selected.
+
+  Deliverables:
+  - Record the selected first-version flow and image policy.
+  - Record the physical camera qualification procedure and results during implementation.
+  - Create concrete implementation issues for the selected stages after the product decisions.
+
+  Validation:
+  - Verify the source facts against the named Android files.
+  - Verify that product assumptions remain proposals or open decisions.
+  - Verify the distinction between emulator coverage and physical Portal acceptance.
+  - Run the document language checker and Governor check.
+  - Verify issue identifiers and `git diff --check`.
+
+  References:
+  - `android/app/src/main/AndroidManifest.xml`, `android/build.sh`: Android runtime and build contracts.
+  - `android/app/src/main/java/com/mprlab/portal/MainActivity.java`: Home controls.
+  - `android/app/src/main/java/com/mprlab/portal/ProfileStore.java`: child identities.
+  - `android/app/src/main/java/com/mprlab/portal/PortalActivity.java`: screensaver and navigation behavior.
+  - [Android camera sessions](https://developer.android.com/media/camera/camera2/capture-sessions-requests).
+  - [Android runtime permissions](https://developer.android.com/training/permissions/requesting).
 
 - [ ] [P003] Plan image generation through MediaOps.
   Goal:

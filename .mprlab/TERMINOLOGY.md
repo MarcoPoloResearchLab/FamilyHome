@@ -82,14 +82,16 @@ Give each term one meaning. Use the same term for the same concept in all docume
 - `characterization test`: An integration test that records current public behavior before a refactor.
 - `file permission mode`: A number or symbol that gives filesystem access bits.
 - `GitHub Pages`: The GitHub service that hosts a static website from a repository branch.
-- `integration test`: A test that uses a public entry point and the real repository-owned components on its code path.
-- `inverted test pyramid`: The MPR Lab test strategy with integration tests as the primary layer and no unit-test layer.
+- `integration test`: A test of real product logic and component interactions through a public entry point, with controlled dependencies when necessary.
+- `inverted test pyramid`: The MPR Lab test strategy with integration tests as the primary layer and focused unit tests where useful.
 - `production code`: Source code that implements repository behavior outside the test suite.
 - `public entry point`: An interface through which a user or caller uses repository behavior.
 - `static website`: A browser frontend that uses generated files without a website server runtime.
 - `test-driven development`: A coding sequence that uses a failing integration test before a production code change.
 - `unit test`: A test that isolates one code unit from its collaborators.
 - `website hostname`: The hostname that identifies a public static website.
+
+- `dependency injection`: A design that supplies a component's dependencies from outside that component.
 
 ## Repository Technical Nouns
 
@@ -205,8 +207,21 @@ Use the simple present, simple past, simple future, imperative, or infinitive fo
 
 ## Display Technical Nouns
 
+- `dialog`: An application window that requests input or shows information above the current screen.
+
 - `screensaver`: The display that replaces the current FamilyHome screen after a specified time without user input.
 - `timeout`: The selected time without user input before the screensaver starts.
+
+## Photo Booth Technical Nouns
+
+- `Photo Booth`: The proposed FamilyHome activity for camera pictures.
+- `camera preview`: The live camera image shown before a picture.
+- `countdown`: The visible count before the camera takes a picture.
+- `photo strip`: One image that combines a sequence of camera pictures.
+- `photo album`: The saved camera pictures associated with one child profile.
+- `decorative frame`: An illustrated border around a camera picture or photo strip.
+- `Camera2`: The Android platform API for camera access and image output.
+- `JPEG`: The image format proposed for saved camera pictures.
 
 ## Repository Technical Verbs
 
