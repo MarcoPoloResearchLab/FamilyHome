@@ -25,6 +25,7 @@ final class GameLauncher {
         Intent launch = new Intent(Intent.ACTION_MAIN);
         launch.setClassName(game.packageName, game.activityName);
         launch.addCategory(Intent.CATEGORY_LAUNCHER);
+        launch.addFlags(game.launchMode.flags);
         launch.putExtra("portal_profile_id", profile.id);
         launch.putExtra("portal_profile_name", profile.name);
         try {

@@ -7,13 +7,16 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
+import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,7 +42,6 @@ public final class SettingsActivity extends PortalActivity {
         Window window = getWindow();
         window.setStatusBarColor(SYSTEM_BAR);
         window.setNavigationBarColor(SYSTEM_BAR);
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         store = new ProfileStore(this);
         render();
     }
@@ -83,6 +85,7 @@ public final class SettingsActivity extends PortalActivity {
         childrenPanel.addView(addChild, addParams);
 
         LinearLayout homeColumn = column();
+        homeColumn.addView(screensaverPanel(), matchWrap());
         LinearLayout weatherPanel = panel();
         weatherPanel.addView(sectionLabel("WEATHER LOCATION"));
         weatherPanel.addView(sectionHelp("Use a ZIP code or city for the home-screen weather card. Leave it blank to hide weather."));
@@ -108,7 +111,9 @@ public final class SettingsActivity extends PortalActivity {
         locationStatus = text(locationMessage(), 15, MUTED, false);
         locationStatus.setPadding(0, dp(10), 0, 0);
         weatherPanel.addView(locationStatus, matchWrap());
-        homeColumn.addView(weatherPanel, matchWrap());
+        LinearLayout.LayoutParams weatherParams = matchWrap();
+        weatherParams.topMargin = dp(18);
+        homeColumn.addView(weatherPanel, weatherParams);
 
         LinearLayout devicePanel = panel();
         devicePanel.addView(sectionLabel("THIS PORTAL"));
@@ -128,6 +133,61 @@ public final class SettingsActivity extends PortalActivity {
         root.addView(content, matchWrap());
 
         setContentView(PortalToolbar.screen(this, header, scroll, BG));
+    }
+
+    private View screensaverPanel() {
+        ScreensaverSettings saved = ScreensaverSettings.read(this);
+        LinearLayout panel = panel();
+        panel.addView(sectionLabel("SCREENSAVER"));
+        panel.addView(sectionHelp("Start after no activity in FamilyHome. Tap anywhere to return."));
+        panel.addView(sectionHelp("Black screen hides everything at minimum brightness. The display stays powered."));
+        Spinner mode = selection(panel, ScreensaverSettings.MODE_LABEL, ScreensaverSettings.Mode.values(), saved.mode.ordinal());
+        Spinner timeout = selection(panel, ScreensaverSettings.TIMEOUT_LABEL, ScreensaverSettings.Timeout.values(), saved.timeout.ordinal());
+        Button preview = button(ScreensaverSettings.PREVIEW_LABEL, PURPLE, Color.WHITE);
+        preview.setContentDescription(ScreensaverSettings.PREVIEW_LABEL);
+        preview.setOnClickListener(view -> showScreensaver());
+        LinearLayout.LayoutParams previewParams = matchWrap();
+        previewParams.topMargin = dp(12);
+        panel.addView(preview, previewParams);
+        Runnable save = () -> {
+            ScreensaverSettings selected = new ScreensaverSettings((ScreensaverSettings.Mode) mode.getSelectedItem(),
+                    (ScreensaverSettings.Timeout) timeout.getSelectedItem());
+            boolean enabled = selected.mode != ScreensaverSettings.Mode.DISABLED;
+            timeout.setEnabled(enabled);
+            preview.setEnabled(enabled);
+            preview.setAlpha(enabled ? 1f : .45f);
+            ScreensaverSettings current = ScreensaverSettings.read(this);
+            if (current.mode == selected.mode && current.timeout == selected.timeout) return;
+            if (!selected.save(this)) {
+                Toast.makeText(this, "Could not save screensaver settings", Toast.LENGTH_LONG).show();
+                return;
+            }
+            reloadScreensaverSettings();
+        };
+        AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { save.run(); }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        };
+        mode.setOnItemSelectedListener(listener);
+        timeout.setOnItemSelectedListener(listener);
+        save.run();
+        return panel;
+    }
+
+    private <T> Spinner selection(LinearLayout panel, String label, T[] choices, int selected) {
+        TextView title = text(label, 16, INK, true);
+        title.setPadding(0, dp(12), 0, dp(4));
+        panel.addView(title, matchWrap());
+        Spinner spinner = new Spinner(new ContextThemeWrapper(this, android.R.style.Theme_Material_Light), Spinner.MODE_DIALOG);
+        spinner.setPrompt(label);
+        spinner.setContentDescription(label);
+        ArrayAdapter<T> adapter = new ArrayAdapter<>(spinner.getContext(), android.R.layout.simple_spinner_item, choices);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(selected);
+        spinner.setBackgroundTintList(android.content.res.ColorStateList.valueOf(PURPLE));
+        panel.addView(spinner, new LinearLayout.LayoutParams(-1, dp(52)));
+        return spinner;
     }
 
     private View childRow(ProfileStore.Profile profile) {

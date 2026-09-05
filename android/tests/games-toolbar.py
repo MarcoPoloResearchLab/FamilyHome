@@ -33,6 +33,17 @@ def tap(node: ET.Element) -> None:
     x1, y1, x2, y2 = box(node)
     command("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
 
+def open_game(game: str) -> None:
+    tap(control(snapshot(), "Games"))
+    tap(control(snapshot(), game.title()))
+
+def game_activity(game: str) -> str:
+    state = command("shell", "dumpsys", "activity", "activities")
+    activity = re.search(r"(?:mResumedActivity|topResumedActivity)[^\n]*(ActivityRecord\{[^}\n]* "
+                         + re.escape(GAMES[game]) + r" t\d+\})", state)
+    assert activity is not None, f"The active {game} game is not in the foreground"
+    return activity.group(1)
+
 def check_toolbar(root: ET.Element) -> None:
     back, home = control(root, "Back"), control(root, "Home")
     a, b = box(back), box(home)
@@ -55,7 +66,6 @@ def familyhome_profile() -> None:
         name = next(n for n in root.iter("node") if n.get("class") == "android.widget.EditText")
         tap(name)
         command("shell", "input", "text", "ToolbarTest")
-        command("shell", "input", "keyevent", "4")
         tap(control(snapshot(), "Save"))
         root = snapshot()
     tap(control(root, "Home"))
@@ -64,7 +74,8 @@ def familyhome_profile() -> None:
 @pytest.mark.parametrize("game", GAMES)
 def test_game_toolbar(game: str) -> None:
     command("shell", "am", "force-stop", GAMES[game].split("/")[0])
-    command("shell", "am", "start", "-W", "-n", GAMES[game])
+    command("shell", "am", "start", "-W", "-n", "com.mprlab.portal/.MainActivity")
+    open_game(game)
     # Wait for the WebView or Flutter accessibility tree after the launch screen.
     for attempt in range(5):
         root = snapshot()
@@ -103,8 +114,17 @@ def test_game_toolbar(game: str) -> None:
         tap(control(root, "Show menu"))
         root = snapshot()
     directory = Path("android/build/toolbar-audit")
+    directory.mkdir(parents=True, exist_ok=True)
     (directory / f"{game}-toolbar.png").write_bytes(subprocess.check_output(ADB + ["exec-out", "screencap", "-p"]))
+    active_game = game_activity(game)
     tap(control(root, "Home"))
     snapshot()
     state = command("shell", "dumpsys", "activity", "activities")
     assert re.search(r"(?:mResumedActivity|topResumedActivity).*com.mprlab.portal/.MainActivity", state), "Home did not return to FamilyHome"
+    assert re.search(r"\* Hist\s+#\d+: " + re.escape(active_game), state), f"Home destroyed the active {game} game"
+    open_game(game)
+    root = snapshot()
+    check_toolbar(root)
+    assert game_activity(game) == active_game, f"The Games tile replaced the active {game} game"
+    tap(control(root, "Home"))
+    snapshot()

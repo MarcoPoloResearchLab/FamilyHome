@@ -14,7 +14,6 @@ import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -51,7 +50,6 @@ public final class GuitarActivity extends PortalActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (state != null) {
             int[] frets = state.getIntArray(FRETS_STATE);
             if (frets != null) System.arraycopy(frets, 0, selected, 0, selected.length);

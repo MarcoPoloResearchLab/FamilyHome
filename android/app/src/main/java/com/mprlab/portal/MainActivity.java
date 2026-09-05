@@ -19,7 +19,6 @@ import android.os.Handler;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -92,7 +91,6 @@ public final class MainActivity extends PortalActivity {
         Window window = getWindow();
         window.setStatusBarColor(SYSTEM_BAR);
         window.setNavigationBarColor(SYSTEM_BAR);
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         store = new ProfileStore(this);
         render();
         if (store.profiles.isEmpty()) handler.postDelayed(() -> {

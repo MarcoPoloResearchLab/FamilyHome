@@ -11,6 +11,7 @@ if not serial.startswith('emulator-'):
     raise SystemExit('Use a dedicated emulator for the Match toolbar test.')
 adb = [os.environ['ANDROID_SDK_ROOT'] + '/platform-tools/adb', '-s', serial]
 package = 'org.secuso.privacyfriendlymemory'
+portal_package = 'com.mprlab.portal'
 
 def command(*args: str) -> str:
     return subprocess.check_output(adb + list(args), text=True)
@@ -19,8 +20,8 @@ def snapshot() -> ET.Element:
     command('shell', 'uiautomator', 'dump', '/sdcard/toolbar-test.xml')
     return ET.fromstring(command('exec-out', 'cat', '/sdcard/toolbar-test.xml'))
 
-def find(root: ET.Element, label: str) -> ET.Element | None:
-    return next((node for node in root.iter('node') if node.get('package') == package
+def find(root: ET.Element, label: str, app_package: str = package) -> ET.Element | None:
+    return next((node for node in root.iter('node') if node.get('package') == app_package
                  and (node.get('content-desc') == label or node.get('text', '').casefold() == label.casefold())), None)
 
 def bounds(node: ET.Element) -> list[int]:
@@ -30,14 +31,47 @@ def click(node: ET.Element) -> None:
     left, top, right, bottom = bounds(node)
     command('shell', 'input', 'tap', str((left + right) // 2), str((top + bottom) // 2))
 
-def wait_label(label: str) -> tuple[ET.Element, ET.Element]:
+def wait_label(label: str, app_package: str = package) -> tuple[ET.Element, ET.Element]:
     for _ in range(8):
         root = snapshot()
-        node = find(root, label)
+        node = find(root, label, app_package)
         if node is not None:
             return root, node
         time.sleep(.25)
     raise AssertionError(f'Match control missing: {label}')
+
+def open_match() -> None:
+    _, games = wait_label('Games', portal_package)
+    click(games)
+    _, match = wait_label('Match', portal_package)
+    click(match)
+
+def prepare_familyhome() -> None:
+    command('shell', 'am', 'start', '-W', '-n', portal_package + '/.MainActivity')
+    root = snapshot()
+    settings = find(root, 'Open settings', portal_package)
+    if settings is not None:
+        click(settings)
+        root = snapshot()
+    if find(root, 'No child spaces yet', portal_package) is not None:
+        _, add = wait_label('＋  Add a child', portal_package)
+        click(add)
+        root = snapshot()
+        name = next(node for node in root.iter('node') if node.get('class') == 'android.widget.EditText')
+        click(name)
+        command('shell', 'input', 'text', 'ToolbarTest')
+        # Save through the dialog even when the keyboard changes its geometry.
+        _, save = wait_label('Save', portal_package)
+        click(save)
+    _, home = wait_label('Home', portal_package)
+    click(home)
+
+def game_activity() -> str:
+    state = command('shell', 'dumpsys', 'activity', 'activities')
+    activity = re.search(r'(?:mResumedActivity|topResumedActivity)[^\n]*(ActivityRecord\{[^}\n]* '
+                         + re.escape(package + '/.ui.MemoActivity') + r' t\d+\})', state)
+    assert activity is not None, 'The active Match game is not in the foreground'
+    return activity.group(1)
 
 def toolbar() -> tuple[ET.Element, ET.Element, ET.Element]:
     root, back = wait_label('Back')
@@ -50,7 +84,9 @@ def toolbar() -> tuple[ET.Element, ET.Element, ET.Element]:
     return root, back, home
 
 def test_match_toolbar() -> None:
-    command('shell', 'am', 'start', '-W', '-n', package + '/.ui.SplashActivity')
+    command('shell', 'am', 'force-stop', package)
+    prepare_familyhome()
+    open_match()
     root = snapshot()
     welcome = find(root, 'Okay')
     if welcome is not None:
@@ -81,6 +117,7 @@ def test_match_toolbar() -> None:
     click(cancel)
     toolbar()
     root, back, home = toolbar()
+    active_game = game_activity()
     click(home)
     for _ in range(20):
         activity = command('shell', 'dumpsys', 'activity', 'activities')
@@ -89,4 +126,9 @@ def test_match_toolbar() -> None:
         time.sleep(.25)
     else:
         raise AssertionError('Home did not return to FamilyHome')
-    print('Match toolbar passed: one row, game status, Back confirmation, and Home.')
+    assert re.search(r'\* Hist\s+#\d+: ' + re.escape(active_game), activity), 'Home destroyed the active Match game'
+    open_match()
+    toolbar()
+    assert game_activity() == active_game, 'The Games tile replaced the active Match game'
+    assert any(node.get('resource-id', '').endswith('/timerView') for node in snapshot().iter('node')), 'The Games tile did not resume the active game'
+    print('Match toolbar passed: one row, game status, Back confirmation, Home, and game resume.')
