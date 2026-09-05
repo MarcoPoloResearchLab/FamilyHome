@@ -8,18 +8,21 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
-- [x] [B003] Correct Android upgrade test selection.
+- [x] [B003] Correct Android upgrade test setup and selection.
   Goal:
   The upgrade test must identify the current Home controls and game cards.
-  The GitHub check failed because it used child text instead of the card's `content-desc`.
+  The GitHub check failed because the Android fullscreen introduction covered Home.
   Requirements:
+  - Confirm the fullscreen introduction before the test starts.
+  - Restore the previous Android setting after the test.
   - Select cards through `content-desc`.
   - Keep navigation and saved-data checks after APK replacement.
   Validation:
   - Run `make test-android-upgrade` and `make ci`.
   - Verify the GitHub check after the correction.
   Current result:
-  The upgrade test passed on the local emulator after the correction.
+  The GitHub UI output identified the Android fullscreen introduction.
+  The final upgrade test passed locally and restored the previous Android setting.
   `make ci` passed.
   The language review covered B003.
 

@@ -43,8 +43,15 @@ original_size="$($adb -s "$serial" shell wm size | tr -d '\r')"
 original_density="$($adb -s "$serial" shell wm density | tr -d '\r')"
 original_size_override="$(printf '%s\n' "$original_size" | awk -F': ' '/Override size/ {print $2}')"
 original_density_override="$(printf '%s\n' "$original_density" | awk -F': ' '/Override density/ {print $2}')"
+immersive_setting="immersive_mode_confirmations"
+original_immersive_confirmation="$($adb -s "$serial" shell settings get secure "$immersive_setting" | tr -d '\r')"
 
 cleanup() {
+  if [[ "$original_immersive_confirmation" == "null" ]]; then
+    "$adb" -s "$serial" shell settings delete secure "$immersive_setting" >/dev/null
+  else
+    "$adb" -s "$serial" shell settings put secure "$immersive_setting" "$(printf '%q' "$original_immersive_confirmation")" >/dev/null
+  fi
   if [[ "${KEEP_TEST_APP:-0}" != "1" ]]; then
     "$adb" -s "$serial" uninstall "$package_name" >/dev/null 2>&1 || true
   fi
@@ -109,6 +116,7 @@ sign_apk "$current_output/Children-Portal-v$current_version-aligned.apk" "$curre
 
 "$adb" -s "$serial" shell wm size 1280x800 >/dev/null
 "$adb" -s "$serial" shell wm density 160 >/dev/null
+"$adb" -s "$serial" shell settings put secure "$immersive_setting" confirmed
 "$adb" -s "$serial" install "$fixture_apk" >/dev/null
 "$adb" -s "$serial" shell am start -W -n "$package_name/.MainActivity" >/dev/null
 
