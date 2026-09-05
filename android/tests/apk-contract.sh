@@ -24,6 +24,16 @@ require_text() {
   fi
 }
 
+reject_text() {
+  local text="$1"
+  local rejected="$2"
+  local description="$3"
+  if [[ "$text" == *"$rejected"* ]]; then
+    printf 'APK contract failed: %s; rejected %s\n' "$description" "$rejected" >&2
+    exit 1
+  fi
+}
+
 FAMILYHOME_SERVICE_BASE_URL=https://familyhome.invalid \
 FAMILYHOME_DEVICE_TOKEN=familyhome-ci-device-token-000000000 \
 ANDROID_DEBUGGABLE=1 \
@@ -35,7 +45,7 @@ require_text "$badging" "sdkVersion:'28'" "minimum Android version"
 require_text "$badging" "targetSdkVersion:'28'" "target Android version"
 
 xmltree="$($aapt dump xmltree "$apk" AndroidManifest.xml)"
-for component in MainActivity AskActivity DrawingActivity PianoActivity SettingsActivity GameLibraryActivity ShareProvider; do
+for component in MainActivity AskActivity DrawingActivity MusicActivity GuitarActivity PianoActivity SettingsActivity GameLibraryActivity TimerAlarmReceiver ShareProvider; do
   require_text "$xmltree" "$component" "manifest component $component"
 done
 require_text "$xmltree" "android.intent.category.HOME" "HOME intent"
@@ -46,9 +56,18 @@ require_text "$dex_strings" "https://familyhome.invalid" "generated service URL"
 require_text "$dex_strings" "familyhome-ci-device-token-000000000" "generated device token"
 require_text "$dex_strings" "/v1/weather?location=" "weather service route"
 require_text "$dex_strings" "Weather by Open-Meteo" "weather attribution"
+for timer_text in "Reading" "20 min" "Brush teeth" "2 min 15 sec" "Quick timer" "5 min" "Custom" "Choose time" "Time is up!"; do
+  require_text "$dex_strings" "$timer_text" "timer control $timer_text"
+done
 for game_package in net.nullsum.freedoom org.supertuxkart.stk com.blockdrop.game net.vantulder.tessel org.secuso.privacyfriendlymemory; do
   require_text "$dex_strings" "$game_package" "game catalog package $game_package"
 done
+for game_name in Freedoom Kart Blocks Tiles Match; do
+  require_text "$dex_strings" "$game_name" "visible game catalog name $game_name"
+done
+reject_text "$dex_strings" "Kart Adventure" "redundant Home game shortcut"
+reject_text "$dex_strings" "Choose in profile" "obsolete profile game filter"
+reject_text "$dex_strings" "enabled_game_ids" "obsolete profile game persistence"
 if [[ "$dex_strings" == *"LLM_PROXY_SECRET"* ]]; then
   printf '%s\n' 'APK contract failed: the LLM Proxy secret boundary reached the Android APK' >&2
   exit 1

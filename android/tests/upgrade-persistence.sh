@@ -10,6 +10,7 @@ adb="$ANDROID_SDK_ROOT/platform-tools/adb"
 tools_dir="$ANDROID_SDK_ROOT/build-tools/${BUILD_TOOLS_VERSION:-36.1.0}"
 apksigner="$tools_dir/apksigner"
 package_name="com.mprlab.portal"
+ui_package="com.mprlab.portal.upgradeuitest"
 serial="${ANDROID_SERIAL:-}"
 
 if [[ -z "$serial" ]]; then
@@ -43,8 +44,16 @@ original_size="$($adb -s "$serial" shell wm size | tr -d '\r')"
 original_density="$($adb -s "$serial" shell wm density | tr -d '\r')"
 original_size_override="$(printf '%s\n' "$original_size" | awk -F': ' '/Override size/ {print $2}')"
 original_density_override="$(printf '%s\n' "$original_density" | awk -F': ' '/Override density/ {print $2}')"
+immersive_setting="immersive_mode_confirmations"
+original_immersive_confirmation="$($adb -s "$serial" shell settings get secure "$immersive_setting" | tr -d '\r')"
 
 cleanup() {
+  "$adb" -s "$serial" uninstall "$ui_package" >/dev/null 2>&1 || true
+  if [[ "$original_immersive_confirmation" == "null" ]]; then
+    "$adb" -s "$serial" shell settings delete secure "$immersive_setting" >/dev/null
+  else
+    "$adb" -s "$serial" shell settings put secure "$immersive_setting" "$(printf '%q' "$original_immersive_confirmation")" >/dev/null
+  fi
   if [[ "${KEEP_TEST_APP:-0}" != "1" ]]; then
     "$adb" -s "$serial" uninstall "$package_name" >/dev/null 2>&1 || true
   fi
@@ -107,8 +116,20 @@ current_apk="$current_output/current-signed.apk"
 sign_apk "$fixture_output/Children-Portal-v0.8.0-upgrade-fixture-aligned.apk" "$fixture_apk"
 sign_apk "$current_output/Children-Portal-v$current_version-aligned.apk" "$current_apk"
 
+android_jar="$ANDROID_SDK_ROOT/platforms/${ANDROID_PLATFORM:-android-35}/android.jar"
+ui_output="$output_root/ui"
+mkdir -p "$ui_output/classes" "$ui_output/dex"
+"$tools_dir/aapt2" link -I "$android_jar" --manifest tests/upgrade-ui/AndroidManifest.xml -o "$ui_output/test.apk"
+javac -source 8 -target 8 -classpath "$android_jar" -d "$ui_output/classes" tests/upgrade-ui/UpgradeUiDump.java
+"$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$ui_output/dex" "$ui_output/classes/com/mprlab/portal/upgradeuitest/"*.class
+zip -j -q "$ui_output/test.apk" "$ui_output/dex/classes.dex"
+"$tools_dir/zipalign" -f 4 "$ui_output/test.apk" "$ui_output/test-aligned.apk"
+sign_apk "$ui_output/test-aligned.apk" "$ui_output/test-signed.apk"
+"$adb" -s "$serial" install "$ui_output/test-signed.apk" >/dev/null
+
 "$adb" -s "$serial" shell wm size 1280x800 >/dev/null
 "$adb" -s "$serial" shell wm density 160 >/dev/null
+"$adb" -s "$serial" shell settings put secure "$immersive_setting" confirmed
 "$adb" -s "$serial" install "$fixture_apk" >/dev/null
 "$adb" -s "$serial" shell am start -W -n "$package_name/.MainActivity" >/dev/null
 
@@ -141,46 +162,94 @@ wait_for_activity() {
   exit 1
 }
 
+dump_ui() {
+  local path="$1"
+  local result
+  result="$("$adb" -s "$serial" shell am instrument -w "$ui_package/.UpgradeUiDump")"
+  if [[ "$result" != *'INSTRUMENTATION_CODE: -1'* || "$result" != *'INSTRUMENTATION_RESULT: ui=<hierarchy>'* ]]; then
+    printf 'Upgrade test failed: UI hierarchy is unavailable: %s\n%s\n' "$path" "$result" >&2
+    exit 1
+  fi
+  printf '%s\n' "$result" | sed -n 's/^INSTRUMENTATION_RESULT: ui=//p' | tr -d '\r' | tee "$output_root/$(basename "$path")"
+}
+
+tap_label() {
+  local label="$1"
+  local position
+  position="$(dump_ui /sdcard/familyhome-tap.xml | python3 -c '
+import re, sys, xml.etree.ElementTree as ET
+root = ET.fromstring(sys.stdin.read())
+label = sys.argv[1]
+nodes = [n for n in root.iter("node") if n.get("content-desc") == label]
+if len(nodes) != 1:
+    raise SystemExit(f"Upgrade test failed: expected one control with description {label!r}, found {len(nodes)}.")
+node = nodes[0]
+left, top, right, bottom = map(int, re.findall(r"\d+", node.get("bounds")))
+print((left + right) // 2, (top + bottom) // 2)
+' "$label")"
+  read -r x y <<< "$position"
+  "$adb" -s "$serial" shell input tap "$x" "$y"
+}
+
 wait_for_activity MainActivity
 sleep 0.5
 
-"$adb" -s "$serial" shell input tap 1215 110
+home_ui="$(dump_ui /sdcard/familyhome-home.xml)"
+games_entries="$(printf '%s' "$home_ui" | grep -o 'content-desc="Games\. Choose and play"' | wc -l | tr -d ' ' || true)"
+if [[ "$games_entries" != "1" || "$home_ui" == *'text="Race"'* || "$home_ui" == *'content-desc="Race.'* || "$home_ui" == *"Kart Adventure"* ]]; then
+  printf '%s\n' 'Upgrade test failed: Home does not contain exactly one Games entry.' >&2
+  printf '%s\n' "$home_ui" >&2
+  exit 1
+fi
+
+tap_label "Open settings"
 wait_for_activity SettingsActivity
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 sleep 0.5
 
-"$adb" -s "$serial" shell input tap 155 695
+tap_label "Draw. Make a picture"
 wait_for_activity DrawingActivity
 sleep 0.25
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 sleep 0.5
 
-"$adb" -s "$serial" shell input tap 640 695
+tap_label "Music. Choose an instrument"
+wait_for_activity MusicActivity
+tap_label Piano
 wait_for_activity PianoActivity
 sleep 0.25
 "$adb" -s "$serial" shell input tap 65 400
 wait_for_activity PianoActivity
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
+wait_for_activity MusicActivity
+"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 sleep 0.5
 
-"$adb" -s "$serial" shell input tap 881 695
+tap_label "Games. Choose and play"
 wait_for_activity GameLibraryActivity
+library_ui="$(dump_ui /sdcard/familyhome-games.xml)"
+for game_name in Freedoom Kart Blocks Tiles Match; do
+  if [[ "$library_ui" != *"content-desc=\"$game_name. "* ]]; then
+    printf 'Upgrade test failed: game library is missing %s.\n' "$game_name" >&2
+    exit 1
+  fi
+done
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 
 preferences="$($adb -s "$serial" exec-out run-as "$package_name" cat shared_prefs/children_portal.xml)"
 for expected in Alice Bob alice-profile bob-profile Sunset sunset-drawing legacy_marker preserve-me 90210 555000 \
-    enabled_game_ids adventure kart drawing_color_alice-profile drawing_size_alice-profile \
+    drawing_color_alice-profile drawing_size_alice-profile \
     drawing_eraser_alice-profile; do
   if [[ "$preferences" != *"$expected"* ]]; then
     printf 'Upgrade test failed: normalized preferences are missing %s\n' "$expected" >&2
     exit 1
   fi
 done
-for removed in freedoom_enabled kart_enabled; do
+for removed in enabled_game_ids freedoom_enabled kart_enabled; do
   if [[ "$preferences" == *"$removed"* ]]; then
     printf 'Upgrade test failed: migrated preferences still contain legacy key %s\n' "$removed" >&2
     exit 1

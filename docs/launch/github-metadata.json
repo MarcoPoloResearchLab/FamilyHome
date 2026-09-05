@@ -1,0 +1,15 @@
+{
+  "status": "draft-not-applied",
+  "repository": "MarcoPoloResearchLab/FamilyHome",
+  "description": "A family home screen for Meta Portal: drawing, piano, guitar, timers, and child profiles.",
+  "topics": [
+    "meta-portal",
+    "facebook-portal",
+    "android",
+    "launcher",
+    "family",
+    "drawing",
+    "music"
+  ],
+  "publicationGate": "P002 acceptance and explicit announcement approval"
+}

@@ -1,6 +1,5 @@
 package com.mprlab.portal;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
@@ -22,7 +21,6 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -44,7 +42,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.UUID;
 
-public final class DrawingActivity extends Activity {
+public final class DrawingActivity extends PortalActivity {
     private static final int BG = Color.rgb(255, 248, 234);
     private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
     private static final int SURFACE = Color.WHITE;
@@ -57,7 +55,6 @@ public final class DrawingActivity extends Activity {
     private static final int ICON_LIBRARY = 1;
     private static final int ICON_NEW = 2;
     private static final int ICON_SHARE = 3;
-    private static final int ICON_DONE = 4;
     private static final int ICON_ERASER = 5;
     private String profileID;
     private String profileName;
@@ -73,7 +70,6 @@ public final class DrawingActivity extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setStatusBarColor(SYSTEM_BAR);
         getWindow().setNavigationBarColor(SYSTEM_BAR);
         profileID = getIntent().getStringExtra("profile_id");
@@ -97,8 +93,8 @@ public final class DrawingActivity extends Activity {
         addTopButton("My drawings", PURPLE, Color.WHITE, ICON_LIBRARY, v -> showLibrary());
         addTopButton("New picture", TEAL, Color.WHITE, ICON_NEW, v -> newDrawing());
         addTopButton("Save & share", CORAL, Color.WHITE, ICON_SHARE, v -> saveAndShare());
-        addTopButton("Done", SURFACE, INK, ICON_DONE, v -> { persist(); finish(); });
-        FrameLayout.LayoutParams topParams = new FrameLayout.LayoutParams(-1, dp(78), Gravity.TOP);
+        PortalToolbar.navigation(this, topBar);
+        FrameLayout.LayoutParams topParams = new FrameLayout.LayoutParams(-1, dp(PortalToolbar.HEIGHT_DP), Gravity.TOP);
         frame.addView(topBar, topParams);
 
         palette = new LinearLayout(this);
@@ -168,18 +164,20 @@ public final class DrawingActivity extends Activity {
         return params;
     }
 
+    @Override protected void beforeHome() { persist(); }
+
     @Override public void onBackPressed() {
         persist();
         super.onBackPressed();
     }
 
     private void newDrawing() {
-        EditText input = new EditText(this);
+        EditText input = textInput();
         input.setHint("Drawing title");
         input.setSingleLine();
         input.setTextColor(Color.BLACK);
         input.setHintTextColor(Color.DKGRAY);
-        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Name your new picture").setView(input)
+        showPortalDialog(new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Name your new picture").setView(input)
                 .setPositiveButton("Create", (dialog, which) -> {
                     String title = input.getText().toString().trim();
                     if (title.isEmpty()) title = "Untitled drawing";
@@ -187,15 +185,15 @@ public final class DrawingActivity extends Activity {
                     documents.add(active);
                     drawingCanvas.resetView();
                     persist();
-                }).setNegativeButton("Cancel", null).show();
+                }).setNegativeButton("Cancel", null).create());
     }
 
     private void showLibrary() {
         String[] titles = new String[documents.size()];
         for (int i = 0; i < documents.size(); i++) titles[i] = documents.get(i).title;
-        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle(profileName + "’s pictures")
+        showPortalDialog(new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle(profileName + "’s pictures")
                 .setItems(titles, (dialog, which) -> { active = documents.get(which); drawingCanvas.resetView(); persist(); })
-                .setPositiveButton("New picture", (dialog, which) -> newDrawing()).setNegativeButton("Close", null).show();
+                .setPositiveButton("New picture", (dialog, which) -> newDrawing()).setNegativeButton("Close", null).create());
     }
 
     private void saveAndShare() {
@@ -251,7 +249,7 @@ public final class DrawingActivity extends Activity {
                 Toast.makeText(this, "Drawing link copied.", Toast.LENGTH_SHORT).show();
             });
         }
-        dialog.show();
+        showPortalDialog(dialog.create());
     }
 
     private void shareFile(File image, String webURL) {
@@ -504,7 +502,6 @@ public final class DrawingActivity extends Activity {
                 case ICON_LIBRARY: drawLibrary(canvas); break;
                 case ICON_NEW: drawNew(canvas); break;
                 case ICON_SHARE: drawShare(canvas); break;
-                case ICON_DONE: drawDone(canvas); break;
                 default: break;
             }
             canvas.restore();
@@ -530,12 +527,6 @@ public final class DrawingActivity extends Activity {
             canvas.drawCircle(26, 10, 3, iconPaint);
             canvas.drawCircle(26, 26, 3, iconPaint);
         }
-
-        private void drawDone(Canvas canvas) {
-            canvas.drawLine(9, 18, 15, 24, iconPaint);
-            canvas.drawLine(15, 24, 28, 10, iconPaint);
-        }
-
     }
 
     private static final class DrawingDocument {

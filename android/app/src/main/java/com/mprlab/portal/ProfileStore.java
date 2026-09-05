@@ -8,8 +8,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import java.util.UUID;
 
 final class ProfileStore {
@@ -25,7 +23,6 @@ final class ProfileStore {
         String id;
         String name;
         String calendarUrl;
-        final Set<String> enabledGameIds = new LinkedHashSet<>();
         long remainingMs = 20L * 60L * 1000L;
         long timerEndEpochMs;
         boolean timerRunning;
@@ -47,9 +44,6 @@ final class ProfileStore {
             json.put("id", id);
             json.put("name", name);
             json.put("calendar_url", calendarUrl == null ? "" : calendarUrl);
-            JSONArray games = new JSONArray();
-            for (String gameId : enabledGameIds) games.put(gameId);
-            json.put("enabled_game_ids", games);
             json.put("remaining_ms", remainingMs);
             json.put("timer_end_epoch_ms", timerEndEpochMs);
             json.put("timer_running", timerRunning);
@@ -64,16 +58,6 @@ final class ProfileStore {
         static Profile fromJson(JSONObject json) {
             Profile profile = new Profile(json.optString("id", UUID.randomUUID().toString()), json.optString("name", "Child"));
             profile.calendarUrl = json.optString("calendar_url", "");
-            JSONArray games = json.optJSONArray("enabled_game_ids");
-            if (games != null) {
-                for (int index = 0; index < games.length(); index++) {
-                    String gameId = games.optString(index, "");
-                    if (GameCatalog.find(gameId) != null) profile.enabledGameIds.add(gameId);
-                }
-            } else {
-                if (json.optBoolean("freedoom_enabled", false)) profile.enabledGameIds.add(GameCatalog.ADVENTURE);
-                if (json.optBoolean("kart_enabled", false)) profile.enabledGameIds.add(GameCatalog.KART);
-            }
             profile.remainingMs = json.optLong("remaining_ms", 20L * 60L * 1000L);
             profile.timerEndEpochMs = json.optLong("timer_end_epoch_ms", 0L);
             profile.timerRunning = json.optBoolean("timer_running", false);
@@ -83,14 +67,6 @@ final class ProfileStore {
             return profile;
         }
 
-        boolean isGameEnabled(String gameId) {
-            return enabledGameIds.contains(gameId);
-        }
-
-        void setGameEnabled(String gameId, boolean enabled) {
-            if (enabled) enabledGameIds.add(gameId);
-            else enabledGameIds.remove(gameId);
-        }
     }
 
     private final SharedPreferences preferences;

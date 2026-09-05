@@ -1,0 +1,288 @@
+{
+  "captureDate": "2026-09-04",
+  "application": {
+    "package": "com.mprlab.portal",
+    "versionName": "0.13.0",
+    "versionCode": 19
+  },
+  "source": {
+    "gitHead": "4f193f2fe721dc85196a44293b3e90948a808668",
+    "workingTreeChanges": true,
+    "snapshotIndexSha256": "5c939709b4f5ee1148a697737c4e6dacf7a443e5dcaa439980457c48cc3a7e24",
+    "files": [
+      {
+        "path": "AndroidManifest.xml",
+        "sha256": "023c5f8bd0f3880262919acafcdaab7bde505560aea69053f1669af886476332"
+      },
+      {
+        "path": "java/com/mprlab/portal/AskActivity.java",
+        "sha256": "9544ff8815192f9c962a7cadab8d3fed08c06787170a4dabebd4c4a1b3a86c61"
+      },
+      {
+        "path": "java/com/mprlab/portal/DrawingActivity.java",
+        "sha256": "2665e02046e814981777a46605b7e25237563b9a0197daa328a61930901f78f8"
+      },
+      {
+        "path": "java/com/mprlab/portal/GameCatalog.java",
+        "sha256": "5147e0876478105603dda715e58896849ca4cf0ebff9cc8816b449575115d677"
+      },
+      {
+        "path": "java/com/mprlab/portal/GameLauncher.java",
+        "sha256": "84113b9fb1f2a327705b0ed1dc26c39f5281483ddeb4b9c45c5483b54344285f"
+      },
+      {
+        "path": "java/com/mprlab/portal/GameLibraryActivity.java",
+        "sha256": "7fea176f25e54a2e150ff8cdc6c8fd7cc5480c99177d8b76639c987c736fb351"
+      },
+      {
+        "path": "java/com/mprlab/portal/GuitarActivity.java",
+        "sha256": "ae354893a308b837647c7c475c1758e3ce83ff6c0cc54a1b34e55c90187419e1"
+      },
+      {
+        "path": "java/com/mprlab/portal/GuitarPlayer.java",
+        "sha256": "9ed33b159903ff2677cb1551c1e2e5ab136da14344d89ea012f03ce4382a1b95"
+      },
+      {
+        "path": "java/com/mprlab/portal/MainActivity.java",
+        "sha256": "5d68979df6d77a2ef3dd362d1edfbf03a3c247f82471420536b8f12814a2ebeb"
+      },
+      {
+        "path": "java/com/mprlab/portal/MusicActivity.java",
+        "sha256": "4af4eba27b8ec901cd06ae3041688b54e2b13261309a7d9e1974cd830e057c74"
+      },
+      {
+        "path": "java/com/mprlab/portal/PianoActivity.java",
+        "sha256": "e8dcf78c31dd61b8b58486bbe479f1e3ec0cb52d2fc7a082465f9fa86e32dafc"
+      },
+      {
+        "path": "java/com/mprlab/portal/PortalActivity.java",
+        "sha256": "e09ffcef93b0ab9208d850a680d23de7073c097ad6decfd3047bfd17b32a7c25"
+      },
+      {
+        "path": "java/com/mprlab/portal/PortalConfig.java",
+        "sha256": "9c923c5d97fc6d935263b4fe62ea60a66169658b24ff4027dc6f3d95689f8ae3"
+      },
+      {
+        "path": "java/com/mprlab/portal/PortalToolbar.java",
+        "sha256": "bc35c3fd181e1ca33210ccf23b99e98ec00f7a776f6bc01b277bf05bb99054d6"
+      },
+      {
+        "path": "java/com/mprlab/portal/ProfileStore.java",
+        "sha256": "c62397597427fd92409698bab8d85be28e7e8a06aed3e6da3d9d54c73e90cd14"
+      },
+      {
+        "path": "java/com/mprlab/portal/SettingsActivity.java",
+        "sha256": "9e37c8dec993dd046861ecf2a5d7647c748e39fe161a7160ba9ee6fc4c08c59e"
+      },
+      {
+        "path": "java/com/mprlab/portal/ShareProvider.java",
+        "sha256": "8943fa43314e18b1917ac0aff1a0064e1674ffdf0ba8e49ba9dcfbb5513ccc57"
+      },
+      {
+        "path": "java/com/mprlab/portal/TimerAlarmReceiver.java",
+        "sha256": "b06490a91e94cfb49390d4e8ed070a0d7b8186e5703101e03be5f76a4fb4bb0f"
+      },
+      {
+        "path": "java/com/mprlab/portal/WeatherReport.java",
+        "sha256": "ea6d237d9328a868d8ceb371b0692b0ed2f90a7d174278eab6d61f7b291e28b8"
+      },
+      {
+        "path": "java/com/mprlab/portal/WeatherVisibility.java",
+        "sha256": "a426098444b3cf180eb5be3ef1cf3ef1a73bb90a20085ce9ca1f4a5eff189e30"
+      },
+      {
+        "path": "res/drawable/ic_ink_eraser.xml",
+        "sha256": "bde6f6ae108f58a01d243d07bf0abc03f16a6c2e91e806f44737834fbe158a0e"
+      },
+      {
+        "path": "res/drawable/ic_music_note.xml",
+        "sha256": "9b7b7bb7fb17dd628ba116fcd6dbb954e58e06b0583e4e7959d2c91c89e165f3"
+      },
+      {
+        "path": "res/drawable/ic_nav_back.xml",
+        "sha256": "32f02ebd50a8497b8ec456f7fad069e8d973b834074fadbbaa2ffa608ee5986e"
+      },
+      {
+        "path": "res/drawable/ic_nav_home.xml",
+        "sha256": "b2457cda636a195eb1ad1955d8b05c0c639c116d33716e4b4e9e4090f65b2877"
+      },
+      {
+        "path": "res/drawable/ic_settings.xml",
+        "sha256": "3f9ca38ca222681c40fe489a2f8d3871aaed12dd7565cfe1caeacfd3518b5806"
+      },
+      {
+        "path": "res/drawable/ic_timer_custom.xml",
+        "sha256": "43dbc7df11ea38eb36be5e70d1163ed298937d95a45b5423d38271b12f78ae3b"
+      },
+      {
+        "path": "res/drawable/ic_timer_quick.xml",
+        "sha256": "24d23d4b6d5c546425edfaf775aa5045caad300210f0972b9f6a0dd30f8ba351"
+      },
+      {
+        "path": "res/drawable/ic_timer_reading.xml",
+        "sha256": "88de1f0f1a94d4e5cdd0e552913e03983130200388fa450acf2dd9810111c60f"
+      },
+      {
+        "path": "res/drawable/ic_timer_teeth.xml",
+        "sha256": "546f973fc5b2fb9366005ee8f9f12175c42a19925c44f5a3cc84a8e261d94c87"
+      },
+      {
+        "path": "res/drawable/ic_weather_boot.xml",
+        "sha256": "c44cd14c1bd6a23bfafb65eaab43bf7a5d8fa3d8047199a4e2132c58065c6711"
+      },
+      {
+        "path": "res/drawable/ic_weather_hoodie.xml",
+        "sha256": "5bf44ae8b70c77adea3744effe7e94abb308f794def0968e76ef7ced18337f66"
+      },
+      {
+        "path": "res/drawable/ic_weather_pants.xml",
+        "sha256": "a39dfcf57dbad175b337c6950571c5ac801ae07eb534d053117f19b7bc51481d"
+      },
+      {
+        "path": "res/drawable/ic_weather_sneaker.xml",
+        "sha256": "483e54512652e642b8194b291f4d0c92d11c7f6b52d7589922f271d60a1f37e7"
+      },
+      {
+        "path": "res/drawable/ic_weather_t_shirt.xml",
+        "sha256": "51b3017e3904dad8453c763a70390944b6b76119c3c4b95a6eaca9c65d0ad6ef"
+      },
+      {
+        "path": "res/mipmap-xxxhdpi/ic_alice.png",
+        "sha256": "3511fd63146b7e0da02841d9fd5a183815f83ccef1b51cac2a18303cdadc3346"
+      },
+      {
+        "path": "res/raw/phosphor_license.txt",
+        "sha256": "b5b1f1da112d18ea2147decfd48ddc1bf2b5aeb6c265381579340e95b15a2bb2"
+      },
+      {
+        "path": "res/values/strings.xml",
+        "sha256": "99be2b5a830dc7a72c2d2835219a551e8e1bccc15b41ee1f381787eeec0c8da3"
+      },
+      {
+        "path": "res/values/styles.xml",
+        "sha256": "bbd0de513af7e2212f19cc3678430295f486c8f62c1c734a64055684e616d30d"
+      }
+    ]
+  },
+  "previewApkSha256": "b092ef8f1d827a0a0dc95c7c1137a84c1507a13dbb175449ea7a6705853f78e8",
+  "runtime": {
+    "type": "Android emulator",
+    "apiLevel": 37,
+    "width": 1280,
+    "height": 800,
+    "density": 160
+  },
+  "sampleData": {
+    "profileNames": [
+      "Sam",
+      "Alex"
+    ],
+    "drawing": "House, sun, rainbow, and flowers",
+    "calendarConfigured": false,
+    "weatherConfigured": true,
+    "productionServiceUsed": false,
+    "weatherSource": "Seeded local cache for documentation; no live forecast request",
+    "weatherReport": {
+      "location": "Demo town",
+      "condition": "Partly cloudy",
+      "icon": "partly_cloudy",
+      "temperature_f": 68,
+      "feels_like_f": 66,
+      "high_f": 72,
+      "low_f": 58,
+      "precipitation_probability": 10
+    }
+  },
+  "physicalDeviceAcceptance": false,
+  "assets": [
+    {
+      "path": "blocks.png",
+      "sha256": "812ed0ecdc196053957a777e93671dcfc33fff35e8db33c12f32d87f4872e653",
+      "bytes": 15118
+    },
+    {
+      "path": "drawing.png",
+      "sha256": "c1e8e3314ef54bd56384dd0c82cba7babb1e6e6be18d80a1cc258dea5380ec29",
+      "bytes": 67400
+    },
+    {
+      "path": "familyhome-demo.mp4",
+      "sha256": "1ed84bee36ee493387aef83c9c9afe804527eed13a379fdbd20f555c4c1b87a3",
+      "bytes": 5060362
+    },
+    {
+      "path": "games.png",
+      "sha256": "97e3d492a3dc0356f9f6a95861f0b078d93f9d8abb241f068ed07d916d463b4a",
+      "bytes": 46002
+    },
+    {
+      "path": "guitar.png",
+      "sha256": "0507fa6b9ed9ae3403bfe269e5eb2b41deedef94eb2a0e8754237175457086f5",
+      "bytes": 50150
+    },
+    {
+      "path": "home.png",
+      "sha256": "a1bb7f76b852016e30cb08737d5c5ff256f5529d3f30389b16c3950b4316b6fb",
+      "bytes": 110901
+    },
+    {
+      "path": "match.png",
+      "sha256": "0c5b3d22db799daa2c33239b6ffb7091e6a54ce2873aff24075c80ee8b1e52c2",
+      "bytes": 69772
+    },
+    {
+      "path": "music.png",
+      "sha256": "fbf4239b97e5d6123a2936e2e824b66ee78a2d9a8e12d4d259c333ff066e6ca6",
+      "bytes": 106174
+    },
+    {
+      "path": "piano.png",
+      "sha256": "773997fc1add72bb94ae86e4807b198f6ed906d8f9cd5bc8531dd9be65a3bd8a",
+      "bytes": 23283
+    },
+    {
+      "path": "profiles.png",
+      "sha256": "dfaed1b875a73a37a70256ce52678b97626f6f7360bbd331c617628cc80e79b8",
+      "bytes": 95403
+    },
+    {
+      "path": "tiles.png",
+      "sha256": "dab39d007f0867699431b4bd080a442a0ec8afbc7056eeebcccfea4ccc12db19",
+      "bytes": 41427
+    }
+  ],
+  "installedGames": [
+    {
+      "name": "Blocks",
+      "package": "com.blockdrop.game",
+      "versionName": "1.0.47-portal1",
+      "versionCode": 443,
+      "apkSha256": "d1de467e40d96f516a0979a4389f0bcf6f6eab85d55964629d9f6db041cc4e11"
+    },
+    {
+      "name": "Tiles",
+      "package": "net.vantulder.tessel",
+      "versionName": "1.0.23-portal1",
+      "versionCode": 10024,
+      "apkSha256": "c11ca2ea4dd3caf942cc1a40c4aa8cc9380e1a1a1b5616bb58ada1cdb3d4549e"
+    },
+    {
+      "name": "Match",
+      "package": "org.secuso.privacyfriendlymemory",
+      "versionName": "1.1.3",
+      "versionCode": 100,
+      "apkSha256": "c652417afe10d5715470175dcb01c2267774d3395b69343ea6ef4ce80dbcce49"
+    },
+    {
+      "name": "Kart",
+      "package": "org.supertuxkart.stk",
+      "versionName": "1.5",
+      "versionCode": 328,
+      "apkSha256": "e1f2f49152abfb8f3ed0ced47981e84096758bff9758563aa3b917111a2a3cbd"
+    }
+  ],
+  "gameCaptureLimitations": [
+    "Freedoom is not installed: the available APK has no matching ABI for this arm64-only emulator.",
+    "Kart installation succeeded; this preview does not establish racing or physical-device acceptance."
+  ]
+}

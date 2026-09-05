@@ -1,7 +1,6 @@
 package com.mprlab.portal;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -31,7 +30,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-public final class AskActivity extends Activity implements TextToSpeech.OnInitListener {
+public final class AskActivity extends PortalActivity implements TextToSpeech.OnInitListener {
     private static final int BG = Color.rgb(255, 248, 234);
     private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
     private static final int SURFACE = Color.WHITE;
@@ -67,21 +66,17 @@ public final class AskActivity extends Activity implements TextToSpeech.OnInitLi
         scroll.setBackgroundColor(BG);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(38), dp(32), dp(38), dp(32));
+        root.setPadding(dp(38), dp(8), dp(38), dp(32));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
-        TextView title = text("Ask anything", 34, true);
-        header.addView(title, new LinearLayout.LayoutParams(0, dp(62), 1f));
-        Button done = button("Back home", SURFACE, INK);
-        done.setOnClickListener(v -> finish());
-        header.addView(done, new LinearLayout.LayoutParams(dp(130), dp(62)));
-        root.addView(header);
+        TextView title = text("Ask anything", 27, true);
+        header.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
 
         TextView intro = text("What are you curious about, " + profileName + "?", 21, false);
         intro.setPadding(0, dp(20), 0, dp(16));
         root.addView(intro);
-        question = new EditText(this);
+        question = textInput();
         question.setHint("Type a question here…");
         question.setTextColor(INK);
         question.setHintTextColor(MUTED);
@@ -114,7 +109,7 @@ public final class AskActivity extends Activity implements TextToSpeech.OnInitLi
         answer.setPadding(dp(24), dp(22), dp(24), dp(22));
         answer.setMinHeight(dp(180));
         root.addView(answer, new LinearLayout.LayoutParams(-1, -2));
-        setContentView(scroll);
+        setContentView(PortalToolbar.screen(this, header, scroll, BG));
     }
 
     private void askTyped() {
