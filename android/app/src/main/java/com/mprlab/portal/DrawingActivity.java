@@ -172,12 +172,12 @@ public final class DrawingActivity extends PortalActivity {
     }
 
     private void newDrawing() {
-        EditText input = new EditText(this);
+        EditText input = textInput();
         input.setHint("Drawing title");
         input.setSingleLine();
         input.setTextColor(Color.BLACK);
         input.setHintTextColor(Color.DKGRAY);
-        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Name your new picture").setView(input)
+        showPortalDialog(new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Name your new picture").setView(input)
                 .setPositiveButton("Create", (dialog, which) -> {
                     String title = input.getText().toString().trim();
                     if (title.isEmpty()) title = "Untitled drawing";
@@ -185,15 +185,15 @@ public final class DrawingActivity extends PortalActivity {
                     documents.add(active);
                     drawingCanvas.resetView();
                     persist();
-                }).setNegativeButton("Cancel", null).show();
+                }).setNegativeButton("Cancel", null).create());
     }
 
     private void showLibrary() {
         String[] titles = new String[documents.size()];
         for (int i = 0; i < documents.size(); i++) titles[i] = documents.get(i).title;
-        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle(profileName + "’s pictures")
+        showPortalDialog(new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle(profileName + "’s pictures")
                 .setItems(titles, (dialog, which) -> { active = documents.get(which); drawingCanvas.resetView(); persist(); })
-                .setPositiveButton("New picture", (dialog, which) -> newDrawing()).setNegativeButton("Close", null).show();
+                .setPositiveButton("New picture", (dialog, which) -> newDrawing()).setNegativeButton("Close", null).create());
     }
 
     private void saveAndShare() {
@@ -249,7 +249,7 @@ public final class DrawingActivity extends PortalActivity {
                 Toast.makeText(this, "Drawing link copied.", Toast.LENGTH_SHORT).show();
             });
         }
-        dialog.show();
+        showPortalDialog(dialog.create());
     }
 
     private void shareFile(File image, String webURL) {

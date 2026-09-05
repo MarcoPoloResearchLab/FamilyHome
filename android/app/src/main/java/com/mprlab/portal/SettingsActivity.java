@@ -7,7 +7,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
-import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
@@ -89,7 +88,7 @@ public final class SettingsActivity extends PortalActivity {
         LinearLayout weatherPanel = panel();
         weatherPanel.addView(sectionLabel("WEATHER LOCATION"));
         weatherPanel.addView(sectionHelp("Use a ZIP code or city for the home-screen weather card. Leave it blank to hide weather."));
-        locationInput = new EditText(this);
+        locationInput = textInput();
         locationInput.setSingleLine(true);
         locationInput.setHint("ZIP code or city");
         locationInput.setText(store.weatherLocation);
@@ -178,7 +177,7 @@ public final class SettingsActivity extends PortalActivity {
         TextView title = text(label, 16, INK, true);
         title.setPadding(0, dp(12), 0, dp(4));
         panel.addView(title, matchWrap());
-        Spinner spinner = new Spinner(new ContextThemeWrapper(this, android.R.style.Theme_Material_Light), Spinner.MODE_DIALOG);
+        Spinner spinner = new PortalSpinner(this);
         spinner.setPrompt(label);
         spinner.setContentDescription(label);
         ArrayAdapter<T> adapter = new ArrayAdapter<>(spinner.getContext(), android.R.layout.simple_spinner_item, choices);
@@ -277,7 +276,7 @@ public final class SettingsActivity extends PortalActivity {
             dialog.dismiss();
             render();
         }));
-        dialog.show();
+        showPortalDialog(dialog);
     }
 
     private void saveLocation(boolean announce) {
@@ -306,7 +305,7 @@ public final class SettingsActivity extends PortalActivity {
     }
 
     private EditText field(String hint, String value) {
-        EditText field = new EditText(this);
+        EditText field = textInput();
         field.setHint(hint);
         field.setSingleLine(true);
         field.setText(value);

@@ -76,7 +76,7 @@ public final class AskActivity extends PortalActivity implements TextToSpeech.On
         TextView intro = text("What are you curious about, " + profileName + "?", 21, false);
         intro.setPadding(0, dp(20), 0, dp(16));
         root.addView(intro);
-        question = new EditText(this);
+        question = textInput();
         question.setHint("Type a question here…");
         question.setTextColor(INK);
         question.setHintTextColor(MUTED);

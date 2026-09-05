@@ -243,14 +243,14 @@ public final class MainActivity extends PortalActivity {
         }
         String[] names = new String[store.profiles.size()];
         for (int i = 0; i < store.profiles.size(); i++) names[i] = store.profiles.get(i).name;
-        new android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Whose turn is it?")
+        showPortalDialog(new android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Whose turn is it?")
                 .setItems(names, (dialog, which) -> {
                     store.active = store.profiles.get(which);
                     store.save();
                     render();
                 })
                 .setNegativeButton("Close", null)
-                .show();
+                .create());
     }
 
     private void openSettings() {
@@ -322,7 +322,7 @@ public final class MainActivity extends PortalActivity {
             timerStatus = null;
         });
         updateTimer();
-        dialog.show();
+        showPortalDialog(dialog);
     }
 
     private void showCustomTimer() {
@@ -394,7 +394,7 @@ public final class MainActivity extends PortalActivity {
             });
             updateDuration.run();
         });
-        dialog.show();
+        showPortalDialog(dialog);
     }
 
     private void scheduleTimerAlarm(ProfileStore.Profile profile) {

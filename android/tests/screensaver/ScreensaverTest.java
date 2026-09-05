@@ -40,7 +40,18 @@ public final class ScreensaverTest extends Instrumentation {
             getTargetContext().getSharedPreferences("children_portal", Context.MODE_PRIVATE).edit()
                     .putString("profiles_json", "[{\"id\":\"saver-test\",\"name\":\"Saver Test\"}]")
                     .putString("active_profile_id", "saver-test").commit();
+            getTargetContext().getSharedPreferences("screensaver", Context.MODE_PRIVATE).edit().clear().commit();
+            android.accessibilityservice.AccessibilityServiceInfo info = getUiAutomation().getServiceInfo();
+            info.flags |= android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+            getUiAutomation().setServiceInfo(info);
             activity = open("SettingsActivity");
+            if (phase.equals("typing") || phase.equals("dialogs")) {
+                choose("Screensaver timeout", "30 seconds");
+                if (phase.equals("typing")) typingScenario(); else dialogScenario();
+                result.putString("stream", "Screensaver passed: " + phase + ".\n");
+                finish(Activity.RESULT_OK, result);
+                return;
+            }
             check(() -> {
                 require("Screensaver mode");
                 require("Screensaver timeout");
@@ -50,9 +61,6 @@ public final class ScreensaverTest extends Instrumentation {
                 if (Color.luminance(selected.getCurrentTextColor()) > .3f)
                     throw new AssertionError("Screensaver selection has insufficient contrast on its light background");
             });
-            android.accessibilityservice.AccessibilityServiceInfo info = getUiAutomation().getServiceInfo();
-            info.flags |= android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
-            getUiAutomation().setServiceInfo(info);
             check(() -> {
                 View field = findEditor(activity.getWindow().getDecorView());
                 if (field == null) throw new AssertionError("Weather field missing");
@@ -74,10 +82,7 @@ public final class ScreensaverTest extends Instrumentation {
             check(() -> require("Preview screensaver").performClick());
             awaitSaver(true, 2000);
             screenshot("clock");
-            check(() -> {
-                if (find(activity.getWindow().getDecorView(), "Clock screensaver. Tap to return") == null)
-                    throw new AssertionError("Clock preview absent");
-            });
+            if (saverNode("Clock screensaver. Tap to return") == null) throw new AssertionError("Clock preview absent");
             tap(50, 50);
             awaitSaver(false, 2000);
             choose("Screensaver mode", "Black screen");
@@ -104,10 +109,7 @@ public final class ScreensaverTest extends Instrumentation {
                 }
             }
             black.recycle();
-            check(() -> {
-                if (activity.getWindow().getAttributes().screenBrightness != 0f)
-                    throw new AssertionError("Black screen did not request minimum brightness");
-            });
+            assertMinimumBrightness();
             // Wake over Back: the complete gesture must not navigate the underlying screen.
             tap(30, 30);
             awaitSaver(false, 2000);
@@ -166,6 +168,124 @@ public final class ScreensaverTest extends Instrumentation {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         waitForIdleSync();
         return opened;
+    }
+
+    private void typingScenario() {
+        android.view.inputmethod.InputConnection[] connection = new android.view.inputmethod.InputConnection[1];
+        check(() -> {
+            View editor = findEditor(activity.getWindow().getDecorView());
+            editor.requestFocus();
+            connection[0] = editor.onCreateInputConnection(new android.view.inputmethod.EditorInfo());
+            ((android.view.inputmethod.InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE))
+                    .showSoftInput(editor, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+        });
+        awaitKeyboard(true);
+        for (int i = 0; i < 7; i++) {
+            SystemClock.sleep(4500);
+            check(() -> {
+                if (!connection[0].commitText("a", 1)) throw new AssertionError("IME text was rejected");
+            });
+            awaitSaver(false, 200);
+        }
+        awaitSaver(true, 32000);
+        tap(50, 50);
+        awaitSaver(false, 1000);
+        check(() -> {
+            equal(((android.widget.EditText) findEditor(activity.getWindow().getDecorView())).getText().toString(), "aaaaaaa");
+        });
+    }
+
+    private void dialogScenario() throws Exception {
+        check(() -> require("Screensaver mode").performClick());
+        android.view.accessibility.AccessibilityNodeInfo option = awaitText("Disabled");
+        android.graphics.Rect optionBounds = new android.graphics.Rect();
+        option.getBoundsInScreen(optionBounds);
+        SystemClock.sleep(17000);
+        android.graphics.Rect titleBounds = new android.graphics.Rect();
+        awaitText("Screensaver mode").getBoundsInScreen(titleBounds);
+        tap(titleBounds.centerX(), titleBounds.centerY());
+        SystemClock.sleep(17000);
+        awaitSaver(false, 300);
+        awaitSaver(true, 16000);
+        assertMinimumBrightness();
+        // Wake above an option: the option and dialog must remain unchanged.
+        tap(optionBounds.centerX(), optionBounds.centerY());
+        awaitSaver(false, 1000);
+        awaitText("Disabled");
+        check(() -> equal(selected("Screensaver mode"), "Black screen"));
+        awaitText("Clock").performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK);
+        SystemClock.sleep(300);
+        check(() -> equal(selected("Screensaver mode"), "Clock"));
+
+        awaitText("＋  Add a child").performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK);
+        android.view.accessibility.AccessibilityNodeInfo editor = awaitText("Child's name");
+        Bundle text = new Bundle();
+        text.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "Unsaved child");
+        if (!editor.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT, text))
+            throw new AssertionError("Dialog draft input was rejected");
+        awaitSaver(true, 32000);
+        tap(50, 50);
+        awaitSaver(false, 1000);
+        awaitText("Unsaved child");
+        sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_HOME);
+        awaitSaver(false, 1000);
+    }
+
+    private android.view.accessibility.AccessibilityNodeInfo awaitText(String text) {
+        long deadline = SystemClock.uptimeMillis() + 3000;
+        do {
+            android.view.accessibility.AccessibilityNodeInfo root = getUiAutomation().getRootInActiveWindow();
+            if (root != null) {
+                android.view.accessibility.AccessibilityNodeInfo found = findTextNode(root, text);
+                if (found != null) return found;
+            }
+            SystemClock.sleep(100);
+        } while (SystemClock.uptimeMillis() < deadline);
+        throw new AssertionError("Missing visible text: " + text);
+    }
+
+    private android.view.accessibility.AccessibilityNodeInfo findTextNode(android.view.accessibility.AccessibilityNodeInfo node, String text) {
+        if (node == null) return null;
+        boolean matches = text.contentEquals(node.getText() == null ? "" : node.getText())
+                || text.contentEquals(node.getHintText() == null ? "" : node.getHintText());
+        if (matches && node.isVisibleToUser()) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            android.view.accessibility.AccessibilityNodeInfo found = findTextNode(node.getChild(i), text);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private android.view.accessibility.AccessibilityNodeInfo saverNode(String label) {
+        for (android.view.accessibility.AccessibilityWindowInfo window : getUiAutomation().getWindows()) {
+            android.view.accessibility.AccessibilityNodeInfo found = findNode(window.getRoot(), label);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private android.view.accessibility.AccessibilityNodeInfo findNode(android.view.accessibility.AccessibilityNodeInfo node, String label) {
+        if (node == null) return null;
+        if (label.contentEquals(node.getContentDescription() == null ? "" : node.getContentDescription()) && node.isVisibleToUser()) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            android.view.accessibility.AccessibilityNodeInfo found = findNode(node.getChild(i), label);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private void assertMinimumBrightness() throws Exception {
+        try (java.io.InputStream input = new android.os.ParcelFileDescriptor.AutoCloseInputStream(
+                getUiAutomation().executeShellCommand("dumpsys window windows"))) {
+            java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+            for (String window : output.toString("UTF-8").split("Window #")) {
+                if (window.contains("FamilyHome screensaver") && window.contains("sbrt=0.0")) return;
+            }
+            throw new AssertionError("Black screensaver window did not request minimum brightness");
+        }
     }
 
     private void check(Runnable action) {
@@ -238,8 +358,8 @@ public final class ScreensaverTest extends Instrumentation {
         long deadline = SystemClock.uptimeMillis() + timeout;
         boolean[] visible = new boolean[1];
         do {
-            check(() -> visible[0] = find(activity.getWindow().getDecorView(), "Black screensaver. Tap to return") != null
-                    || find(activity.getWindow().getDecorView(), "Clock screensaver. Tap to return") != null);
+            visible[0] = saverNode("Black screensaver. Tap to return") != null
+                    || saverNode("Clock screensaver. Tap to return") != null;
             if (visible[0] == expected) return;
             SystemClock.sleep(100);
         } while (SystemClock.uptimeMillis() < deadline);

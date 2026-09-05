@@ -37,15 +37,16 @@ zip -j -q "$output/test.apk" "$output/dex/classes.dex"
   --out "$output/test-signed.apk" "$output/test-aligned.apk"
 "$adb" install "$output/app/screensaver-app.apk"
 "$adb" install "$output/test-signed.apk"
-result="$("$adb" shell am instrument -w com.mprlab.portal.screensavertest/.ScreensaverTest)"
-printf '%s\n' "$result"
-[[ "$result" == *'Screensaver passed:'* ]]
-
-for screen in settings black clock; do
-  "$adb" exec-out run-as com.mprlab.portal cat "files/screensaver-$screen.png" > "$output/$screen.png"
+failed=0
+for phase in ${SCREENSAVER_TEST_PHASES:-typing dialogs behavior persistence}; do
+  "$adb" shell am force-stop com.mprlab.portal
+  result="$("$adb" shell am instrument -w -e phase "$phase" com.mprlab.portal.screensavertest/.ScreensaverTest)"
+  printf '%s\n' "$result"
+  if [[ "$result" != *'Screensaver passed:'* ]]; then failed=1; fi
+  if [[ "$phase" == behavior && "$result" == *'Screensaver passed:'* ]]; then
+    for screen in settings black clock; do
+      "$adb" exec-out run-as com.mprlab.portal cat "files/screensaver-$screen.png" > "$output/$screen.png"
+    done
+  fi
 done
-
-"$adb" shell am force-stop com.mprlab.portal
-result="$("$adb" shell am instrument -w -e phase persistence com.mprlab.portal.screensavertest/.ScreensaverTest)"
-printf '%s\n' "$result"
-[[ "$result" == *'Screensaver passed: selections survive process restart.'* ]]
+exit "$failed"
