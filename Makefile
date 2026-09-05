@@ -14,7 +14,7 @@ build-service:
 build-android:
 	cd android && ./build.sh
 
-test-android: test-android-contract test-android-upgrade test-android-guitar
+test-android: test-android-contract test-android-upgrade test-android-guitar test-android-screensaver
 
 test-android-contract:
 	cd android && ./tests/apk-contract.sh
@@ -66,3 +66,7 @@ build-blocks:
 
 build-tiles:
 	bash games/build-toolbar-game.sh tiles
+
+.PHONY: test-android-screensaver
+test-android-screensaver:
+	cd android && bash ./tests/screensaver.sh
