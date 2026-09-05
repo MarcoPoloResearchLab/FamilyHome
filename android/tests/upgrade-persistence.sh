@@ -162,7 +162,10 @@ tap_label() {
 import re, sys, xml.etree.ElementTree as ET
 root = ET.fromstring(sys.stdin.read())
 label = sys.argv[1]
-node = next(n for n in root.iter("node") if n.get("text") == label or n.get("content-desc") == label)
+nodes = [n for n in root.iter("node") if n.get("content-desc") == label]
+if len(nodes) != 1:
+    raise SystemExit(f"Upgrade test failed: expected one control with description {label!r}, found {len(nodes)}.")
+node = nodes[0]
 left, top, right, bottom = map(int, re.findall(r"\d+", node.get("bounds")))
 print((left + right) // 2, (top + bottom) // 2)
 ' "$label")"
@@ -174,9 +177,10 @@ wait_for_activity MainActivity
 sleep 0.5
 
 home_ui="$(dump_ui /sdcard/familyhome-home.xml)"
-games_entries="$(printf '%s' "$home_ui" | grep -o 'text="Games"' | wc -l | tr -d ' ' || true)"
-if [[ "$games_entries" != "1" || "$home_ui" == *'text="Race"'* || "$home_ui" == *"Kart Adventure"* ]]; then
+games_entries="$(printf '%s' "$home_ui" | grep -o 'content-desc="Games\. Choose and play"' | wc -l | tr -d ' ' || true)"
+if [[ "$games_entries" != "1" || "$home_ui" == *'text="Race"'* || "$home_ui" == *'content-desc="Race.'* || "$home_ui" == *"Kart Adventure"* ]]; then
   printf '%s\n' 'Upgrade test failed: Home does not contain exactly one Games entry.' >&2
+  printf '%s\n' "$home_ui" >&2
   exit 1
 fi
 
@@ -186,14 +190,14 @@ wait_for_activity SettingsActivity
 wait_for_activity MainActivity
 sleep 0.5
 
-tap_label Draw
+tap_label "Draw. Make a picture"
 wait_for_activity DrawingActivity
 sleep 0.25
 "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
 wait_for_activity MainActivity
 sleep 0.5
 
-tap_label Music
+tap_label "Music. Choose an instrument"
 wait_for_activity MusicActivity
 tap_label Piano
 wait_for_activity PianoActivity
@@ -206,11 +210,11 @@ wait_for_activity MusicActivity
 wait_for_activity MainActivity
 sleep 0.5
 
-tap_label Games
+tap_label "Games. Choose and play"
 wait_for_activity GameLibraryActivity
 library_ui="$(dump_ui /sdcard/familyhome-games.xml)"
 for game_name in Freedoom Kart Blocks Tiles Match; do
-  if [[ "$library_ui" != *"text=\"$game_name\""* ]]; then
+  if [[ "$library_ui" != *"content-desc=\"$game_name. "* ]]; then
     printf 'Upgrade test failed: game library is missing %s.\n' "$game_name" >&2
     exit 1
   fi

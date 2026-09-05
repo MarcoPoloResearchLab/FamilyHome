@@ -8,6 +8,21 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
+- [x] [B003] Correct Android upgrade test selection.
+  Goal:
+  The upgrade test must identify the current Home controls and game cards.
+  The GitHub check failed because it used child text instead of the card's `content-desc`.
+  Requirements:
+  - Select cards through `content-desc`.
+  - Keep navigation and saved-data checks after APK replacement.
+  Validation:
+  - Run `make test-android-upgrade` and `make ci`.
+  - Verify the GitHub check after the correction.
+  Current result:
+  The upgrade test passed on the local emulator after the correction.
+  `make ci` passed.
+  The language review covered B003.
+
 - [x] [B002] Restore the screensaver timeout for text input and dialogs.
   Goal:
   User input resets the timeout. An open dialog does not prevent the screensaver.
