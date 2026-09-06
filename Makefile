@@ -70,3 +70,11 @@ build-tiles:
 .PHONY: test-android-screensaver
 test-android-screensaver:
 	cd android && bash ./tests/screensaver.sh
+
+.PHONY: test-android-photobooth
+test-android-photobooth:
+	cd android && bash ./tests/photobooth.sh
+
+.PHONY: test-android-camera
+test-android-camera:
+	cd android && bash ./tests/camera-qualification.sh
