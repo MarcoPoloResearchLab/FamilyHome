@@ -214,14 +214,46 @@ Use the simple present, simple past, simple future, imperative, or infinitive fo
 
 ## Photo Booth Technical Nouns
 
-- `Photo Booth`: The proposed FamilyHome activity for camera pictures.
+- `Photo Booth`: The FamilyHome activity for camera pictures.
+- `photo filter`: A local image effect applied to camera preview and saved pictures.
+- `face accessory`: A photo filter that places an illustrated object at a detected face.
+- `YuNet`: The bundled neural network model that detects faces and eye landmarks.
+- `OpenCV`: The native library that runs the YuNet model in Photo Booth.
+- `face landmark`: A detected eye, nose, or mouth position within a face.
+- `face detection`: Calculation of face positions within an image without identification of a person.
+- `image crop`: The rectangular source area used for a camera preview or saved picture.
+- `person tracking`: Repeated face and motion measurements used to keep a selected person within an image crop.
+- `optical flow`: Measurement of image-point movement between camera frames.
+- `shutter event`: The command that requests a camera picture.
+- `digital zoom`: Enlargement of a selected image area through a smaller source region.
+- `Spotlight`: The Meta Portal camera function that follows a selected person.
 - `camera preview`: The live camera image shown before a picture.
 - `countdown`: The visible count before the camera takes a picture.
 - `photo strip`: One image that combines a sequence of camera pictures.
 - `photo album`: The saved camera pictures associated with one child profile.
 - `decorative frame`: An illustrated border around a camera picture or photo strip.
 - `Camera2`: The Android platform API for camera access and image output.
-- `JPEG`: The image format proposed for saved camera pictures.
+- `JPEG`: The image format for saved camera pictures.
+- `YUV`: The camera image format with separate brightness and color components.
+
+## Apple Platform Technical Nouns
+
+- `iOS client`: The proposed FamilyHome application for iPhone and iPad with the shared family activities.
+- `feature parity`: Equivalent family activities across platforms, with recorded platform differences and accepted release exceptions.
+- `parity matrix`: The table that compares selected activity behavior and its acceptance across platforms.
+- `iPadOS`: The Apple operating system for iPad.
+- `SwiftUI`: The Apple framework proposed for FamilyHome screens and navigation.
+- `UIKit`: The Apple framework proposed for custom touch controls and native interface adapters.
+- `AVFoundation`: The Apple framework for camera capture and audiovisual media.
+- `AVAudioEngine`: The Apple audio engine proposed for the local instruments.
+- `Keychain`: The Apple service for secure credential storage.
+- `local notification`: A system notification that an application schedules on the device.
+- `Guided Access`: The Apple feature that temporarily restricts a device to one application.
+- `parental gate`: An interface control that permits access to a protected operation after an adult action.
+- `release candidate`: A fixed application build prepared for final acceptance before publication.
+- `TestFlight`: The Apple service for distribution of test applications.
+- `touch latency`: The time between a touch event and the corresponding visible or audible result.
+- `safe area`: The part of an application window without system interface obstructions.
 
 ## Repository Technical Verbs
 
@@ -233,3 +265,14 @@ Add repository-specific technical verbs below this line.
 ```text
 - `term`: Definition with one meaning and the approved verb forms.
 ```
+
+## Appearance Technical Nouns
+
+- `character illustration`: An application image that gives a face and limbs to an activity symbol.
+- `control surface`: The visible background and outline of an application control.
+- `dp`: The Android unit that keeps interface dimensions consistent across display densities.
+- `font scale`: The Android setting that changes text size.
+- `typeface`: The design of the letters and symbols in a font.
+
+- `sp`: The Android text unit that supports the selected font scale.
+- `text role`: A named combination of typeface, weight, and text dimensions.
