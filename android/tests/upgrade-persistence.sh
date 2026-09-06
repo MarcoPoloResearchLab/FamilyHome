@@ -46,9 +46,22 @@ original_size_override="$(printf '%s\n' "$original_size" | awk -F': ' '/Override
 original_density_override="$(printf '%s\n' "$original_density" | awk -F': ' '/Override density/ {print $2}')"
 immersive_setting="immersive_mode_confirmations"
 original_immersive_confirmation="$($adb -s "$serial" shell settings get secure "$immersive_setting" | tr -d '\r')"
+animation_settings=(window_animation_scale transition_animation_scale animator_duration_scale)
+original_animation_values=()
+for setting in "${animation_settings[@]}"; do
+  original_animation_values+=("$($adb -s "$serial" shell settings get global "$setting" | tr -d '\r')")
+done
 
 cleanup() {
   "$adb" -s "$serial" uninstall "$ui_package" >/dev/null 2>&1 || true
+  local index
+  for index in "${!animation_settings[@]}"; do
+    if [[ "${original_animation_values[$index]}" == "null" ]]; then
+      "$adb" -s "$serial" shell settings delete global "${animation_settings[$index]}" >/dev/null
+    else
+      "$adb" -s "$serial" shell settings put global "${animation_settings[$index]}" "${original_animation_values[$index]}" >/dev/null
+    fi
+  done
   if [[ "$original_immersive_confirmation" == "null" ]]; then
     "$adb" -s "$serial" shell settings delete secure "$immersive_setting" >/dev/null
   else
@@ -118,9 +131,10 @@ sign_apk "$current_output/Children-Portal-v$current_version-aligned.apk" "$curre
 
 android_jar="$ANDROID_SDK_ROOT/platforms/${ANDROID_PLATFORM:-android-35}/android.jar"
 ui_output="$output_root/ui"
+rm -rf "$ui_output/classes" "$ui_output/dex"
 mkdir -p "$ui_output/classes" "$ui_output/dex"
 "$tools_dir/aapt2" link -I "$android_jar" --manifest tests/upgrade-ui/AndroidManifest.xml -o "$ui_output/test.apk"
-javac -source 8 -target 8 -classpath "$android_jar" -d "$ui_output/classes" tests/upgrade-ui/UpgradeUiDump.java
+javac -source 8 -target 8 -classpath "$android_jar" -d "$ui_output/classes" tests/upgrade-ui/UpgradeUiFlow.java
 "$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$ui_output/dex" "$ui_output/classes/com/mprlab/portal/upgradeuitest/"*.class
 zip -j -q "$ui_output/test.apk" "$ui_output/dex/classes.dex"
 "$tools_dir/zipalign" -f 4 "$ui_output/test.apk" "$ui_output/test-aligned.apk"
@@ -130,6 +144,9 @@ sign_apk "$ui_output/test-aligned.apk" "$ui_output/test-signed.apk"
 "$adb" -s "$serial" shell wm size 1280x800 >/dev/null
 "$adb" -s "$serial" shell wm density 160 >/dev/null
 "$adb" -s "$serial" shell settings put secure "$immersive_setting" confirmed
+for setting in "${animation_settings[@]}"; do
+  "$adb" -s "$serial" shell settings put global "$setting" 0
+done
 "$adb" -s "$serial" install "$fixture_apk" >/dev/null
 "$adb" -s "$serial" shell am start -W -n "$package_name/.MainActivity" >/dev/null
 
@@ -143,118 +160,14 @@ fi
 "$adb" -s "$serial" shell am force-stop "$package_name"
 "$adb" -s "$serial" shell am start -W -n "$package_name/.MainActivity" >/dev/null
 
-wait_for_activity() {
-  local activity="$1"
-  local attempt
-  local resumed
-  for attempt in $(seq 1 20); do
-    resumed="$($adb -s "$serial" shell dumpsys activity activities \
-      | grep -m1 -E 'mResumedActivity|topResumedActivity' || true)"
-    if [[ "$resumed" == *"$package_name/.$activity"* \
-        || "$resumed" == *"$package_name/$package_name.$activity"* ]]; then
-      return 0
-    fi
-    sleep 0.25
-  done
-  printf 'Upgrade test failed: activity did not open: %s\n' "$activity" >&2
-  printf 'Resumed activity: %s\n' "$resumed" >&2
+ui_result="$("$adb" -s "$serial" shell am instrument -w -r "$ui_package/.UpgradeUiFlow")"
+printf '%s\n' "$ui_result" > "$output_root/navigation.instrumentation.txt"
+if [[ "$ui_result" != *'INSTRUMENTATION_CODE: -1'* || "$ui_result" != *'INSTRUMENTATION_RESULT: result=Upgrade UI navigation passed'* ]]; then
+  printf 'Upgrade test failed: UI navigation.\n%s\n' "$ui_result" >&2
+  "$adb" -s "$serial" shell dumpsys window windows > "$output_root/windows.txt"
   "$adb" -s "$serial" logcat -d -t 300 '*:E' >&2 || true
   exit 1
-}
-
-dump_ui() {
-  local path="$1"
-  local result
-  result="$("$adb" -s "$serial" shell am instrument -w -r "$ui_package/.UpgradeUiDump")"
-  printf '%s\n' "$result" > "$output_root/$(basename "$path").instrumentation.txt"
-  if [[ "$result" != *'INSTRUMENTATION_CODE: -1'* || "$result" != *'INSTRUMENTATION_RESULT: ui=<hierarchy>'* ]]; then
-    printf 'Upgrade test failed: UI hierarchy is unavailable: %s\n%s\n' "$path" "$result" >&2
-    exit 1
-  fi
-  printf '%s\n' "$result" | sed -n 's/^INSTRUMENTATION_RESULT: ui=//p' | tr -d '\r' | tee "$output_root/$(basename "$path")"
-}
-
-tap_label() {
-  local label="$1"
-  local position
-  local hierarchy
-  hierarchy="$(dump_ui /sdcard/familyhome-tap.xml)"
-  position="$(printf '%s' "$hierarchy" | python3 -c '
-import re, sys, xml.etree.ElementTree as ET
-root = ET.fromstring(sys.stdin.read())
-label = sys.argv[1]
-nodes = [n for n in root.iter("node") if n.get("content-desc") == label]
-if len(nodes) != 1:
-    raise SystemExit(f"Upgrade test failed: expected one control with description {label!r}, found {len(nodes)}.")
-node = nodes[0]
-left, top, right, bottom = map(int, re.findall(r"\d+", node.get("bounds")))
-print((left + right) // 2, (top + bottom) // 2)
-' "$label")"
-  read -r x y <<< "$position"
-  "$adb" -s "$serial" shell input tap "$x" "$y"
-}
-
-wait_for_activity MainActivity
-sleep 0.5
-
-"$adb" -s "$serial" shell input keyevent KEYCODE_HOME
-foreign_ui="$("$adb" -s "$serial" shell am instrument -w -r "$ui_package/.UpgradeUiDump")"
-if [[ "$foreign_ui" != *'INSTRUMENTATION_CODE: 0'* || "$foreign_ui" != *"Focused application window is unavailable: $package_name"* ]]; then
-  printf 'Upgrade test failed: capture must reject another application.\n%s\n' "$foreign_ui" >&2
-  exit 1
 fi
-"$adb" -s "$serial" shell am start -W -n "$package_name/.MainActivity" >/dev/null
-wait_for_activity MainActivity
-sleep 0.5
-
-home_ui="$(dump_ui /sdcard/familyhome-home.xml)"
-games_entries="$(printf '%s' "$home_ui" | grep -o 'content-desc="Games\. Choose and play"' | wc -l | tr -d ' ' || true)"
-if [[ "$games_entries" != "1" || "$home_ui" == *'text="Race"'* || "$home_ui" == *'content-desc="Race.'* || "$home_ui" == *"Kart Adventure"* ]]; then
-  printf '%s\n' 'Upgrade test failed: Home does not contain exactly one Games entry.' >&2
-  printf '%s\n' "$home_ui" >&2
-  exit 1
-fi
-
-for capture_round in $(seq 1 5); do
-  tap_label "Open settings"
-  wait_for_activity SettingsActivity
-  dump_ui "/sdcard/familyhome-settings-$capture_round.xml" >/dev/null
-  "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-  wait_for_activity MainActivity
-  sleep 0.5
-done
-
-tap_label "Draw. Make a picture"
-wait_for_activity DrawingActivity
-sleep 0.25
-"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-wait_for_activity MainActivity
-sleep 0.5
-
-tap_label "Music. Choose an instrument"
-wait_for_activity MusicActivity
-tap_label Piano
-wait_for_activity PianoActivity
-sleep 0.25
-"$adb" -s "$serial" shell input tap 65 400
-wait_for_activity PianoActivity
-"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-wait_for_activity MusicActivity
-"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-wait_for_activity MainActivity
-sleep 0.5
-
-tap_label "Games. Choose and play"
-wait_for_activity GameLibraryActivity
-library_ui="$(dump_ui /sdcard/familyhome-games.xml)"
-for game_name in Freedoom Kart Blocks Tiles Match; do
-  if [[ "$library_ui" != *"content-desc=\"$game_name. "* ]]; then
-    printf 'Upgrade test failed: game library is missing %s.\n' "$game_name" >&2
-    exit 1
-  fi
-done
-"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-wait_for_activity MainActivity
 
 preferences="$($adb -s "$serial" exec-out run-as "$package_name" cat shared_prefs/children_portal.xml)"
 for expected in Alice Bob alice-profile bob-profile Sunset sunset-drawing legacy_marker preserve-me 90210 555000 \
