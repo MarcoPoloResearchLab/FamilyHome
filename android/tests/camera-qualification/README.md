@@ -7,7 +7,9 @@ Run this command from the repository root:
 make test-android-camera
 ```
 
-The test checks camera access, JPEG output, camera release, activity resume, and a 180-degree display rotation.
+The test checks camera access, YUV output, JPEG encoding, camera release, and activity resume.
+The emulator test also checks a 180-degree display rotation.
+The physical Portal test records its fixed display rotation.
 The camera session updates the preview transform when the display rotation changes.
 Camera release removes the display listener.
 

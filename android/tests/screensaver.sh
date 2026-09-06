@@ -18,7 +18,19 @@ if [[ ! -f "$keystore" ]]; then
   keytool -genkeypair -noprompt -keystore "$keystore" -storepass android -keypass android \
     -alias test -keyalg RSA -validity 3650 -dname 'CN=Screensaver Test' >/dev/null
 fi
+animation_scale="$("$adb" shell settings get global animator_duration_scale | tr -d '\r')"
+system_time_format="$("$adb" shell settings get system time_12_24 | tr -d '\r')"
 cleanup() {
+  if [[ "$system_time_format" == null ]]; then
+    "$adb" shell settings delete system time_12_24 >/dev/null
+  else
+    "$adb" shell settings put system time_12_24 "$system_time_format"
+  fi
+  if [[ "$animation_scale" == null ]]; then
+    "$adb" shell settings delete global animator_duration_scale >/dev/null
+  else
+    "$adb" shell settings put global animator_duration_scale "$animation_scale"
+  fi
   "$adb" uninstall com.mprlab.portal.screensavertest >/dev/null 2>&1 || true
   "$adb" uninstall com.mprlab.portal >/dev/null 2>&1 || true
 }
@@ -38,11 +50,32 @@ zip -j -q "$output/test.apk" "$output/dex/classes.dex"
 "$adb" install "$output/app/screensaver-app.apk"
 "$adb" install "$output/test-signed.apk"
 failed=0
-for phase in ${SCREENSAVER_TEST_PHASES:-typing dialogs behavior persistence}; do
+for phase in ${SCREENSAVER_TEST_PHASES:-format-12 format-persistence-12 format-24 format-persistence-24 motion reduced-motion typing dialogs behavior persistence}; do
+  case "$phase" in
+    format-12|format-persistence-24) "$adb" shell settings put system time_12_24 12 ;;
+    format-24|format-persistence-12) "$adb" shell settings put system time_12_24 24 ;;
+  esac
+  if [[ "$phase" == reduced-motion ]]; then
+    "$adb" shell settings put global animator_duration_scale 0
+  else
+    "$adb" shell settings put global animator_duration_scale 1
+  fi
   "$adb" shell am force-stop com.mprlab.portal
   result="$("$adb" shell am instrument -w -e phase "$phase" com.mprlab.portal.screensavertest/.ScreensaverTest)"
   printf '%s\n' "$result"
   if [[ "$result" != *'Screensaver passed:'* ]]; then failed=1; fi
+  if [[ "$phase" == format-24 && "$result" == *'Screensaver passed:'* ]]; then
+    "$adb" exec-out run-as com.mprlab.portal cat files/screensaver-time-settings.png > "$output/time-settings.png"
+    for format in 12-hour 24-hour; do
+      "$adb" exec-out run-as com.mprlab.portal cat "files/screensaver-$format.png" > "$output/$format.png"
+    done
+  fi
+  if [[ "$phase" == motion && "$result" == *'Screensaver passed:'* ]]; then
+    "$adb" exec-out run-as com.mprlab.portal cat files/screensaver-clock.png > "$output/clock-motion.png"
+  fi
+  if [[ "$phase" == reduced-motion && "$result" == *'Screensaver passed:'* ]]; then
+    "$adb" exec-out run-as com.mprlab.portal cat files/screensaver-clock-static.png > "$output/clock-static.png"
+  fi
   if [[ "$phase" == behavior && "$result" == *'Screensaver passed:'* ]]; then
     for screen in settings black clock; do
       "$adb" exec-out run-as com.mprlab.portal cat "files/screensaver-$screen.png" > "$output/$screen.png"

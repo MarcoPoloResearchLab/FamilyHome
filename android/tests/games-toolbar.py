@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import struct
 import xml.etree.ElementTree as ET
 import pytest
 
@@ -51,7 +52,19 @@ def check_toolbar(root: ET.Element) -> None:
     assert a[1] < 16 and a[3] <= 72, f"Extra top row: {a}"
     for node in (back, home):
         x1, y1, x2, y2 = box(node)
-        assert x2-x1 >= 48 and y2-y1 >= 48, "Navigation touch target too small"
+        assert x2-x1 >= 60 and y2-y1 >= 60, "Navigation touch target too small"
+
+def check_button_face(root: ET.Element) -> None:
+    capture = subprocess.check_output(ADB + ["exec-out", "screencap"])
+    width, height, pixel_format = struct.unpack_from("<III", capture)
+    assert pixel_format == 1, "The screenshot must use RGBA pixels"
+    pixels = capture[-width * height * 4:]
+    x1, y1, x2, y2 = box(control(root, "Home"))
+    yellow = sum(
+        pixels[(y * width + x) * 4:(y * width + x) * 4 + 3] == bytes((255, 214, 92))
+        for y in range(y1, y2) for x in range(x1, x2)
+    )
+    assert yellow > (x2 - x1) * (y2 - y1) // 4, "Button shadow covers its yellow face"
 
 @pytest.fixture(scope="session", autouse=True)
 def familyhome_profile() -> None:
@@ -87,11 +100,15 @@ def test_game_toolbar(game: str) -> None:
             tap(control(root, label))
             root = snapshot()
             check_toolbar(root)
+            check_button_face(root)
+            directory = Path("android/build/toolbar-audit")
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / "blocks-settings.png").write_bytes(subprocess.check_output(ADB + ["exec-out", "screencap", "-p"]))
         tap(control(root, "Back"))
         root = snapshot()
         check_toolbar(root)
         status = [n for n in root.iter("node") if "Score:" in n.get("content-desc", "")]
-        assert status and box(status[0])[3] <= 64, "Score uses a second row"
+        assert status and box(status[0])[3] <= 72, "Score uses a second row"
     else:
         if any(n.get("content-desc") == "Show menu" for n in root.iter("node")):
             tap(control(root, "Back"))
@@ -102,12 +119,12 @@ def test_game_toolbar(game: str) -> None:
             tap(control(root, label))
             root = snapshot()
             check_toolbar(root)
-            assert box(control(root, label))[3] <= 64, f"Tiles menu outside toolbar: {label}"
+            assert box(control(root, label))[3] <= 72, f"Tiles menu outside toolbar: {label}"
         # First triangle game card on the fixed Portal viewport.
         command("shell", "input", "tap", "195", "400")
         root = snapshot()
         check_toolbar(root)
-        assert box(control(root, "Show menu"))[3] <= 64, "Game menu uses a second row"
+        assert box(control(root, "Show menu"))[3] <= 72, "Game menu uses a second row"
         tap(control(root, "Back"))
         root = snapshot()
         control(root, "Back to menu")

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.mprlab.portal.photoeffectsqualification">
+    <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="28" />
+    <application android:label="Photo Effects Qualification" />
+    <instrumentation android:name="com.mprlab.portal.photoboothtest.PhotoBoothTest" android:targetPackage="com.mprlab.portal.photoeffectsqualification" />
+</manifest>

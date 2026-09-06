@@ -67,10 +67,12 @@ trap cleanup EXIT
 "$adb" shell getprop ro.product.model > "$output/device.txt"
 "$adb" shell getprop ro.build.version.release >> "$output/device.txt"
 shasum -a 256 "$output/camera-qualification.apk" > "$output/apk.sha256"
+rotation=fixed
+if [[ "$ANDROID_SERIAL" == emulator-* ]]; then rotation=dynamic; fi
 for phase in permission capture; do
     if [[ "$phase" == capture ]]; then "$adb" shell pm grant "$package" android.permission.CAMERA; fi
     "$adb" shell am force-stop "$package"
-    "$adb" shell am instrument -w -e phase "$phase" "$package/com.mprlab.portal.CameraQualificationTest" > "$output/$phase.txt"
+    "$adb" shell am instrument -w -e rotation "$rotation" -e phase "$phase" "$package/com.mprlab.portal.CameraQualificationTest" > "$output/$phase.txt"
     cat "$output/$phase.txt"
     if ! rg -q 'Camera qualification passed:' "$output/$phase.txt"; then exit 1; fi
 done

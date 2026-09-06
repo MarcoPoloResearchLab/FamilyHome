@@ -8,7 +8,6 @@ import android.graphics.Path;
 import android.graphics.LinearGradient;
 import android.graphics.Shader;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -16,33 +15,31 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public final class MusicActivity extends PortalActivity {
-    private static final int INK = Color.rgb(36, 49, 71);
+    private static final int INK = PortalStyle.INK;
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         LinearLayout toolbar = new LinearLayout(this);
-        toolbar.addView(label("Music", 27, INK), new LinearLayout.LayoutParams(0, -2, 1));
+        toolbar.addView(label("Music", PortalStyle.TextRole.TITLE, INK), new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(32), dp(26), dp(32), dp(32));
-        content.addView(label("What will you play today?", 25, INK));
+        content.addView(label("What will you play today?", PortalStyle.TextRole.SECTION, INK));
         LinearLayout cards = new LinearLayout(this);
         cards.setPadding(0, dp(24), 0, 0);
-        addInstrument(cards, "Piano", "Tap the keys. Find your melody.", Color.rgb(67, 114, 235), PianoActivity.class);
-        addInstrument(cards, "Guitar", "Pick a note. Strum a chord.", Color.rgb(195, 112, 43), GuitarActivity.class);
+        addInstrument(cards, "Piano", "Tap the keys. Find your melody.", PortalStyle.BLUE, PianoActivity.class);
+        addInstrument(cards, "Guitar", "Pick a note. Strum a chord.", PortalStyle.YELLOW, GuitarActivity.class);
         content.addView(cards, new LinearLayout.LayoutParams(-1, 0, 1));
-        setContentView(PortalToolbar.screen(this, toolbar, content, Color.rgb(255, 248, 234)));
+        setContentView(PortalToolbar.screen(this, toolbar, content, PortalStyle.PAPER));
     }
     private void addInstrument(LinearLayout cards, String title, String subtitle, int color, Class<?> activity) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER);
         card.setPadding(dp(24), dp(20), dp(24), dp(24));
-        GradientDrawable background = new GradientDrawable();
-        background.setColor(Color.WHITE); background.setCornerRadius(dp(26));
-        card.setBackground(background); card.setElevation(dp(3));
+        card.setBackground(PortalStyle.surface(this, color, 26));
         card.addView(new InstrumentArt(title), new LinearLayout.LayoutParams(-1, 0, 1));
-        card.addView(label(title, 32, color));
-        TextView description = label(subtitle, 18, INK); description.setPadding(0, dp(10), 0, dp(10));
+        card.addView(label(title, PortalStyle.TextRole.TITLE, INK));
+        TextView description = label(subtitle, PortalStyle.TextRole.BODY, INK); description.setPadding(0, dp(10), 0, dp(10));
         card.addView(description);
         card.setContentDescription(title); card.setFocusable(true);
         card.setOnClickListener(view -> {
@@ -53,9 +50,9 @@ public final class MusicActivity extends PortalActivity {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1);
         params.setMargins(dp(8), 0, dp(8), dp(4)); cards.addView(card, params);
     }
-    private TextView label(String text, int size, int color) {
-        TextView view = new TextView(this); view.setText(text); view.setTextSize(size); view.setTextColor(color);
-        view.setTypeface(Typeface.DEFAULT, Typeface.BOLD); return view;
+    private TextView label(String text, PortalStyle.TextRole role, int color) {
+        TextView view = new TextView(this); view.setText(text); PortalStyle.text(view, role); view.setTextColor(color);
+         return view;
     }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private final class InstrumentArt extends View {

@@ -21,11 +21,13 @@ import java.io.FileOutputStream;
 public final class CameraQualificationTest extends Instrumentation {
     private Activity activity;
     private String phase;
+    private boolean checkRotation;
     private String resultDetails = "";
-    @Override public void onCreate(Bundle args) { super.onCreate(args); phase = args.getString("phase", "capture"); start(); }
+    @Override public void onCreate(Bundle args) { super.onCreate(args); phase = args.getString("phase", "capture"); checkRotation = args.getString("rotation", "dynamic").equals("dynamic"); start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
+            getTargetContext().getFilesDir();
             activity = startActivitySync(new Intent().setClassName(getTargetContext().getPackageName(),
                     "com.mprlab.portal.CameraQualificationActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             waitForIdleSync();
@@ -35,6 +37,7 @@ public final class CameraQualificationTest extends Instrumentation {
                 resultDetails = "Permission denial leaves capture unavailable.";
             } else {
                 for (int cycle = 0; cycle < 20; cycle++) {
+                    resultDetails += "\nCycle " + cycle;
                     awaitStatus("Preview ready");
                     click("Take picture");
                     awaitStatus("JPEG ready " + (cycle + 1) + " · ");
@@ -60,14 +63,18 @@ public final class CameraQualificationTest extends Instrumentation {
                 activity = startActivitySync(new Intent().setClassName(getTargetContext().getPackageName(),
                         "com.mprlab.portal.CameraQualificationActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 awaitStatus("Preview ready");
-                sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_HOME);
+                resultDetails += "\nHome pause check";
+                runOnMainSync(() -> activity.startActivity(new Intent(Intent.ACTION_MAIN)
+                        .addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)));
                 awaitStatus("Camera released");
                 runOnMainSync(() -> getTargetContext().startActivity(new Intent().setClassName(getTargetContext().getPackageName(),
                         "com.mprlab.portal.CameraQualificationActivity")
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));
                 awaitStatus("Preview ready");
-                verifyHalfTurn();
+                if (checkRotation) verifyHalfTurn();
+                else resultDetails += "\nPhysical Portal uses its fixed display rotation.";
                 resultDetails += "\n20 preview/JPEG/release/reopen cycles, pause during open, and resume passed.";
+                resultDetails += cameraControls();
             }
             runOnMainSync(activity::finish);
             result.putString("stream", "Camera qualification passed: " + resultDetails + "\n");
@@ -76,6 +83,25 @@ public final class CameraQualificationTest extends Instrumentation {
             result.putString("stream", "Camera qualification failed: " + error + "\n" + resultDetails + "\n");
             finish(Activity.RESULT_CANCELED, result);
         }
+    }
+    private String cameraControls() throws Exception {
+        android.hardware.camera2.CameraManager manager = getTargetContext().getSystemService(android.hardware.camera2.CameraManager.class);
+        StringBuilder details = new StringBuilder();
+        for (String id : manager.getCameraIdList()) {
+            android.hardware.camera2.CameraCharacteristics c = manager.getCameraCharacteristics(id);
+            details.append("\nCamera ").append(id)
+                    .append(" active array=").append(c.get(android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE))
+                    .append(" max zoom=").append(c.get(android.hardware.camera2.CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM))
+                    .append(" crop type=").append(c.get(android.hardware.camera2.CameraCharacteristics.SCALER_CROPPING_TYPE))
+                    .append(" face modes=").append(java.util.Arrays.toString(c.get(android.hardware.camera2.CameraCharacteristics.STATISTICS_INFO_AVAILABLE_FACE_DETECT_MODES)))
+                    .append(" max faces=").append(c.get(android.hardware.camera2.CameraCharacteristics.STATISTICS_INFO_MAX_FACE_COUNT));
+            for (android.hardware.camera2.CaptureRequest.Key<?> key : c.getAvailableCaptureRequestKeys()) {
+                String name = key.getName();
+                if (name.contains("facebook") || name.contains("zoom") || name.contains("crop") || name.contains("face"))
+                    details.append("\nRequest key ").append(name);
+            }
+        }
+        return details.toString();
     }
     private void verifyHalfTurn() {
         try {

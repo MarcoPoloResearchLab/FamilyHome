@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -27,13 +26,13 @@ import java.util.Locale;
 public final class PianoActivity extends PortalActivity {
     private static final String TAG = "PianoActivity";
     private static final String AUDIO_ERROR = "Sound unavailable";
-    private static final int BG = Color.rgb(255, 248, 234);
-    private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
-    private static final int INK = Color.rgb(36, 49, 71);
-    private static final int MUTED = Color.rgb(92, 104, 124);
-    private static final int PURPLE = Color.rgb(124, 92, 252);
-    private static final int PALE_PURPLE = Color.rgb(241, 237, 255);
-    private static final int BLUE = Color.rgb(67, 114, 235);
+    private static final int BG = PortalStyle.PAPER;
+    private static final int SYSTEM_BAR = PortalStyle.INK;
+    private static final int INK = PortalStyle.INK;
+    private static final int MUTED = PortalStyle.SECONDARY;
+    private static final int PURPLE = PortalStyle.PURPLE;
+    private static final int PALE_PURPLE = PortalStyle.PURPLE;
+    private static final int BLUE = PortalStyle.BLUE;
 
     private TextView noteReadout;
     private PianoView pianoView;
@@ -57,14 +56,14 @@ public final class PianoActivity extends PortalActivity {
         toolbar.setPadding(dp(22), dp(12), dp(20), dp(12));
         toolbar.setBackgroundColor(Color.WHITE);
 
-        toolbar.addView(text("Piano", 27, INK, true), new LinearLayout.LayoutParams(0, -2, 1f));
+        toolbar.addView(text("Piano", PortalStyle.TextRole.TITLE, INK), new LinearLayout.LayoutParams(0, -2, 1f));
         PortalToolbar.navigation(this, toolbar);
 
-        noteReadout = text("Tap a key", 18, PURPLE, true);
+        noteReadout = text("Tap a key", PortalStyle.TextRole.SECTION, PURPLE);
         noteReadout.setGravity(Gravity.CENTER);
         noteReadout.setBackground(rounded(PALE_PURPLE, 18));
-        noteReadout.setPadding(dp(22), dp(10), dp(22), dp(10));
-        LinearLayout.LayoutParams readoutParams = new LinearLayout.LayoutParams(dp(180), dp(50));
+        noteReadout.setPadding(dp(12), dp(4), dp(12), dp(4));
+        LinearLayout.LayoutParams readoutParams = new LinearLayout.LayoutParams(dp(220), dp(60));
         readoutParams.rightMargin = dp(14);
         toolbar.addView(noteReadout, readoutParams);
 
@@ -89,21 +88,15 @@ public final class PianoActivity extends PortalActivity {
         super.onDestroy();
     }
 
-    private TextView text(String value, int size, int color, boolean bold) {
+    private TextView text(String value, PortalStyle.TextRole role, int color) {
         TextView view = new TextView(this);
         view.setText(value);
-        view.setTextSize(size);
+        PortalStyle.text(view, role);
         view.setTextColor(color);
-        view.setTypeface(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL);
         return view;
     }
 
-    private GradientDrawable rounded(int color, int radius) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(dp(radius));
-        return drawable;
-    }
+    private android.graphics.drawable.Drawable rounded(int color, int radius) { return PortalStyle.surface(this, color, radius); }
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);

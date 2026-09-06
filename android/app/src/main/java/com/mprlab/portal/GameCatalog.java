@@ -1,7 +1,6 @@
 package com.mprlab.portal;
 
 import android.content.Intent;
-import android.graphics.Color;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,20 +42,20 @@ final class GameCatalog {
     private static final List<Game> GAMES = Collections.unmodifiableList(Arrays.asList(
             new Game("Freedoom", "Explore maze levels", "F",
                     "net.nullsum.freedoom", "net.nullsum.freedoom.PortalGameActivity",
-                    LaunchMode.PROFILE_ENTRY, Color.rgb(0, 166, 153)),
+                    LaunchMode.PROFILE_ENTRY, PortalStyle.MINT),
             new Game("Kart", "Race together", "K",
                     "org.supertuxkart.stk", "org.supertuxkart.stk.SuperTuxKartActivity",
-                    LaunchMode.RESUME_TASK, Color.rgb(232, 84, 145)),
+                    LaunchMode.RESUME_TASK, PortalStyle.CORAL),
             new Game("Blocks", "Fit falling shapes", "▦",
                     "com.blockdrop.game", "com.blockdrop.game.MainActivity",
-                    LaunchMode.RESUME_TASK, Color.rgb(75, 99, 214)),
+                    LaunchMode.RESUME_TASK, PortalStyle.BLUE),
             new Game("Tiles", "Make bright patterns", "◆",
                     "net.vantulder.tessel", "net.vantulder.tessel.MainActivity",
-                    LaunchMode.RESUME_TASK, Color.rgb(242, 139, 50)),
+                    LaunchMode.RESUME_TASK, PortalStyle.YELLOW),
             new Game("Match", "Find matching pairs", "●●",
                     "org.secuso.privacyfriendlymemory",
                     "org.secuso.privacyfriendlymemory.ui.SplashActivity",
-                    LaunchMode.RESUME_TASK, Color.rgb(112, 74, 179))
+                    LaunchMode.RESUME_TASK, PortalStyle.PURPLE)
     ));
 
     static List<Game> all() {
