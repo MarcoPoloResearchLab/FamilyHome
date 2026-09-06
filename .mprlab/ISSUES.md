@@ -8,6 +8,32 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
+- [x] [B005] Correct application window selection in the Android upgrade test.
+  Goal:
+  The upgrade test must read the FamilyHome window after each activity change.
+  The `android-upgrade` check failed before PR #5 merged.
+  Requirements:
+  - Use one accessibility connection for the complete navigation test.
+  - Establish the accessibility connection before the three-second window timeout starts.
+  - Select the FamilyHome window with input focus from the interactive windows.
+  - Reject a capture when another application has input focus.
+  - Wait for activity input focus before each navigation action.
+  - Activate controls through their accessibility labels.
+  - Preserve the failed test step and the last UI capture.
+  - Repeat the Settings and Home sequence five times.
+  - Disable animations during the test and restore the previous settings afterward.
+  - Require both CI checks on `main`, including for administrators.
+  Validation:
+  - Run `make test-android-upgrade` and `make ci`.
+  - Verify both GitHub checks on the final PR commit.
+  Current result:
+  The new integration test failed because the old helper accepted the Android launcher window.
+  The first correction still failed the API 28 check with an unavailable window.
+  The test now uses one instrumentation process for all navigation actions.
+  Navigation and saved-data checks remain in the public upgrade test.
+  Both GitHub checks are required on `main` with strict branch protection.
+  The language review covered B005.
+
 - [x] [B004] (P1) Restore automatic weather updates on Home.
   Goal:
   The weather card must show current service data while Home stays open.

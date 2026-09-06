@@ -2,5 +2,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.mprlab.portal.upgradeuitest">
     <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="28" />
     <application android:label="Upgrade UI test" />
-    <instrumentation android:name=".UpgradeUiDump" android:targetPackage="com.mprlab.portal.upgradeuitest" />
+    <instrumentation android:name=".UpgradeUiFlow" android:targetPackage="com.mprlab.portal.upgradeuitest" />
 </manifest>
