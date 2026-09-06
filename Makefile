@@ -78,3 +78,7 @@ test-android-photobooth:
 .PHONY: test-android-camera
 test-android-camera:
 	cd android && bash ./tests/camera-qualification.sh
+
+.PHONY: test-android-camera-recovery
+test-android-camera-recovery: toolbar-test-deps
+	PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/camera-recovery.py
