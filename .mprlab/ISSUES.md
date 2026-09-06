@@ -8,6 +8,28 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
+- [x] [B004] (P1) Restore automatic weather updates on Home.
+  Goal:
+  The weather card must show current service data while Home stays open.
+  Requirements:
+  - Request weather data after the 15-minute cache period.
+  - After a request failure, show an error and repeat the request after 30 seconds.
+  - Remove the old temperature, condition, and clothing advice after the cache period.
+  - Reject request results after Home closes or the location changes.
+  Validation:
+  - Verify cache expiry and automatic recovery through the Android Home screen.
+  - Run `make test-android-weather` and `make ci`.
+  Current result:
+  The Portal showed a saved report from the previous day after startup requests failed.
+  The live service returned current weather data.
+  The integration test failed before the production change.
+  The integration test passed after the production change.
+  `make ci` passed.
+  The signed update is installed on the Portal.
+  The installed APK hash matches the update artifact.
+  The Portal shows 68 degrees and rain for Manhattan Beach.
+  The language review covered B004.
+
 - [x] [B003] Correct Android upgrade test setup and selection.
   Goal:
   The upgrade test must identify the current Home controls and game cards.
