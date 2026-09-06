@@ -10,6 +10,13 @@ Delete obsolete code paths, schemas, config, and persisted data shapes. Do not k
 
 A one-time data migration can move persisted data into the current schema. Remove the migration bridge after the operation.
 
+## FamilyHome Appearance
+
+Before an interface change, read `android/STYLING.md` in full.
+Apply that contract to all FamilyHome screens, games, dialogs, menus, and new platform clients.
+Use the shared text roles, bold typeface, black outlines, bright colors, and large controls.
+Verify the changed interface at normal and enlarged text dimensions.
+
 <!-- BEGIN MPRLAB-GOVERNANCE -->
 ## MPR Lab Governance
 
