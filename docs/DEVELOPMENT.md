@@ -9,6 +9,7 @@
 | `games/` | Source adaptations for separately installed games |
 | `screenshots/` | App captures with sample data and capture records |
 | `docs/MULTI-FAMILY.md` | Overview of the proposal in P002 |
+| [iOS proposal](IOS.md) | iPhone and iPad feature parity, architecture, milestones, and acceptance criteria for F009 |
 
 ## Build and checks
 
