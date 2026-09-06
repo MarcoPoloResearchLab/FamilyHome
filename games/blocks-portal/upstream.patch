@@ -2,14 +2,14 @@
 +++ b/android/app/src/main/kotlin/com/blockdrop/game/MainActivity.kt
 @@ -1,5 +1,33 @@
  package com.blockdrop.game
- 
+
 +import android.content.Intent
 +import android.view.View
 +import android.view.WindowManager
  import io.flutter.embedding.android.FlutterActivity
 +import io.flutter.embedding.engine.FlutterEngine
 +import io.flutter.plugin.common.MethodChannel
- 
+
 -class MainActivity : FlutterActivity()
 +class MainActivity : FlutterActivity() {
 +    override fun configureFlutterEngine(engine: FlutterEngine) {
@@ -35,30 +35,280 @@
 +        }
 +    }
 +}
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -2,6 +2,7 @@
+
+ import 'package:flutter/material.dart';
+ import 'logging.dart';
++import 'portal_theme.dart';
+ import 'screens/tetris_game_screen.dart';
+ import 'settings/settings_provider.dart';
+
+@@ -34,36 +35,6 @@
+   late final bool _ownsSettings;
+   late final VoidCallback _settingsListener;
+
+-  static final _lightTheme = ThemeData(
+-    colorScheme: ColorScheme.fromSeed(
+-      seedColor: Colors.blue,
+-      brightness: Brightness.light,
+-    ),
+-    useMaterial3: true,
+-  );
+-
+-  static final _darkTheme = ThemeData(
+-    colorScheme: ColorScheme.fromSeed(
+-      seedColor: Colors.blue,
+-      brightness: Brightness.dark,
+-    ),
+-    scaffoldBackgroundColor: const Color(0xFF121212),
+-    useMaterial3: true,
+-  );
+-
+-  static final _blackTheme = ThemeData(
+-    colorScheme: ColorScheme.fromSeed(
+-      seedColor: Colors.blue,
+-      brightness: Brightness.dark,
+-    ).copyWith(
+-      surface: Colors.black,
+-      surfaceContainerHighest: const Color(0xFF111111),
+-      onSurface: Colors.white,
+-    ),
+-    scaffoldBackgroundColor: Colors.black,
+-    useMaterial3: true,
+-  );
+-
+   @override
+   void initState() {
+     super.initState();
+@@ -85,12 +56,12 @@
+   Widget build(BuildContext context) {
+     return MaterialApp(
+       title: 'Block Drop - Tetris',
+-      // Neon style requires a dark background everywhere — override theme mode
+-      themeMode: _settings.style == AppStyle.neon
+-          ? ThemeMode.dark
+-          : _settings.flutterThemeMode,
+-      theme: _lightTheme,
+-      darkTheme: _settings.isBlackMode ? _blackTheme : _darkTheme,
++      builder: (context, child) => MediaQuery.removePadding(
++        context: context,
++        removeTop: true,
++        child: child!,
++      ),
++      theme: portalTheme(),
+       home: TetrisGameScreen(settings: _settings),
+       debugShowCheckedModeBanner: false,
+     );
 --- a/lib/screens/multiplayer_discovery_screen.dart
 +++ b/lib/screens/multiplayer_discovery_screen.dart
-@@ -1,3 +1,4 @@
+@@ -1,3 +1,5 @@
++import '../portal_theme.dart';
 +import '../portal_toolbar.dart';
  import 'dart:io';
- 
+
  import 'package:flutter/material.dart';
-@@ -193,7 +194,7 @@
+@@ -89,7 +91,7 @@
+     showDialog<void>(
+       context: context,
+       builder: (ctx) => AlertDialog(
+-        shape: styledDialogShape(style, cs),
++        shape: portalBorder,
+         title: const Text('Windows Firewall'),
+         content: const Text(
+           'Windows Firewall may be blocking other players from connecting to '
+@@ -164,7 +166,7 @@
+       context: context,
+       barrierDismissible: false,
+       builder: (ctx) => AlertDialog(
+-        shape: styledDialogShape(style, cs),
++        shape: portalBorder,
+         title: const Text('Game Invite'),
+         content: Text('$fromName wants to play Block Drop with you!'),
+         actions: [
+@@ -193,7 +195,7 @@
      final cs = Theme.of(context).colorScheme;
- 
+
      return Scaffold(
 -      appBar: AppBar(title: const Text('Multiplayer'), centerTitle: true),
 +      appBar: PortalToolbar(title: const Text('Multiplayer')),
        body: SafeArea(child: _buildBody(cs)),
      );
    }
+@@ -260,12 +262,12 @@
+           child: localIp == null
+               ? Text(
+                   '⚠ Could not detect LAN IP – make sure Wi-Fi is on.',
+-                  style: TextStyle(fontSize: 12, color: cs.error),
++                  style: TextStyle(fontSize: portalBodySize, color: cs.error),
+                 )
+               : Text(
+                   'Your IP: $localIp  ·  broadcasting to: $bcast',
+                   style: TextStyle(
+-                    fontSize: 11,
++                    fontSize: portalBodySize,
+                     color: cs.onSurfaceVariant,
+                     fontFeatures: const [FontFeature.tabularFigures()],
+                   ),
+@@ -285,7 +287,7 @@
+                   Text(
+                     'Windows Firewall may block connections — tap to configure',
+                     style: TextStyle(
+-                      fontSize: 11,
++                      fontSize: portalBodySize,
+                       color: cs.tertiary,
+                       decoration: TextDecoration.underline,
+                     ),
+@@ -301,7 +303,7 @@
+           child: Text(
+             'OTHER PLAYERS',
+             style: TextStyle(
+-              fontSize: 11,
++              fontSize: portalBodySize,
+               fontWeight: FontWeight.w600,
+               letterSpacing: 1.2,
+               color: cs.primary,
+@@ -346,14 +348,14 @@
+             const SizedBox(height: 24),
+             Text(
+               'Waiting for ${_manager.opponentName ?? '…'} to respond…',
+-              style: const TextStyle(fontSize: 16),
++              style: const TextStyle(fontSize: portalBodySize),
+               textAlign: TextAlign.center,
+             ),
+             const SizedBox(height: 24),
+             OutlinedButton(
+               onPressed: _manager.cancelInvite,
+               style: OutlinedButton.styleFrom(
+-                shape: buttonBorderShape(widget.settings.style),
++                shape: portalBorder,
+               ),
+               child: const Text('Cancel'),
+             ),
+@@ -413,7 +415,7 @@
+             Text(
+               'You are the host',
+               textAlign: TextAlign.center,
+-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
++              style: TextStyle(color: cs.onSurfaceVariant, fontSize: portalBodySize),
+             ),
+             const SizedBox(height: 12),
+             FilledButton.icon(
+@@ -421,7 +423,7 @@
+               icon: const Icon(Icons.play_arrow),
+               label: const Text('Start Game'),
+               style: FilledButton.styleFrom(
+-                shape: buttonBorderShape(widget.settings.style),
++                shape: portalBorder,
+               ),
+             ),
+           ] else
+@@ -434,7 +436,7 @@
+           OutlinedButton(
+             onPressed: () => _manager.backToDiscovery(),
+             style: OutlinedButton.styleFrom(
+-              shape: buttonBorderShape(widget.settings.style),
++              shape: portalBorder,
+             ),
+             child: const Text('Leave Lobby'),
+           ),
+@@ -470,7 +472,7 @@
+       children: [
+         Text(
+           'Mode',
+-          style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
++          style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: portalBodySize),
+         ),
+         const SizedBox(height: 8),
+         SegmentedButton<MultiplayerGameMode>(
+@@ -539,7 +541,7 @@
+       children: [
+         Text(
+           'Hold Piece',
+-          style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
++          style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: portalBodySize),
+         ),
+         const SizedBox(width: 12),
+         Switch(value: enabled, onChanged: onChanged),
+@@ -566,7 +568,7 @@
+     return Container(
+       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+-      decoration: panelDecoration(style, colorScheme),
++      decoration: panelDecoration(colorScheme),
+       child: Row(
+         children: [
+           Icon(Icons.person, color: colorScheme.primary),
+@@ -579,13 +581,13 @@
+                   peer.name,
+                   style: const TextStyle(
+                     fontWeight: FontWeight.w600,
+-                    fontSize: 15,
++                    fontSize: portalBodySize,
+                   ),
+                 ),
+                 Text(
+                   peer.ip,
+                   style: TextStyle(
+-                    fontSize: 12,
++                    fontSize: portalBodySize,
+                     color: colorScheme.onSurfaceVariant,
+                   ),
+                 ),
+@@ -596,8 +598,8 @@
+             onPressed: onInvite,
+             style: FilledButton.styleFrom(
+               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+-              textStyle: const TextStyle(fontSize: 13),
+-              shape: buttonBorderShape(style),
++              textStyle: const TextStyle(fontSize: portalBodySize),
++              shape: portalBorder,
+             ),
+             child: const Text('Invite'),
+           ),
+@@ -624,7 +626,7 @@
+
+   @override
+   Widget build(BuildContext context) {
+-    final radius = panelBorderRadius(style);
++    final radius = portalRadius;
+     return Container(
+       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+       decoration: BoxDecoration(
+@@ -651,7 +653,7 @@
+               name,
+               style: TextStyle(
+                 fontWeight: FontWeight.w600,
+-                fontSize: 15,
++                fontSize: portalBodySize,
+                 color: colorScheme.onSurface,
+               ),
+             ),
+@@ -662,12 +664,12 @@
+               color: isYou
+                   ? colorScheme.primary.withAlpha(30)
+                   : colorScheme.surfaceContainerHighest,
+-              borderRadius: panelBorderRadius(style),
++              borderRadius: portalRadius,
+             ),
+             child: Text(
+               label,
+               style: TextStyle(
+-                fontSize: 12,
++                fontSize: portalBodySize,
+                 color:
+                     isYou ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                 fontWeight: FontWeight.w500,
 --- a/lib/screens/multiplayer_game_screen.dart
 +++ b/lib/screens/multiplayer_game_screen.dart
-@@ -1,3 +1,4 @@
+@@ -1,3 +1,5 @@
++import '../portal_theme.dart';
 +import '../portal_toolbar.dart';
  import 'dart:async';
  import 'dart:ui' as ui;
- 
-@@ -311,6 +312,7 @@
+
+@@ -311,6 +313,7 @@
          }
        },
        child: Scaffold(
@@ -66,23 +316,290 @@
          body: SafeArea(
            child: Stack(
              children: [
+@@ -471,13 +474,13 @@
+                       ),
+                       decoration: BoxDecoration(
+                         color: cs.error.withAlpha(200),
+-                        borderRadius: panelBorderRadius(widget.settings.style),
++                        borderRadius: portalRadius,
+                       ),
+                       child: Text(
+                         '⚠ +$_incomingGarbage garbage',
+                         style: TextStyle(
+                           color: cs.onError,
+-                          fontSize: 12,
++                          fontSize: portalBodySize,
+                           fontWeight: FontWeight.bold,
+                         ),
+                         textAlign: TextAlign.center,
+@@ -510,7 +513,7 @@
+                           width:
+                               widget.settings.style == AppStyle.retro ? 2 : 1,
+                         ),
+-                        borderRadius: panelBorderRadius(widget.settings.style),
++                        borderRadius: portalRadius,
+                       ),
+                       child: OpponentBoard(
+                         cells: widget.manager.opponentBoard,
+@@ -544,7 +547,7 @@
+           Text(
+             label,
+             style: TextStyle(
+-              fontSize: 10,
++              fontSize: portalBodySize,
+               fontWeight: FontWeight.w700,
+               letterSpacing: 1.0,
+               color: cs.onSurfaceVariant,
+@@ -554,7 +557,7 @@
+           Container(
+             width: size,
+             height: size,
+-            decoration: pieceBoxDecoration(widget.settings.style, cs),
++            decoration: pieceBoxDecoration(cs),
+             child: child,
+           ),
+         ],
+@@ -696,12 +699,12 @@
+                       ),
+                       decoration: BoxDecoration(
+                         color: cs.surfaceContainerHighest.withAlpha(200),
+-                        borderRadius: panelBorderRadius(widget.settings.style),
++                        borderRadius: portalRadius,
+                       ),
+                       child: Text(
+                         (widget.manager.opponentName ?? 'OPP').toUpperCase(),
+                         style: TextStyle(
+-                          fontSize: 9,
++                          fontSize: portalBodySize,
+                           fontWeight: FontWeight.w700,
+                           letterSpacing: 1.0,
+                           color: cs.secondary,
+@@ -716,7 +719,7 @@
+                           width:
+                               widget.settings.style == AppStyle.retro ? 2 : 1,
+                         ),
+-                        borderRadius: panelBorderRadius(widget.settings.style),
++                        borderRadius: portalRadius,
+                         color: cs.surface.withAlpha(66),
+                       ),
+                       child: OpponentBoard(
+@@ -739,7 +742,7 @@
+               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+               decoration: BoxDecoration(
+                 color: cs.surfaceContainerHighest.withAlpha(200),
+-                borderRadius: panelBorderRadius(widget.settings.style),
++                borderRadius: portalRadius,
+               ),
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+@@ -748,14 +751,14 @@
+                   Text(
+                     _fmt.format(_gameLogic.score),
+                     style: TextStyle(
+-                      fontSize: 14,
++                      fontSize: portalBodySize,
+                       fontWeight: FontWeight.bold,
+                       color: cs.onSurface,
+                     ),
+                   ),
+                   Text(
+                     'Lv ${_gameLogic.level}  ·  ${_gameLogic.linesCleared} lines',
+-                    style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
++                    style: TextStyle(fontSize: portalBodySize, color: cs.onSurfaceVariant),
+                   ),
+                 ],
+               ),
+@@ -778,13 +781,13 @@
+                   ),
+                   decoration: BoxDecoration(
+                     color: cs.error.withAlpha(200),
+-                    borderRadius: panelBorderRadius(widget.settings.style),
++                    borderRadius: portalRadius,
+                   ),
+                   child: Text(
+                     '⚠ +$_incomingGarbage garbage',
+                     style: TextStyle(
+                       color: cs.onError,
+-                      fontSize: 11,
++                      fontSize: portalBodySize,
+                       fontWeight: FontWeight.bold,
+                     ),
+                     textAlign: TextAlign.center,
+@@ -814,7 +817,7 @@
+           Text(
+             label,
+             style: TextStyle(
+-              fontSize: 10,
++              fontSize: portalBodySize,
+               fontWeight: FontWeight.w700,
+               letterSpacing: 1.0,
+               color: cs.onSurface.withAlpha(178),
+@@ -830,7 +833,7 @@
+                 color: cs.outline.withAlpha(80),
+                 width: style == AppStyle.retro ? 2 : 1,
+               ),
+-              borderRadius: panelBorderRadius(style),
++              borderRadius: portalRadius,
+             ),
+             child: child,
+           ),
+@@ -853,7 +856,7 @@
+             widget.manager.opponentName != null
+                 ? 'vs ${widget.manager.opponentName}'
+                 : 'Get Ready',
+-            style: TextStyle(color: cs.onSurface.withAlpha(178), fontSize: 18),
++            style: TextStyle(color: cs.onSurface.withAlpha(178), fontSize: portalBodySize),
+           ),
+           const SizedBox(height: 16),
+           Text(
+@@ -913,7 +916,7 @@
+                     autofocus: true,
+                     onPressed: () => Navigator.of(context).pop(false),
+                     style: OutlinedButton.styleFrom(
+-                      shape: buttonBorderShape(style),
++                      shape: portalBorder,
+                     ),
+                     child: const Text('Play Again'),
+                   ),
+@@ -923,7 +926,7 @@
+                   child: FilledButton(
+                     onPressed: () => Navigator.of(context).pop(true),
+                     style: FilledButton.styleFrom(
+-                      shape: buttonBorderShape(style),
++                      shape: portalBorder,
+                     ),
+                     child: const Text('Leave'),
+                   ),
+@@ -943,7 +946,7 @@
+     final shouldLeave = await showDialog<bool>(
+       context: context,
+       builder: (ctx) => AlertDialog(
+-        shape: styledDialogShape(widget.settings.style, cs),
++        shape: portalBorder,
+         title: const Text('Leave Game?'),
+         content: const Text('Your opponent will be disconnected.'),
+         actions: [
+@@ -985,7 +988,7 @@
+         Text(
+           'YOU',
+           style: TextStyle(
+-            fontSize: 11,
++            fontSize: portalBodySize,
+             fontWeight: FontWeight.w700,
+             letterSpacing: 1.2,
+             color: colorScheme.primary,
+@@ -994,14 +997,14 @@
+         Text(
+           formatter.format(gameLogic.score),
+           style: TextStyle(
+-            fontSize: 18,
++            fontSize: portalBodySize,
+             fontWeight: FontWeight.bold,
+             color: colorScheme.onSurface,
+           ),
+         ),
+         Text(
+           'Lv ${gameLogic.level}  ·  ${gameLogic.linesCleared} lines',
+-          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
++          style: TextStyle(fontSize: portalBodySize, color: colorScheme.onSurfaceVariant),
+         ),
+       ],
+     );
+@@ -1027,7 +1030,7 @@
+         Text(
+           (manager.opponentName ?? 'OPPONENT').toUpperCase(),
+           style: TextStyle(
+-            fontSize: 11,
++            fontSize: portalBodySize,
+             fontWeight: FontWeight.w700,
+             letterSpacing: 1.2,
+             color: colorScheme.secondary,
+@@ -1037,14 +1040,14 @@
+         Text(
+           formatter.format(manager.opponentScore),
+           style: TextStyle(
+-            fontSize: 18,
++            fontSize: portalBodySize,
+             fontWeight: FontWeight.bold,
+             color: colorScheme.onSurface,
+           ),
+         ),
+         Text(
+           '${manager.opponentLines} lines',
+-          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
++          style: TextStyle(fontSize: portalBodySize, color: colorScheme.onSurfaceVariant),
+         ),
+       ],
+     );
+@@ -1073,8 +1076,8 @@
+             label,
+             style: TextStyle(
+               color: colorScheme.onSurface,
+-              fontSize: 14,
+-              fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
++              fontSize: portalBodySize,
++              fontWeight: highlight ? FontWeight.bold : FontWeight.w500,
+             ),
+           ),
+         ),
+@@ -1083,8 +1086,8 @@
+           style: TextStyle(
+             color:
+                 highlight ? colorScheme.tertiary : colorScheme.onSurfaceVariant,
+-            fontSize: 16,
+-            fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
++            fontSize: portalBodySize,
++            fontWeight: highlight ? FontWeight.bold : FontWeight.w500,
+           ),
+         ),
+       ],
 --- a/lib/screens/settings_screen.dart
 +++ b/lib/screens/settings_screen.dart
-@@ -1,3 +1,4 @@
+@@ -1,3 +1,5 @@
++import '../portal_theme.dart';
 +import '../portal_toolbar.dart';
  import 'dart:ui' as ui;
- 
+
  import 'package:flutter/material.dart';
-@@ -208,7 +209,7 @@
+@@ -74,7 +76,7 @@
+     showDialog<AppStyle>(
+       context: context,
+       builder: (ctx) => AlertDialog(
+-        shape: styledDialogShape(widget.settings.style, cs),
++        shape: portalBorder,
+         title: const Text('Style'),
+         contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+         content: Column(
+@@ -97,7 +99,6 @@
+     ).then((v) {
+       if (v != null) {
+         widget.settings.setStyle(v);
+-        if (v == AppStyle.neon) widget.settings.setThemeMode(AppThemeMode.dark);
+       }
+     });
+   }
+@@ -122,10 +123,7 @@
+           final label =
+               current == 0 && zeroLabel != null ? zeroLabel : '$current$suffix';
+           return AlertDialog(
+-            shape: styledDialogShape(
+-              widget.settings.style,
+-              Theme.of(ctx).colorScheme,
+-            ),
++            shape: portalBorder,
+             title: Text(title),
+             content: Column(
+               mainAxisSize: MainAxisSize.min,
+@@ -208,7 +206,7 @@
      final showAbout = _sectionMatches('About', ['BlockDrop']);
- 
+
      return Scaffold(
 -      appBar: AppBar(
 +      appBar: PortalToolbar(
          title: _isSearching
              ? TextField(
                  autofocus: true,
-@@ -222,7 +223,6 @@
+@@ -222,7 +220,6 @@
                  ),
                )
              : const Text('Settings'),
@@ -90,14 +607,365 @@
          actions: [
            IconButton(
              key: const ValueKey('settings-search-button'),
+@@ -493,79 +490,6 @@
+               ],
+               if (showAppearance)
+                 _SectionHeader(label: 'Appearance', colorScheme: colorScheme),
+-              if (_matchesSearch(
+-                'Theme System Dark Light',
+-                section: 'Appearance',
+-              ))
+-                _SettingsPanel(
+-                  colorScheme: colorScheme,
+-                  style: widget.settings.style,
+-                  child: SegmentedButton<AppThemeMode>(
+-                    style: SegmentedButton.styleFrom(
+-                      shape: buttonBorderShape(widget.settings.style),
+-                      side: BorderSide(
+-                        color: colorScheme.primary.withValues(
+-                          alpha: widget.settings.style == AppStyle.neon
+-                              ? 0.55
+-                              : 0.3,
+-                        ),
+-                        width: widget.settings.style == AppStyle.retro ? 2 : 1,
+-                      ),
+-                      selectedBackgroundColor: colorScheme.primary.withValues(
+-                        alpha: 0.18,
+-                      ),
+-                      selectedForegroundColor: colorScheme.primary,
+-                      foregroundColor: colorScheme.onSurface,
+-                      disabledForegroundColor: colorScheme.onSurface.withValues(
+-                        alpha: 0.65,
+-                      ),
+-                      backgroundColor: colorScheme.surfaceContainerHighest
+-                          .withValues(alpha: 0.35),
+-                    ),
+-                    segments: [
+-                      ButtonSegment(
+-                        value: AppThemeMode.system,
+-                        label: const Text('System'),
+-                        icon: const Icon(Icons.brightness_auto),
+-                        enabled: widget.settings.style != AppStyle.neon,
+-                      ),
+-                      const ButtonSegment(
+-                        value: AppThemeMode.dark,
+-                        label: Text('Dark'),
+-                        icon: Icon(Icons.dark_mode),
+-                      ),
+-                      ButtonSegment(
+-                        value: AppThemeMode.light,
+-                        label: const Text('Light'),
+-                        icon: const Icon(Icons.light_mode),
+-                        enabled: widget.settings.style != AppStyle.neon,
+-                      ),
+-                    ],
+-                    selected: {
+-                      widget.settings.themeMode == AppThemeMode.black
+-                          ? AppThemeMode.dark
+-                          : widget.settings.themeMode == AppThemeMode.system ||
+-                                  widget.settings.themeMode ==
+-                                      AppThemeMode.light
+-                              ? widget.settings.themeMode
+-                              : AppThemeMode.dark,
+-                    },
+-                    onSelectionChanged: (selection) =>
+-                        widget.settings.setThemeMode(selection.first),
+-                  ),
+-                ),
+-              if (_matchesSearch('Pure Black AMOLED', section: 'Appearance'))
+-                _SettingTile(
+-                  label: 'Pure Black (AMOLED)',
+-                  colorScheme: colorScheme,
+-                  style: widget.settings.style,
+-                  child: Switch(
+-                    value: widget.settings.isBlackMode,
+-                    onChanged: (value) => widget.settings.setThemeMode(
+-                      value ? AppThemeMode.black : AppThemeMode.dark,
+-                    ),
+-                  ),
+-                ),
+               if (_matchesSearch('Style', section: 'Appearance'))
+                 _SettingTile(
+                   label: 'Style',
+@@ -605,9 +529,9 @@
+                   margin:
+                       const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                   decoration:
+-                      panelDecoration(widget.settings.style, colorScheme),
++                      panelDecoration(colorScheme),
+                   child: InkWell(
+-                    borderRadius: panelBorderRadius(widget.settings.style),
++                    borderRadius: portalRadius,
+                     onTap: () => Navigator.push(
+                       context,
+                       MaterialPageRoute(
+@@ -629,7 +553,7 @@
+                             child: Text(
+                               'Play on LAN',
+                               style: TextStyle(
+-                                fontSize: 15,
++                                fontSize: portalBodySize,
+                                 color: colorScheme.onSurface,
+                               ),
+                             ),
+@@ -657,7 +581,7 @@
+                     ).format(widget.settings.highScore),
+                     textAlign: TextAlign.end,
+                     style: TextStyle(
+-                      fontSize: 16,
++                      fontSize: portalBodySize,
+                       fontWeight: FontWeight.w600,
+                       color: colorScheme.primary,
+                     ),
+@@ -727,12 +651,7 @@
+       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+       child: Text(
+         label.toUpperCase(),
+-        style: TextStyle(
+-          fontSize: 11,
+-          fontWeight: FontWeight.w600,
+-          letterSpacing: 1.2,
+-          color: colorScheme.primary,
+-        ),
++        style: portalControlText,
+       ),
+     );
+   }
+@@ -754,7 +673,7 @@
+     return Container(
+       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+       padding: const EdgeInsets.all(8),
+-      decoration: panelDecoration(style, colorScheme),
++      decoration: panelDecoration(colorScheme),
+       child: child,
+     );
+   }
+@@ -778,7 +697,7 @@
+     return Container(
+       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+-      decoration: panelDecoration(style, colorScheme),
++      decoration: panelDecoration(colorScheme),
+       child: Row(
+         children: [
+           Expanded(
+@@ -787,7 +706,7 @@
+               children: [
+                 Text(
+                   label,
+-                  style: TextStyle(fontSize: 15, color: colorScheme.onSurface),
++                  style: TextStyle(fontSize: portalBodySize, color: colorScheme.onSurface),
+                 ),
+               ],
+             ),
+@@ -852,22 +771,12 @@
+
+   @override
+   Widget build(BuildContext context) {
+-    final color = isDestructive ? colorScheme.error : colorScheme.primary;
+     return OutlinedButton.icon(
+       onPressed: onPressed,
+-      icon: Icon(icon, size: 16, color: color),
+-      label: Text(label, style: TextStyle(color: color, fontSize: 13)),
++      icon: Icon(icon, size: 24, color: portalInk),
++      label: Text(label, style: portalControlText),
+       style: OutlinedButton.styleFrom(
+-        padding: const EdgeInsets.symmetric(vertical: 10),
+-        backgroundColor: color.withValues(
+-          alpha: style == AppStyle.neon ? 0.08 : 0.04,
+-        ),
+-        side: BorderSide(
+-          color: color.withValues(alpha: style == AppStyle.neon ? 0.55 : 0.32),
+-          width: style == AppStyle.retro ? 2 : 1,
+-        ),
+-        shape: buttonBorderShape(style),
+-      ),
++        backgroundColor: isDestructive ? const Color(0xffff8597) : portalYellow),
+     );
+   }
+ }
+@@ -897,7 +806,7 @@
+     return Container(
+       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+-      decoration: panelDecoration(settings.style, colorScheme),
++      decoration: panelDecoration(colorScheme),
+       child: Column(
+         children: [
+           for (final action in GameplayAction.values)
+@@ -989,7 +898,7 @@
+     return Container(
+       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+       padding: const EdgeInsets.all(16),
+-      decoration: panelDecoration(style, colorScheme),
++      decoration: panelDecoration(colorScheme),
+       child: Column(
+         children: [
+           _InstructionRow(
+@@ -1064,14 +973,14 @@
+     return Container(
+       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+       padding: const EdgeInsets.all(16),
+-      decoration: panelDecoration(style, colorScheme),
++      decoration: panelDecoration(colorScheme),
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         children: [
+           Text(
+             'Block Drop',
+             style: TextStyle(
+-              fontSize: 16,
++              fontSize: portalBodySize,
+               fontWeight: FontWeight.w600,
+               color: colorScheme.onSurface,
+             ),
+@@ -1081,7 +990,7 @@
+             'A free and open-source Tetris clone built with Flutter. '
+             'Drop, rotate, and clear lines in this classic puzzle game.',
+             style: TextStyle(
+-              fontSize: 13,
++              fontSize: portalBodySize,
+               color: colorScheme.onSurfaceVariant,
+               height: 1.4,
+             ),
+@@ -1136,7 +1045,7 @@
+             child: Text(
+               label,
+               style: TextStyle(
+-                fontSize: 13,
++                fontSize: portalBodySize,
+                 color: colorScheme.primary,
+                 fontWeight: FontWeight.w500,
+               ),
+@@ -1166,7 +1075,7 @@
+
+   @override
+   Widget build(BuildContext context) {
+-    final radius = panelBorderRadius(style);
++    final radius = portalRadius;
+     return ClipRRect(
+       borderRadius: radius,
+       child: Material(
+@@ -1175,7 +1084,7 @@
+           borderRadius: radius,
+           onTap: onTap,
+           child: Container(
+-            decoration: panelDecoration(style, colorScheme),
++            decoration: panelDecoration(colorScheme),
+             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+             child: Row(
+               children: [
+@@ -1189,12 +1098,12 @@
+                 Text(
+                   label,
+                   style: TextStyle(
+-                    fontSize: 15,
++                    fontSize: portalBodySize,
+                     color: colorScheme.onSurface,
+                     letterSpacing: style == AppStyle.retro ? 1.5 : null,
+                     fontWeight: style == AppStyle.retro
+                         ? FontWeight.bold
+-                        : FontWeight.normal,
++                        : FontWeight.w500,
+                   ),
+                 ),
+               ],
+@@ -1233,7 +1142,7 @@
+               child: Text(
+                 label,
+                 style: TextStyle(
+-                  fontSize: 13,
++                  fontSize: portalBodySize,
+                   color: colorScheme.onSurface,
+                   fontWeight: FontWeight.w500,
+                 ),
+@@ -1242,7 +1151,7 @@
+             Text(
+               description,
+               style: TextStyle(
+-                fontSize: 13,
++                fontSize: portalBodySize,
+                 color: colorScheme.onSurfaceVariant,
+               ),
+             ),
 --- a/lib/screens/tetris_game_screen.dart
 +++ b/lib/screens/tetris_game_screen.dart
-@@ -1,3 +1,4 @@
+@@ -1,3 +1,5 @@
 +import '../portal_toolbar.dart';
++import '../portal_theme.dart';
  import 'dart:io';
  import 'dart:ui' as ui;
- 
-@@ -498,6 +499,14 @@
+
+@@ -293,14 +295,14 @@
+       builder: (ctx) => StatefulBuilder(
+         builder: (ctx, setDialogState) => AlertDialog(
+           backgroundColor: cs.surface,
+-          shape: styledDialogShape(style, cs),
++          shape: portalBorder,
+           title: const Text('Practice Mode'),
+           content: Column(
+             mainAxisSize: MainAxisSize.min,
+             children: [
+               Text(
+                 'Choose a starting level. Speed stays fixed throughout the session.',
+-                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
++                style: TextStyle(fontSize: portalBodySize, color: cs.onSurfaceVariant),
+               ),
+               const SizedBox(height: 16),
+               Row(
+@@ -341,7 +343,7 @@
+             ),
+             FilledButton(
+               onPressed: () => Navigator.of(ctx).pop(true),
+-              style: FilledButton.styleFrom(shape: buttonBorderShape(style)),
++              style: FilledButton.styleFrom(shape: portalBorder),
+               child: const Text('Start'),
+             ),
+           ],
+@@ -369,7 +371,7 @@
+       builder: (BuildContext context) {
+         return AlertDialog(
+           backgroundColor: cs.surface,
+-          shape: styledDialogShape(style, cs, accentColor: cs.error),
++          shape: portalBorder,
+           title: Text(
+             'Game Over!',
+             style: TextStyle(
+@@ -385,7 +387,7 @@
+               if (!gameLogic.practiceMode)
+                 Text(
+                   'Final Score: ${formatter.format(gameLogic.score)}',
+-                  style: TextStyle(color: cs.onSurface, fontSize: 18),
++                  style: TextStyle(color: cs.onSurface, fontSize: portalBodySize),
+                   textAlign: TextAlign.center,
+                 ),
+               if (!gameLogic.practiceMode) const SizedBox(height: 8),
+@@ -393,13 +395,13 @@
+                 gameLogic.practiceMode
+                     ? 'Practice Lv ${gameLogic.level}'
+                     : 'Level: ${gameLogic.level}',
+-                style: TextStyle(color: cs.onSurface, fontSize: 16),
++                style: TextStyle(color: cs.onSurface, fontSize: portalBodySize),
+                 textAlign: TextAlign.center,
+               ),
+               const SizedBox(height: 8),
+               Text(
+                 'Lines Cleared: ${gameLogic.linesCleared}',
+-                style: TextStyle(color: cs.onSurface, fontSize: 16),
++                style: TextStyle(color: cs.onSurface, fontSize: portalBodySize),
+                 textAlign: TextAlign.center,
+               ),
+             ],
+@@ -413,7 +415,7 @@
+                 if (widget.settings.musicEnabled) _audioService.startMusic();
+               },
+               style: FilledButton.styleFrom(
+-                shape: buttonBorderShape(style),
++                shape: portalBorder,
+                 minimumSize: const Size(double.infinity, 48),
+               ),
+               child: const Text('Play Again'),
+@@ -498,6 +500,14 @@
          }
        },
        child: Scaffold(
@@ -112,16 +980,16 @@
          body: SafeArea(
            child: SwipeDetector(
              gameLogic: gameLogic,
-@@ -517,7 +526,7 @@
+@@ -517,7 +527,7 @@
                  }
- 
+
                  // ── Phone / portrait layout ────────────────────────────────
 -                const double scoreHeight = 38.0;
 +                const double scoreHeight = 0.0;
                  const double nextPieceHeight = 124.0;
                  final double controlsHeight =
                      widget.settings.showOnScreenControls ? 112 : 0;
-@@ -556,63 +565,6 @@
+@@ -556,63 +566,6 @@
                    child: Column(
                      mainAxisAlignment: MainAxisAlignment.center,
                      children: [
@@ -185,7 +1053,83 @@
                        // Hold and Next pieces
                        Container(
                          padding: const EdgeInsets.symmetric(vertical: 8),
-@@ -999,7 +951,7 @@
+@@ -628,17 +581,14 @@
+                                       'Hold:',
+                                       style: TextStyle(
+                                         color: cs.onSurface,
+-                                        fontSize: 16,
++                                        fontSize: portalBodySize,
+                                       ),
+                                     ),
+                                     const SizedBox(height: 8),
+                                     Container(
+                                       width: 80,
+                                       height: 80,
+-                                      decoration: pieceBoxDecoration(
+-                                        widget.settings.style,
+-                                        cs,
+-                                      ),
++                                      decoration: pieceBoxDecoration(cs),
+                                       child: HoldPieceDisplay(
+                                         piece: gameLogic.heldPiece,
+                                         style: widget.settings.style,
+@@ -662,17 +612,14 @@
+                                   'Next:',
+                                   style: TextStyle(
+                                     color: cs.onSurface,
+-                                    fontSize: 16,
++                                    fontSize: portalBodySize,
+                                   ),
+                                 ),
+                                 const SizedBox(height: 8),
+                                 Container(
+                                   width: 80,
+                                   height: 80,
+-                                  decoration: pieceBoxDecoration(
+-                                    widget.settings.style,
+-                                    cs,
+-                                  ),
++                                  decoration: pieceBoxDecoration(cs),
+                                   child: gameLogic.nextPiece != null
+                                       ? NextPieceDisplay(
+                                           piece: gameLogic.nextPiece!,
+@@ -769,7 +716,7 @@
+                                             textAlign: TextAlign.center,
+                                             style: const TextStyle(
+                                               color: Colors.white,
+-                                              fontSize: 16,
++                                              fontSize: portalBodySize,
+                                               fontWeight: FontWeight.w600,
+                                               shadows: [
+                                                 Shadow(
+@@ -842,7 +789,7 @@
+               label,
+               style: TextStyle(
+                 color: cs.onSurfaceVariant,
+-                fontSize: 10,
++                fontSize: portalBodySize,
+                 fontWeight: FontWeight.w700,
+                 letterSpacing: 1,
+               ),
+@@ -851,7 +798,7 @@
+             Container(
+               width: overlaySize,
+               height: overlaySize,
+-              decoration: pieceBoxDecoration(widget.settings.style, cs),
++              decoration: pieceBoxDecoration(cs),
+               child: child,
+             ),
+           ],
+@@ -935,7 +882,7 @@
+               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+               decoration: BoxDecoration(
+                 color: cs.surface.withValues(alpha: 0.82),
+-                borderRadius: panelBorderRadius(widget.settings.style),
++                borderRadius: portalRadius,
+               ),
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.end,
+@@ -999,7 +946,7 @@
      GameLogic gameLogic,
      ColorScheme cs,
    ) {
@@ -194,8 +1138,48 @@
      const double sidebarW = 160.0;
      const double boxSize = 120.0;
      const double gap = 8.0;
-@@ -1156,49 +1108,6 @@
- 
+@@ -1031,13 +978,13 @@
+               children: [
+                 Text(
+                   'Hold',
+-                  style: TextStyle(color: cs.onSurface, fontSize: 18),
++                  style: portalControlText,
+                 ),
+                 const SizedBox(height: 6),
+                 Container(
+                   width: boxSize,
+                   height: boxSize,
+-                  decoration: pieceBoxDecoration(widget.settings.style, cs),
++                  decoration: pieceBoxDecoration(cs),
+                   child: HoldPieceDisplay(
+                     piece: gameLogic.heldPiece,
+                     style: widget.settings.style,
+@@ -1052,12 +999,12 @@
+     Widget nextPanel = Column(
+       mainAxisSize: MainAxisSize.min,
+       children: [
+-        Text('Next', style: TextStyle(color: cs.onSurface, fontSize: 18)),
++        Text('Next', style: portalControlText),
+         const SizedBox(height: 6),
+         Container(
+           width: boxSize,
+           height: boxSize,
+-          decoration: pieceBoxDecoration(widget.settings.style, cs),
++          decoration: pieceBoxDecoration(cs),
+           child: gameLogic.nextPiece != null
+               ? NextPieceDisplay(
+                   piece: gameLogic.nextPiece!,
+@@ -1136,7 +1083,7 @@
+                           textAlign: TextAlign.center,
+                           style: const TextStyle(
+                             color: Colors.white,
+-                            fontSize: 16,
++                            fontSize: portalBodySize,
+                             fontWeight: FontWeight.w600,
+                             shadows: [
+                               Shadow(blurRadius: 6, color: Colors.black),
+@@ -1156,49 +1103,6 @@
+
      return Column(
        children: [
 -        // Score bar
@@ -244,17 +1228,342 @@
          // Board + sidebars
          Expanded(
            child: Row(
---- a/lib/main.dart
-+++ b/lib/main.dart
-@@ -85,6 +85,11 @@
-   Widget build(BuildContext context) {
-     return MaterialApp(
-       title: 'Block Drop - Tetris',
-+      builder: (context, child) => MediaQuery.removePadding(
-+        context: context,
-+        removeTop: true,
-+        child: child!,
-+      ),
-       // Neon style requires a dark background everywhere — override theme mode
-       themeMode: _settings.style == AppStyle.neon
-           ? ThemeMode.dark
+--- a/lib/settings/settings_provider.dart
++++ b/lib/settings/settings_provider.dart
+@@ -5,12 +5,10 @@
+ import '../game/gameplay_settings.dart';
+ import 'controller_bindings.dart';
+
+-enum AppThemeMode { system, light, dark, black }
+
+ enum AppStyle { classic, modern, bubbles, neon, retro }
+
+ class SettingsProvider extends ChangeNotifier {
+-  static const _themeKey = 'theme_mode';
+   static const _styleKey = 'app_style';
+   static const _musicEnabledKey = 'music_enabled';
+   static const _sfxEnabledKey = 'sfx_enabled';
+@@ -30,7 +28,6 @@
+   };
+   static const _controllerBindingsKey = 'controller_bindings';
+
+-  AppThemeMode _themeMode = AppThemeMode.system;
+   AppStyle _style = AppStyle.classic;
+   bool _musicEnabled = false;
+   bool _sfxEnabled = false;
+@@ -45,7 +42,6 @@
+     defaultControllerBindings,
+   );
+
+-  AppThemeMode get themeMode => _themeMode;
+   AppStyle get style => _style;
+   bool get musicEnabled => _musicEnabled;
+   bool get sfxEnabled => _sfxEnabled;
+@@ -73,26 +69,9 @@
+     return null;
+   }
+
+-  ThemeMode get flutterThemeMode {
+-    switch (_themeMode) {
+-      case AppThemeMode.system:
+-        return ThemeMode.system;
+-      case AppThemeMode.light:
+-        return ThemeMode.light;
+-      case AppThemeMode.dark:
+-      case AppThemeMode.black:
+-        return ThemeMode.dark;
+-    }
+-  }
+-
+-  bool get isBlackMode => _themeMode == AppThemeMode.black;
+-
+   Future<void> load() async {
+     final prefs = await SharedPreferences.getInstance();
+-    final themeIndex = prefs.getInt(_themeKey) ?? 0;
+     final styleIndex = prefs.getInt(_styleKey) ?? 0;
+-    _themeMode = AppThemeMode
+-        .values[themeIndex.clamp(0, AppThemeMode.values.length - 1)];
+     _style = AppStyle.values[styleIndex.clamp(0, AppStyle.values.length - 1)];
+     _musicEnabled = prefs.getBool(_musicEnabledKey) ?? false;
+     _sfxEnabled = prefs.getBool(_sfxEnabledKey) ?? false;
+@@ -166,13 +145,6 @@
+     );
+   }
+
+-  Future<void> setThemeMode(AppThemeMode mode) async {
+-    _themeMode = mode;
+-    notifyListeners();
+-    final prefs = await SharedPreferences.getInstance();
+-    await prefs.setInt(_themeKey, mode.index);
+-  }
+-
+   Future<void> setStyle(AppStyle newStyle) async {
+     _style = newStyle;
+     notifyListeners();
+--- a/lib/widgets/game_decorations.dart
++++ b/lib/widgets/game_decorations.dart
+@@ -1,175 +1,22 @@
++import '../portal_theme.dart';
+ import 'package:flutter/material.dart';
+
+ import '../settings/settings_provider.dart';
+
+-/// Style-aware decoration for hold / next piece preview boxes.
+-BoxDecoration pieceBoxDecoration(AppStyle style, ColorScheme cs) {
+-  switch (style) {
+-    case AppStyle.classic:
+-      return BoxDecoration(border: Border.all(color: cs.outline));
+-    case AppStyle.modern:
+-      return BoxDecoration(
+-        borderRadius: BorderRadius.circular(8),
+-        border: Border.all(color: cs.outline, width: 1),
+-        boxShadow: [
+-          BoxShadow(
+-            color: cs.shadow.withValues(alpha: 0.08),
+-            blurRadius: 6,
+-            offset: const Offset(0, 2),
+-          ),
+-        ],
+-      );
+-    case AppStyle.bubbles:
+-      return BoxDecoration(
+-        borderRadius: BorderRadius.circular(20),
+-        border: Border.all(
+-          color: cs.primary.withValues(alpha: 0.4),
+-          width: 2,
+-        ),
+-      );
+-    case AppStyle.neon:
+-      return BoxDecoration(
+-        borderRadius: BorderRadius.circular(4),
+-        border: Border.all(
+-          color: cs.outlineVariant.withValues(alpha: 0.6),
+-          width: 1.5,
+-        ),
+-        boxShadow: [
+-          BoxShadow(
+-            color: cs.outlineVariant.withValues(alpha: 0.1),
+-            blurRadius: 4,
+-            spreadRadius: 0,
+-          ),
+-        ],
+-      );
+-    case AppStyle.retro:
+-      return BoxDecoration(border: Border.all(color: cs.outline, width: 2));
+-  }
+-}
++BoxDecoration pieceBoxDecoration(ColorScheme cs) => BoxDecoration(
++  color: cs.surface,
++  border: Border.all(color: Colors.black, width: 3),
++  borderRadius: BorderRadius.circular(12),
++  boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
++);
+
+-/// Style-aware decoration for general panel/card containers
+-/// (settings tiles, peer tiles, lobby tiles, etc.).
+-///
+-/// Pass [color] to override the default surface fill — useful when a tile
+-/// needs a highlight (e.g. the "You" lobby row).
+-BoxDecoration panelDecoration(AppStyle style, ColorScheme cs, {Color? color}) {
+-  final bg = color ?? cs.surfaceContainerHighest.withAlpha(80);
+-  switch (style) {
+-    case AppStyle.classic:
+-      return BoxDecoration(
+-        color: bg,
+-        border: Border.all(color: cs.outline),
+-      );
+-    case AppStyle.modern:
+-      return BoxDecoration(
+-        color: bg,
+-        borderRadius: BorderRadius.circular(12),
+-        border: Border.all(color: cs.outline.withAlpha(40)),
+-        boxShadow: [
+-          BoxShadow(
+-            color: cs.shadow.withValues(alpha: 0.08),
+-            blurRadius: 6,
+-            offset: const Offset(0, 2),
+-          ),
+-        ],
+-      );
+-    case AppStyle.bubbles:
+-      return BoxDecoration(
+-        color: bg,
+-        borderRadius: BorderRadius.circular(20),
+-        border: Border.all(color: cs.primary.withAlpha(90), width: 2),
+-      );
+-    case AppStyle.neon:
+-      return BoxDecoration(
+-        color: bg,
+-        borderRadius: BorderRadius.circular(4),
+-        border: Border.all(
+-          color: cs.outlineVariant.withValues(alpha: 0.6),
+-          width: 1.5,
+-        ),
+-        boxShadow: [
+-          BoxShadow(
+-            color: cs.outlineVariant.withValues(alpha: 0.08),
+-            blurRadius: 4,
+-          ),
+-        ],
+-      );
+-    case AppStyle.retro:
+-      return BoxDecoration(
+-        color: bg,
+-        border: Border.all(color: cs.outline, width: 2),
+-      );
+-  }
+-}
++BoxDecoration panelDecoration(ColorScheme cs, {Color? color}) => BoxDecoration(
++  color: color ?? cs.surfaceContainerHighest,
++  border: Border.all(color: Colors.black, width: 3),
++  borderRadius: portalRadius,
++  boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
++);
+
+-/// Returns the [BorderRadius] used by [panelDecoration] for the given style.
+-/// Use this for InkWell / ClipRRect siblings that must match the container.
+-BorderRadius panelBorderRadius(AppStyle style) {
+-  switch (style) {
+-    case AppStyle.classic:
+-    case AppStyle.retro:
+-      return BorderRadius.zero;
+-    case AppStyle.modern:
+-      return BorderRadius.circular(12);
+-    case AppStyle.bubbles:
+-      return BorderRadius.circular(20);
+-    case AppStyle.neon:
+-      return BorderRadius.circular(4);
+-  }
+-}
+-
+-/// Style-aware [ShapeBorder] for [AlertDialog] (and similar overlays).
+-///
+-/// Pass [accentColor] to tint the border — e.g. [ColorScheme.error] for a
+-/// game-over dialog.
+-ShapeBorder styledDialogShape(
+-  AppStyle style,
+-  ColorScheme cs, {
+-  Color? accentColor,
+-}) {
+-  final borderColor = accentColor ?? cs.outline;
+-  switch (style) {
+-    case AppStyle.classic:
+-      return RoundedRectangleBorder(
+-        side: BorderSide(color: borderColor),
+-      );
+-    case AppStyle.modern:
+-      return RoundedRectangleBorder(
+-        borderRadius: BorderRadius.circular(16),
+-      );
+-    case AppStyle.bubbles:
+-      return RoundedRectangleBorder(
+-        borderRadius: BorderRadius.circular(24),
+-        side: BorderSide(color: borderColor.withValues(alpha: 0.5), width: 2),
+-      );
+-    case AppStyle.neon:
+-      return RoundedRectangleBorder(
+-        borderRadius: BorderRadius.circular(4),
+-        side: BorderSide(color: borderColor, width: 1.5),
+-      );
+-    case AppStyle.retro:
+-      return RoundedRectangleBorder(
+-        side: BorderSide(color: borderColor, width: 3),
+-      );
+-  }
+-}
+-
+-/// Style-aware [OutlinedBorder] for buttons (OutlinedButton, FilledButton, etc.).
+-OutlinedBorder buttonBorderShape(AppStyle style) {
+-  switch (style) {
+-    case AppStyle.classic:
+-    case AppStyle.retro:
+-      return const RoundedRectangleBorder();
+-    case AppStyle.modern:
+-      return RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
+-    case AppStyle.bubbles:
+-      return RoundedRectangleBorder(borderRadius: BorderRadius.circular(20));
+-    case AppStyle.neon:
+-      return RoundedRectangleBorder(borderRadius: BorderRadius.circular(4));
+-  }
+-}
+-
+-/// Style-aware decoration for the main game board container.
+ BoxDecoration boardDecoration(AppStyle style, ColorScheme cs) {
+   switch (style) {
+     case AppStyle.classic:
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -67,6 +67,11 @@
+
+ # The following section is specific to Flutter packages.
+ flutter:
++  fonts:
++    - family: Fredoka
++      fonts:
++        - asset: assets/fonts/fredoka.ttf
++          weight: 700
+   # The following line ensures that the Material Icons font is
+   # included with your application, so that you can use the icons in
+   # the material Icons class.
+@@ -74,6 +79,7 @@
+
+   # To add assets to your application, add an assets section, like this:
+   assets:
++    - assets/fonts/fredoka_license.txt
+     - assets/
+     - assets/audio/sfx/
+     - assets/audio/music/
+--- a/test/settings_provider_test.dart
++++ b/test/settings_provider_test.dart
+@@ -15,7 +15,6 @@
+     test('starts with correct default values', () {
+       final settings = SettingsProvider();
+
+-      expect(settings.themeMode, AppThemeMode.system);
+       expect(settings.style, AppStyle.classic);
+       expect(settings.musicEnabled, false);
+       expect(settings.sfxEnabled, false);
+@@ -50,43 +49,5 @@
+           300,
+         ); // equal — should not trigger notify
+         expect(settings.highScore, 300);
+-      },
+-    );
+-
+-    test('isBlackMode is true only for AppThemeMode.black', () async {
+-      final settings = SettingsProvider();
+-
+-      expect(settings.isBlackMode, false); // default is system
+-
+-      await settings.setThemeMode(AppThemeMode.black);
+-      expect(settings.isBlackMode, true);
+-
+-      await settings.setThemeMode(AppThemeMode.dark);
+-      expect(settings.isBlackMode, false);
+-
+-      await settings.setThemeMode(AppThemeMode.light);
+-      expect(settings.isBlackMode, false);
+-
+-      await settings.setThemeMode(AppThemeMode.system);
+-      expect(settings.isBlackMode, false);
+-    });
+-
+-    test(
+-      'flutterThemeMode maps each AppThemeMode to the correct ThemeMode',
+-      () async {
+-        final settings = SettingsProvider();
+-
+-        await settings.setThemeMode(AppThemeMode.system);
+-        expect(settings.flutterThemeMode, ThemeMode.system);
+-
+-        await settings.setThemeMode(AppThemeMode.light);
+-        expect(settings.flutterThemeMode, ThemeMode.light);
+-
+-        await settings.setThemeMode(AppThemeMode.dark);
+-        expect(settings.flutterThemeMode, ThemeMode.dark);
+-
+-        // Black AMOLED mode piggybacks on dark theme
+-        await settings.setThemeMode(AppThemeMode.black);
+-        expect(settings.flutterThemeMode, ThemeMode.dark);
+       },
+     );

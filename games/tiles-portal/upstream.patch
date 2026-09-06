@@ -13,19 +13,20 @@
               // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
 --- a/android/app/src/main/java/net/vantulder/tessel/MainActivity.java
 +++ b/android/app/src/main/java/net/vantulder/tessel/MainActivity.java
-@@ -1,5 +1,21 @@
+@@ -1,5 +1,22 @@
  package net.vantulder.tessel;
- 
+
 +import android.os.Bundle;
 +import android.view.View;
 +import android.view.WindowManager;
  import com.getcapacitor.BridgeActivity;
- 
+
 -public class MainActivity extends BridgeActivity {}
 +public class MainActivity extends BridgeActivity {
 +    @Override public void onCreate(Bundle state) {
 +        registerPlugin(PortalNavigationPlugin.class);
 +        super.onCreate(state);
++        getBridge().getWebView().getSettings().setTextZoom(Math.round(getResources().getConfiguration().fontScale * 100));
 +    }
 +    @Override public void onWindowFocusChanged(boolean focused) {
 +        super.onWindowFocusChanged(focused);
@@ -60,7 +61,7 @@
            !process.env["SKIP_SERVICE_WORKER"],
 --- a/src/index.capacitor.html
 +++ b/src/index.capacitor.html
-@@ -93,6 +93,7 @@
+@@ -93,17 +93,12 @@
        }
      </style>
      <link rel="stylesheet" href="../style/main.scss" crossorigin="anonymous" />
@@ -68,12 +69,41 @@
    </head>
    <body>
      <script type="text/javascript">
+       (function () {
+-        let preference = localStorage.getItem("color-scheme");
+-        if (!preference) {
+-          preference = window.matchMedia("(prefers-color-scheme: dark)").matches
+-            ? "dark"
+-            : "light";
+-        }
+-        document.body.classList.toggle("dark-mode", preference == "dark");
++
+       })();
+     </script>
+     <div id="splash">
+--- a/src/index.html
++++ b/src/index.html
+@@ -169,13 +169,7 @@
+   <body>
+     <script type="text/javascript">
+       (function () {
+-        let preference = localStorage.getItem("color-scheme");
+-        if (!preference) {
+-          preference = window.matchMedia("(prefers-color-scheme: dark)").matches
+-            ? "dark"
+-            : "light";
+-        }
+-        document.body.classList.toggle("dark-mode", preference == "dark");
++
+       })();
+     </script>
+     <div id="splash">
 --- a/src/main.capacitor.ts
 +++ b/src/main.capacitor.ts
 @@ -3,7 +3,7 @@
   * SPDX-FileCopyrightText: Copyright (C) 2025 Gijs van Tulder
   */
- 
+
 -import { Capacitor } from "@capacitor/core";
 +import { Capacitor, registerPlugin } from "@capacitor/core";
  import { App } from "@capacitor/app";
@@ -81,7 +111,7 @@
  import { Share, ShareOptions } from "@capacitor/share";
 @@ -14,6 +14,32 @@
  import { setShareBackend, ShareI } from "./lib/share-backend";
- 
+
  StatusBar.hide();
 +
 +const navigation = registerPlugin<{ home(): Promise<void> }>("PortalNavigation");
@@ -109,9 +139,61 @@
 +    toolbar.appendChild(button);
 +}
 +document.body.appendChild(toolbar);
- 
+
  class PreferencesStorage implements StorageI {
      constructor(group: string) {
+--- a/src/main.shared.ts
++++ b/src/main.shared.ts
+@@ -3,7 +3,6 @@
+  * SPDX-FileCopyrightText: Copyright (C) 2025 Gijs van Tulder
+  */
+
+-import { setColorScheme } from "./ui/shared/colorScheme";
+ import { Workbox } from "workbox-window";
+ import { VERSION } from "./constants";
+ import { GameController } from "./ui/controller/GameController";
+@@ -20,16 +19,6 @@
+     document.body.addEventListener("touchstart", preventIosZoomAndSelection, {
+         passive: false,
+     });
+-
+-    window.addEventListener("storage", (e) => {
+-        if (e.key == "color-scheme") {
+-            setColorScheme();
+-        }
+-    });
+-    window
+-        .matchMedia("(prefers-color-scheme: dark)")
+-        .addEventListener("change", setColorScheme);
+-    setColorScheme();
+
+     if (window.location.pathname != "/") {
+         window.location.href = "/";
+--- a/src/ui/settings/SettingsDisplay.ts
++++ b/src/ui/settings/SettingsDisplay.ts
+@@ -67,7 +67,6 @@
+             autorotate: Toggles.Autorotate(),
+             hints: Toggles.Hints(),
+             highscore: Toggles.Highscore(),
+-            colorScheme: Toggles.ColorScheme(),
+             language: this.languagePicker,
+         };
+         this.toggles = toggles;
+@@ -79,14 +78,6 @@
+                 message: "Language",
+             }),
+         );
+-        addTwoLineOptionRow(
+-            toggles.colorScheme,
+-            t({
+-                id: "ui.settings.description.colorScheme",
+-                message: "Light mode, dark mode, or follow your device",
+-            }),
+-        );
+-
+         const h5 = createElement("h5", null, article);
+         h5.innerHTML = t({
+             id: "ui.settings.group.gameSettings",
 --- a/src/ui/shared/Button.ts
 +++ b/src/ui/shared/Button.ts
 @@ -25,6 +25,8 @@
@@ -127,10 +209,230 @@
 +++ b/src/ui/shared/ScreenCarrousel.ts
 @@ -70,7 +70,7 @@
      }
- 
+
      build(): ScreenCarrousel {
 -        return new ScreenCarrousel(this.def);
 +        return new ScreenCarrousel(this.def.flatMap(item => "items" in item ? item.items : item));
      }
- 
+
      has(page: string): boolean {
+--- a/src/ui/shared/colorScheme.ts
++++ /dev/null
+@@ -1,16 +0,0 @@
+-/**
+- * SPDX-License-Identifier: GPL-3.0-or-later
+- * SPDX-FileCopyrightText: Copyright (C) 2025 Gijs van Tulder
+- */
+-
+-import { getStorageBackend } from "../../lib/storage-backend";
+-
+-export async function setColorScheme() {
+-    let preference = await getStorageBackend().getItem("color-scheme");
+-    if (!preference) {
+-        preference = window.matchMedia("(prefers-color-scheme: dark)").matches
+-            ? "dark"
+-            : "light";
+-    }
+-    document.body.classList.toggle("dark-mode", preference == "dark");
+-}
+--- a/src/ui/shared/toggles.ts
++++ b/src/ui/shared/toggles.ts
+@@ -7,7 +7,6 @@
+ import icons from "./icons";
+ import { ThreeWayToggle } from "./ThreeWayToggle";
+ import { Toggle } from "./Toggle";
+-import { setColorScheme } from "./colorScheme";
+ import { msg } from "@lingui/core/macro";
+
+ type OnChangeFunction<T> = (source: T) => void;
+@@ -68,24 +67,4 @@
+             Set_YesNo("highscore", onchange),
+             Get_YesNoDefaultNo("highscore"),
+         ),
+-    ColorScheme: (onchange?: OnChangeFunction<ThreeWayToggle>) =>
+-        new ThreeWayToggle(
+-            icons.sunIcon,
+-            icons.moonIcon,
+-            msg({ id: "ui.toggles.colorScheme.light", message: "Light mode" }),
+-            msg({ id: "ui.toggles.colorScheme.dark", message: "Dark mode" }),
+-            "light",
+-            "dark",
+-            (source: ThreeWayToggle) => {
+-                if (onchange) onchange(source);
+-                const value = source.value;
+-                if (value) {
+-                    getStorageBackend().setItem("color-scheme", value);
+-                } else {
+-                    getStorageBackend().removeItem("color-scheme");
+-                }
+-                setColorScheme();
+-            },
+-            getStorageBackend().getItem("color-scheme"),
+-        ),
+ } as const;
+--- a/style/colors-dark.scss
++++ /dev/null
+@@ -1,156 +0,0 @@
+-@use "sass:color";
+-
+-$maintint: hsl(42deg, 5%, 50%);
+-$green: hsl(80deg, 64%, 50%);
+-$blue: hsl(214deg, 64%, 50%);
+-
+-body.dark-mode {
+-  // main backgrounds
+-  $main-bg-color: color.change($maintint, $lightness: 5%);
+-  --main-bg-color: #{$main-bg-color};
+-  --panel-bg-color: #{color.change($maintint, $lightness: 10%)};
+-  --dropout-bg-color: #{color.change($maintint, $lightness: 20%)};
+-
+-  // COMPONENTS
+-
+-  // toggle colors
+-  --toggle-icon-color: rgba(255, 255, 255, 35%);
+-  --toggle-fg-enabled-color: #{color.change(
+-      $green,
+-      $lightness: 45%,
+-      $saturation: 40%
+-    )};
+-  --toggle-bg-enabled-color: #{color.change(
+-      $green,
+-      $lightness: 30%,
+-      $saturation: 30%
+-    )};
+-  --toggle-fg-disabled-color: rgba(255, 255, 255, 25%);
+-  --toggle-bg-disabled-color: rgba(255, 255, 255, 8%);
+-
+-  // button colors
+-  $button-base-color: rgb(255, 255, 255);
+-  --button-fg-color: rgba(255, 255, 255, 35%);
+-  --button-bg-color: rgba(255, 255, 255, 8%);
+-  --button-bg-pressed-color: rgba(255, 255, 255, 15%);
+-  --button-bg-hover-color: rgba(255, 255, 255, 25%);
+-  --button-bg-selected-color: rgba(255, 255, 255, 70%);
+-  --button-fg-selected-color: rgba(255, 255, 255, 70%);
+-  --button-bg-color-on-main-bg: #{color.mix(
+-      $button-base-color,
+-      $main-bg-color,
+-      12%
+-    )};
+-  --button-bg-pressed-color-on-main-bg: #{color.mix(
+-      $button-base-color,
+-      $main-bg-color,
+-      24%
+-    )};
+-  --button-bg-hover-color-on-main-bg: #{color.mix(
+-      $button-base-color,
+-      $main-bg-color,
+-      32%
+-    )};
+-
+-  // large play button in the setup screen
+-  --setup-play-button-bg-color: #{color.change($green, $lightness: 32%)};
+-  --setup-play-button-bg-disabled-color: hsl(0deg, 0, 15%);
+-  --setup-play-button-fg-color: #{color.change($green, $lightness: 95%)};
+-  --setup-play-button-fg-disabled-color: hsl(0deg, 0, 20%);
+-
+-  // home button in the play screen
+-  --home-button-bg-color: #{color.change($blue, $lightness: 32%)};
+-  --home-button-fg-color: #{color.change($blue, $lightness: 97%)};
+-  --home-button-fg-hover-color: #{color.change($blue, $lightness: 97%)};
+-
+-  // navbar
+-  --navbar-bg-color: #{color.mix($main-bg-color, #fff, 90%)};
+-  --navbar-bg-active-color: #{color.mix($main-bg-color, #fff, 80%)};
+-  --navbar-bg-hover-color: #{color.mix($main-bg-color, #fff, 85%)};
+-
+-  // text-color
+-  --text-color: hsl(0, 0%, 50%);
+-
+-  // link color
+-  --link-color: hsl(240, 50%, 70%);
+-  --link-hover-color: hsl(240, 85%, 90%);
+-  --link-tap-highlight-color: hsla(240, 50%, 70%, 20%);
+-
+-  // SETUP SCREEN
+-
+-  // settings menu options
+-  --settings-option-panel-bg-color: #{color.change($maintint, $lightness: 16%)};
+-  --settings-option-panel-bg-active-color: #{color.change(
+-      $maintint,
+-      $lightness: 23%
+-    )};
+-  --settings-option-panel-bg-hover-color: #{color.change(
+-      $maintint,
+-      $lightness: 23%
+-    )};
+-  --settings-option-panel-border-active-color: #{color.change(
+-      #66f,
+-      $lightness: 45%,
+-      $saturation: 40%
+-    )};
+-
+-  // warning symbol for invalid grid in setup menu
+-  --invalid-grid-warning-color: #e06300;
+-
+-  // STATISTICS :-moz-full-screen
+-
+-  --statistics-shape-color: #{color.mix(
+-      $button-base-color,
+-      $main-bg-color,
+-      35%
+-    )};
+-
+-  // GAME SCREEN
+-
+-  // background behind buttons on top of grid
+-  --dropout-menu-bg-mask-color: #{color.change($main-bg-color, $alpha: 50%)};
+-
+-  // score display in the tile stack
+-  --score-display-fg-color: #{color.change($green, $lightness: 40%)};
+-  --score-display-bg-color: #{color.change(
+-      $green,
+-      $lightness: 20%,
+-      $saturation: 30%
+-    )};
+-
+-  // tile counter
+-  --tile-counter-text-color: var(--text-color);
+-
+-  // placeholder tile colors
+-  --placeholder-fill-color: hsla(0deg, 0%, 23%, 0.5);
+-  --placeholder-stroke-color: hsl(0deg, 0%, 23%);
+-
+-  // colors for ScoreOverlayDisplay_Cutout
+-  // - background of the outline, should match screen background
+-  --cutout-outline-bg-color: var(--main-bg-color);
+-  // - colored outline around the shape
+-  --cutout-outline-fg-color: hsl(80deg, 61%, 50%);
+-  // - points circle
+-  --cutout-circle-points-fill-color: hsl(80deg, 61%, 85%);
+-  --cutout-circle-points-stroke-color: hsl(80deg, 61%, 32%);
+-
+-  // tile colors
+-  .svg-tile {
+-    filter: brightness(85%);
+-  }
+-
+-  // PAINT SCREEN
+-
+-  // active color swatch
+-  --swatch-selected-border-color: hsl(0, 0%, 100%);
+-
+-  // MAIN SCREEN
+-
+-  // main screen footer
+-  --footer-version-color: hsl(0, 0%, 25%);
+-  --footer-copyright-color: hsl(0, 0%, 50%);
+-  --footer-link-hover-color: hsl(0, 0%, 80%);
+-
+-  // logo on main screen
+-  --logo-fill-color: hsl(0, 0%, 50%);
+-}
+--- a/style/main.scss
++++ b/style/main.scss
+@@ -1,4 +1,3 @@
+ @use "./colors.scss";
+-@use "./colors-dark.scss";
+ @use "./sizes.scss";
+ @use "./base.scss";

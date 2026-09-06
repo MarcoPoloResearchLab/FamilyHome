@@ -31,6 +31,11 @@ GIT_CEILING_DIRECTORIES="$output" git apply --check "$root/games/match-portal/up
 GIT_CEILING_DIRECTORIES="$output" git apply "$root/games/match-portal/upstream.patch"
 cp -R "$root/games/match-portal/overlay/java/." app/src/main/java/
 cp -R "$root/games/match-portal/overlay/res/." app/src/main/res/
+mkdir -p app/src/main/res/font app/src/main/res/raw
+cp "$root/android/app/src/main/res/values/portal_style.xml" app/src/main/res/values/
+cp "$root/android/app/src/main/res/font/fredoka.ttf" app/src/main/res/font/
+cp "$root/android/app/src/main/res/raw/fredoka_license.txt" app/src/main/res/raw/
+sed 's/package com.mprlab.portal;/package org.secuso.privacyfriendlymemory.ui; import org.secuso.privacyfriendlymemory.R;/'   "$root/android/app/src/main/java/com/mprlab/portal/PortalStyle.java" > app/src/main/java/org/secuso/privacyfriendlymemory/ui/PortalStyle.java
 bash gradlew :app:assembleDebug :app:assembleRelease --console=plain
 cp app/build/outputs/apk/debug/app-debug.apk "$output/Match-Portal-debug.apk"
 cp app/build/outputs/apk/release/app-release-unsigned.apk "$output/Match-Portal-unsigned.apk"
