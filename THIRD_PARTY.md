@@ -7,6 +7,7 @@ The root license does not replace those notices.
 | Component | License record |
 | --- | --- |
 | Phosphor Icons | [MIT notice](android/app/src/main/res/raw/phosphor_license.txt) |
+| Fredoka | [SIL Open Font License 1.1](android/app/src/main/res/raw/fredoka_license.txt) |
 | Freedoom for Android adaptation | [Upstream GPL-2.0 text](games/freedoom-portal/UPSTREAM-LICENSE) and [adapter details](games/freedoom-portal/README.md) |
 | Block Drop adaptation | [Upstream MIT notice](games/blocks-portal/UPSTREAM-LICENSE) |
 | Tessel adaptation | [Upstream GPL-3.0 text](games/tiles-portal/UPSTREAM-LICENSE) |
