@@ -3,6 +3,10 @@
 
 ci: test-service build-service test-android-contract
 
+.PHONY: test-android-style
+test-android-style:
+	cd android && bash ./tests/style.sh
+
 test: test-service test-android-contract
 
 test-service:
@@ -14,7 +18,7 @@ build-service:
 build-android:
 	cd android && ./build.sh
 
-test-android: test-android-contract test-android-upgrade test-android-guitar test-android-screensaver
+test-android: test-android-contract test-android-upgrade test-android-guitar test-android-screensaver test-android-photobooth
 
 test-android-contract:
 	cd android && ./tests/apk-contract.sh
@@ -82,3 +86,7 @@ test-android-camera:
 .PHONY: test-android-camera-recovery
 test-android-camera-recovery: toolbar-test-deps
 	PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/camera-recovery.py
+
+.PHONY: test-android-photo-effects
+test-android-photo-effects:
+	cd android && bash ./tests/photo-effects.sh
