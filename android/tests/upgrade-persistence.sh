@@ -165,7 +165,8 @@ wait_for_activity() {
 dump_ui() {
   local path="$1"
   local result
-  result="$("$adb" -s "$serial" shell am instrument -w "$ui_package/.UpgradeUiDump")"
+  result="$("$adb" -s "$serial" shell am instrument -w -r "$ui_package/.UpgradeUiDump")"
+  printf '%s\n' "$result" > "$output_root/$(basename "$path").instrumentation.txt"
   if [[ "$result" != *'INSTRUMENTATION_CODE: -1'* || "$result" != *'INSTRUMENTATION_RESULT: ui=<hierarchy>'* ]]; then
     printf 'Upgrade test failed: UI hierarchy is unavailable: %s\n%s\n' "$path" "$result" >&2
     exit 1
@@ -176,7 +177,9 @@ dump_ui() {
 tap_label() {
   local label="$1"
   local position
-  position="$(dump_ui /sdcard/familyhome-tap.xml | python3 -c '
+  local hierarchy
+  hierarchy="$(dump_ui /sdcard/familyhome-tap.xml)"
+  position="$(printf '%s' "$hierarchy" | python3 -c '
 import re, sys, xml.etree.ElementTree as ET
 root = ET.fromstring(sys.stdin.read())
 label = sys.argv[1]
@@ -194,6 +197,16 @@ print((left + right) // 2, (top + bottom) // 2)
 wait_for_activity MainActivity
 sleep 0.5
 
+"$adb" -s "$serial" shell input keyevent KEYCODE_HOME
+foreign_ui="$("$adb" -s "$serial" shell am instrument -w -r "$ui_package/.UpgradeUiDump")"
+if [[ "$foreign_ui" != *'INSTRUMENTATION_CODE: 0'* || "$foreign_ui" != *"Focused application window is unavailable: $package_name"* ]]; then
+  printf 'Upgrade test failed: capture must reject another application.\n%s\n' "$foreign_ui" >&2
+  exit 1
+fi
+"$adb" -s "$serial" shell am start -W -n "$package_name/.MainActivity" >/dev/null
+wait_for_activity MainActivity
+sleep 0.5
+
 home_ui="$(dump_ui /sdcard/familyhome-home.xml)"
 games_entries="$(printf '%s' "$home_ui" | grep -o 'content-desc="Games\. Choose and play"' | wc -l | tr -d ' ' || true)"
 if [[ "$games_entries" != "1" || "$home_ui" == *'text="Race"'* || "$home_ui" == *'content-desc="Race.'* || "$home_ui" == *"Kart Adventure"* ]]; then
@@ -202,11 +215,14 @@ if [[ "$games_entries" != "1" || "$home_ui" == *'text="Race"'* || "$home_ui" == 
   exit 1
 fi
 
-tap_label "Open settings"
-wait_for_activity SettingsActivity
-"$adb" -s "$serial" shell input keyevent KEYCODE_BACK
-wait_for_activity MainActivity
-sleep 0.5
+for capture_round in $(seq 1 5); do
+  tap_label "Open settings"
+  wait_for_activity SettingsActivity
+  dump_ui "/sdcard/familyhome-settings-$capture_round.xml" >/dev/null
+  "$adb" -s "$serial" shell input keyevent KEYCODE_BACK
+  wait_for_activity MainActivity
+  sleep 0.5
+done
 
 tap_label "Draw. Make a picture"
 wait_for_activity DrawingActivity
