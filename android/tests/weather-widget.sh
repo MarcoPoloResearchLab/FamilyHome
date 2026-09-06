@@ -23,13 +23,13 @@ cleanup() {
   "$adb" uninstall com.mprlab.portal >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
-FAMILYHOME_SERVICE_BASE_URL=https://familyhome.invalid \
+FAMILYHOME_SERVICE_BASE_URL=http://127.0.0.1:18765 \
 FAMILYHOME_DEVICE_TOKEN=familyhome-weather-test-token-000000 \
 PORTAL_KEYSTORE="$keystore" PORTAL_KEYSTORE_PASSWORD=android PORTAL_KEY_PASSWORD=android \
 APK_BASENAME=weather-app ./build.sh "$output/app"
 "$tools_dir/aapt2" link -I "$android_jar" --manifest tests/weather-widget/AndroidManifest.xml -o "$output/test.apk"
 javac -source 8 -target 8 -classpath "$android_jar" -d "$output/classes" tests/weather-widget/WeatherWidgetTest.java
-"$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$output/dex" "$output/classes/com/mprlab/portal/weathertest/WeatherWidgetTest.class"
+"$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$output/dex" "$output"/classes/com/mprlab/portal/weathertest/*.class
 zip -j -q "$output/test.apk" "$output/dex/classes.dex"
 "$tools_dir/zipalign" -f 4 "$output/test.apk" "$output/test-aligned.apk"
 "$tools_dir/apksigner" sign --ks "$keystore" --ks-pass pass:android --key-pass pass:android \

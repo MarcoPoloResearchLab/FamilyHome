@@ -64,6 +64,8 @@ public final class MainActivity extends PortalActivity {
     private static final long BRUSH_TEETH_MS = (2L * 60L + 15L) * 1000L;
     private static final long QUICK_TIMER_MS = 5L * 60L * 1000L;
     private static final long WEATHER_CACHE_MS = 15L * 60L * 1000L;
+    private static final long WEATHER_RETRY_MS = 30L * 1000L;
+    private static final String WEATHER_SOURCE = "Weather by Open-Meteo";
     private final Handler handler = new Handler();
     private ProfileStore store;
     private TextView clock, eventTitle, eventTime, timerText, timerStatus;
@@ -77,11 +79,16 @@ public final class MainActivity extends PortalActivity {
     private LinearLayout weatherCard;
     private WeatherIconView weatherIcon;
     private boolean setupPrompted;
+    private boolean weatherActive, weatherRequestPending;
+    private int weatherGeneration;
+    private long nextWeatherAttemptAt;
+    private String weatherRequestLocation = "";
 
     private final Runnable ticker = new Runnable() {
         @Override public void run() {
             if (clock != null) clock.setText(new SimpleDateFormat("h:mm  •  EEEE, MMMM d", Locale.getDefault()).format(new Date()));
             updateTimer();
+            refreshWeather();
             handler.postDelayed(this, 500L);
         }
     };
@@ -101,6 +108,8 @@ public final class MainActivity extends PortalActivity {
     @Override protected void onResume() {
         super.onResume();
         store.load();
+        weatherActive = true;
+        nextWeatherAttemptAt = 0L;
         render();
         handler.removeCallbacks(ticker);
         handler.post(ticker);
@@ -111,6 +120,9 @@ public final class MainActivity extends PortalActivity {
     }
 
     @Override protected void onPause() {
+        weatherActive = false;
+        weatherGeneration++;
+        weatherRequestPending = false;
         handler.removeCallbacks(ticker);
         store.save();
         super.onPause();
@@ -225,7 +237,6 @@ public final class MainActivity extends PortalActivity {
         setContentView(scroll);
         updateTimer();
         refreshCalendar();
-        refreshWeather();
     }
 
     private void launch(Class<?> type) {
@@ -474,6 +485,7 @@ public final class MainActivity extends PortalActivity {
         LinearLayout current = row();
         current.setGravity(Gravity.CENTER_VERTICAL);
         weatherIcon = new WeatherIconView();
+        weatherIcon.setVisibility(View.INVISIBLE);
         current.addView(weatherIcon, new LinearLayout.LayoutParams(dp(56), dp(56)));
         weatherTemperature = text("—", 38, INK, true);
         weatherTemperature.setGravity(Gravity.CENTER_VERTICAL);
@@ -520,12 +532,12 @@ public final class MainActivity extends PortalActivity {
         weatherAdvice.setGravity(Gravity.CENTER);
         weatherAdvice.setMaxLines(2);
         weather.addView(weatherAdvice, matchWrap());
-        weatherSource = text("Weather by Open-Meteo", 10, MUTED, false);
+        weatherSource = text(WEATHER_SOURCE, 10, MUTED, false);
         weatherSource.setGravity(Gravity.CENTER);
         weatherSource.setPadding(0, dp(3), 0, 0);
         weather.addView(weatherSource, matchWrap());
 
-        if (store.hasWeatherCacheFor(store.weatherLocation)) {
+        if (store.hasWeatherCacheFor(store.weatherLocation) && weatherCacheIsFresh()) {
             try {
                 applyWeather(WeatherReport.parse(store.weatherCacheJson));
             } catch (org.json.JSONException error) {
@@ -546,42 +558,76 @@ public final class MainActivity extends PortalActivity {
         return item;
     }
 
+    private boolean weatherCacheIsFresh() {
+        long age = System.currentTimeMillis() - store.weatherCacheUpdatedAt;
+        return age >= 0L && age < WEATHER_CACHE_MS;
+    }
+
     private void refreshWeather() {
-        if (weatherCard == null || !WeatherVisibility.isConfigured(store.weatherLocation)) return;
+        if (!weatherActive || weatherCard == null || !WeatherVisibility.isConfigured(store.weatherLocation)) return;
         String requestedLocation = store.weatherLocation.trim();
-        boolean hasCache = weatherReport != null;
-        if (hasCache && System.currentTimeMillis() - store.weatherCacheUpdatedAt < WEATHER_CACHE_MS) return;
+        if (!requestedLocation.equals(weatherRequestLocation)) {
+            weatherGeneration++;
+            weatherRequestLocation = requestedLocation;
+            weatherRequestPending = false;
+            nextWeatherAttemptAt = 0L;
+        }
+        if (weatherReport != null && weatherCacheIsFresh()) return;
+        if (weatherReport != null) showWeatherUnavailable();
+        if (weatherRequestPending || android.os.SystemClock.elapsedRealtime() < nextWeatherAttemptAt) return;
+        weatherRequestPending = true;
+        int generation = weatherGeneration;
         new Thread(() -> {
             try {
                 String endpoint = PortalConfig.serviceURL("/v1/weather?location=" + URLEncoder.encode(requestedLocation, "UTF-8"));
                 HttpURLConnection connection = (HttpURLConnection) new URL(endpoint).openConnection();
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(12000);
-                PortalConfig.authorize(connection);
-                String raw = read(connection);
+                String raw;
+                try {
+                    connection.setConnectTimeout(5000);
+                    connection.setReadTimeout(12000);
+                    PortalConfig.authorize(connection);
+                    raw = read(connection);
+                } finally {
+                    connection.disconnect();
+                }
                 WeatherReport weather = WeatherReport.parse(raw);
                 runOnUiThread(() -> {
-                    if (weatherCard == null || store.weatherLocation == null || !requestedLocation.equals(store.weatherLocation.trim())) return;
+                    if (!acceptWeatherResult(generation, requestedLocation)) return;
+                    weatherRequestPending = false;
+                    nextWeatherAttemptAt = 0L;
                     store.cacheWeather(requestedLocation, raw);
                     applyWeather(weather);
                 });
             } catch (Exception error) {
                 android.util.Log.w("FamilyHomeWeather", "Cannot refresh weather report", error);
                 runOnUiThread(() -> {
-                    if (weatherCard == null || store.weatherLocation == null || !requestedLocation.equals(store.weatherLocation.trim())) return;
-                    if (weatherReport != null) {
-                        weatherSource.setText("Saved weather • " + new SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
-                                .format(new Date(store.weatherCacheUpdatedAt)) + " • Open-Meteo");
-                        return;
-                    }
-                    weatherTemperature.setText("—");
-                    weatherCondition.setText("Weather is resting");
-                    weatherDetails.setText("Please try again soon.");
-                    weatherAdvice.setText("Ask a grown-up what to wear.");
-                    weatherIcon.setCondition("cloudy");
+                    if (!acceptWeatherResult(generation, requestedLocation)) return;
+                    weatherRequestPending = false;
+                    nextWeatherAttemptAt = android.os.SystemClock.elapsedRealtime() + WEATHER_RETRY_MS;
+                    showWeatherUnavailable();
                 });
             }
         }).start();
+    }
+
+    private boolean acceptWeatherResult(int generation, String location) {
+        return weatherActive && generation == weatherGeneration && weatherCard != null
+                && location.equals(store.weatherLocation.trim());
+    }
+
+    private void showWeatherUnavailable() {
+        weatherReport = null;
+        weatherTemperature.setText("—");
+        weatherCondition.setText("Weather unavailable");
+        weatherFeelsLike.setText("");
+        weatherDetails.setText("Trying again automatically.");
+        weatherAdvice.setText("Ask a grown-up what to wear.");
+        weatherTopLabel.setText("");
+        weatherShoesLabel.setText("");
+        weatherOutfit.setVisibility(View.INVISIBLE);
+        weatherIcon.setVisibility(View.INVISIBLE);
+        weatherSource.setText(WEATHER_SOURCE);
+        weatherCard.setContentDescription("Weather unavailable for " + store.weatherLocation + ". Trying again automatically.");
     }
 
     private void applyWeather(WeatherReport weather) {
@@ -593,6 +639,7 @@ public final class MainActivity extends PortalActivity {
         weatherDetails.setText(details);
         weatherPlace.setText(weather.place);
         weatherIcon.setCondition(weather.icon);
+        weatherIcon.setVisibility(View.VISIBLE);
         WeatherReport.Outfit outfit = weather.outfit();
         weatherTopIcon.setImageResource(outfit.topIcon);
         weatherTopLabel.setText(outfit.top);
@@ -600,10 +647,7 @@ public final class MainActivity extends PortalActivity {
         weatherShoesLabel.setText(outfit.shoes);
         weatherAdvice.setText(outfit.advice);
         weatherOutfit.setVisibility(View.VISIBLE);
-        weatherSource.setText(System.currentTimeMillis() - store.weatherCacheUpdatedAt < WEATHER_CACHE_MS
-                ? "Weather by Open-Meteo"
-                : "Saved weather • " + new SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
-                        .format(new Date(store.weatherCacheUpdatedAt)) + " • Open-Meteo");
+        weatherSource.setText(WEATHER_SOURCE);
         weatherCard.setContentDescription("Weather for " + weather.place + ". " + weather.temperature
                 + " degrees and " + weather.condition + ". Feels like " + weather.feelsLike + ". " + details
                 + ". Ready to go? " + outfit.top + ", pants, " + outfit.shoes + ". " + outfit.advice);

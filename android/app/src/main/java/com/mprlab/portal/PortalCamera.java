@@ -15,6 +15,7 @@ import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.hardware.display.DisplayManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Handler;
@@ -60,6 +61,14 @@ final class PortalCamera {
     private final Context context;
     private final TextureView preview;
     private final Listener listener;
+    private final DisplayManager displays;
+    private final DisplayManager.DisplayListener displayListener = new DisplayManager.DisplayListener() {
+        @Override public void onDisplayAdded(int displayId) { }
+        @Override public void onDisplayRemoved(int displayId) { }
+        @Override public void onDisplayChanged(int displayId) {
+            if (preview.getDisplay() != null && preview.getDisplay().getDisplayId() == displayId) transform();
+        }
+    };
     private final Handler main = new Handler(Looper.getMainLooper());
     private final HandlerThread thread = new HandlerThread("PhotoBoothCamera");
     private final Handler worker;
@@ -77,6 +86,7 @@ final class PortalCamera {
 
     PortalCamera(Context context, TextureView preview, Listener listener) {
         this.context = context; this.preview = preview; this.listener = listener;
+        displays = context.getSystemService(DisplayManager.class);
         thread.start(); worker = new Handler(thread.getLooper());
     }
 
@@ -93,6 +103,7 @@ final class PortalCamera {
             SurfaceTexture texture = preview.getSurfaceTexture();
             texture.setDefaultBufferSize(configuration.previewSize.getWidth(), configuration.previewSize.getHeight());
             transform();
+            displays.registerDisplayListener(displayListener, main);
             previewSurface = new Surface(texture);
             reader = ImageReader.newInstance(configuration.imageSize.getWidth(), configuration.imageSize.getHeight(),
                     ImageFormat.JPEG, 2);
@@ -247,6 +258,7 @@ final class PortalCamera {
     void close() {
         if (closed) return;
         closed = true;
+        displays.unregisterDisplayListener(displayListener);
         worker.post(() -> {
             if (session != null) { session.close(); session = null; }
             if (reader != null) { reader.close(); reader = null; }

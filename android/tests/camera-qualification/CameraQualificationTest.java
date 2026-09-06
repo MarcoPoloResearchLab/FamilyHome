@@ -2,13 +2,17 @@ package com.mprlab.portal;
 
 import android.app.Activity;
 import android.app.Instrumentation;
+import android.app.UiAutomation;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.TextureView;
+import android.view.Surface;
 import android.widget.TextView;
 
 import java.io.File;
@@ -62,6 +66,7 @@ public final class CameraQualificationTest extends Instrumentation {
                         "com.mprlab.portal.CameraQualificationActivity")
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));
                 awaitStatus("Preview ready");
+                verifyHalfTurn();
                 resultDetails += "\n20 preview/JPEG/release/reopen cycles, pause during open, and resume passed.";
             }
             runOnMainSync(activity::finish);
@@ -71,6 +76,47 @@ public final class CameraQualificationTest extends Instrumentation {
             result.putString("stream", "Camera qualification failed: " + error + "\n" + resultDetails + "\n");
             finish(Activity.RESULT_CANCELED, result);
         }
+    }
+    private void verifyHalfTurn() {
+        try {
+            getUiAutomation().setRotation(UiAutomation.ROTATION_FREEZE_0);
+            awaitRotation(Surface.ROTATION_0);
+            float[] before = previewAxis();
+            getUiAutomation().setRotation(UiAutomation.ROTATION_FREEZE_180);
+            awaitRotation(Surface.ROTATION_180);
+            long deadline = SystemClock.uptimeMillis() + 10000;
+            do {
+                float[] after = previewAxis();
+                if (Math.abs(before[0] + after[0]) < .001f
+                        && Math.abs(before[1] + after[1]) < .001f) {
+                    resultDetails += "\nPreview follows a 180-degree display rotation.";
+                    return;
+                }
+                SystemClock.sleep(50);
+            } while (SystemClock.uptimeMillis() < deadline);
+            throw new AssertionError("Preview transform did not follow the 180-degree display rotation");
+        } finally {
+            getUiAutomation().setRotation(UiAutomation.ROTATION_UNFREEZE);
+        }
+    }
+    private void awaitRotation(int rotation) {
+        long deadline = SystemClock.uptimeMillis() + 10000;
+        do {
+            int[] current = new int[1];
+            runOnMainSync(() -> current[0] = activity.getWindow().getDecorView().getDisplay().getRotation());
+            if (current[0] == rotation) { waitForIdleSync(); return; }
+            SystemClock.sleep(50);
+        } while (SystemClock.uptimeMillis() < deadline);
+        throw new AssertionError("Display did not rotate to " + rotation);
+    }
+    private float[] previewAxis() {
+        float[] axis = {1f, 0f};
+        runOnMainSync(() -> {
+            TextureView preview = (TextureView) find(activity.getWindow().getDecorView(), "Camera preview");
+            Matrix transform = preview.getTransform(new Matrix());
+            transform.mapVectors(axis);
+        });
+        return axis;
     }
     private void awaitStatus(String prefix) {
         long deadline = SystemClock.uptimeMillis() + 10000;

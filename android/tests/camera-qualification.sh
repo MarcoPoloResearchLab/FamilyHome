@@ -27,7 +27,42 @@ zip -j -q "$output/test.apk" "$output/dex/classes.dex"
 "$tools_dir/apksigner" sign --ks "$keystore" --ks-pass pass:android --key-pass pass:android \
     --out "$output/camera-qualification.apk" "$output/test-aligned.apk"
 "$adb" install "$output/camera-qualification.apk"
-cleanup() { "$adb" uninstall "$package" >/dev/null; }
+export_evidence() {
+    local staging
+    staging="$(mktemp -d "$output/export.XXXXXX")" || return 1
+    if ! "$adb" exec-out run-as "$package" tar -cf - -C files . > "$staging/evidence.tar"; then
+        rm -r "$staging"
+        return 1
+    fi
+    if ! tar -xf "$staging/evidence.tar" -C "$staging"; then
+        rm -r "$staging"
+        return 1
+    fi
+    for artifact in camera-qualification.jpg camera-qualification.png; do
+        if [[ -f "$staging/$artifact" ]]; then
+            if ! mv "$staging/$artifact" "$output/$artifact"; then
+                rm -r "$staging"
+                return 1
+            fi
+        fi
+    done
+    rm -r "$staging"
+}
+cleanup() {
+    local status=$?
+    trap - EXIT
+    if export_evidence; then
+        if ! "$adb" uninstall "$package" >/dev/null; then
+            echo "Remove qualification application $package: uninstall failed" >&2
+            if [[ "$status" == 0 ]]; then status=1; fi
+        fi
+    else
+        echo "Export camera evidence failed. Application $package and its original evidence remain on $ANDROID_SERIAL." >&2
+        echo "Copy the evidence before removing the qualification application." >&2
+        if [[ "$status" == 0 ]]; then status=1; fi
+    fi
+    exit "$status"
+}
 trap cleanup EXIT
 "$adb" shell getprop ro.product.model > "$output/device.txt"
 "$adb" shell getprop ro.build.version.release >> "$output/device.txt"
@@ -38,7 +73,4 @@ for phase in permission capture; do
     "$adb" shell am instrument -w -e phase "$phase" "$package/com.mprlab.portal.CameraQualificationTest" > "$output/$phase.txt"
     cat "$output/$phase.txt"
     if ! rg -q 'Camera qualification passed:' "$output/$phase.txt"; then exit 1; fi
-done
-for artifact in camera-qualification.jpg camera-qualification.png; do
-    "$adb" exec-out run-as "$package" cat "files/$artifact" > "$output/$artifact"
 done
