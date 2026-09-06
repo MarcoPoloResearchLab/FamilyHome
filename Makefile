@@ -70,3 +70,15 @@ build-tiles:
 .PHONY: test-android-screensaver
 test-android-screensaver:
 	cd android && bash ./tests/screensaver.sh
+
+.PHONY: test-android-photobooth
+test-android-photobooth:
+	cd android && bash ./tests/photobooth.sh
+
+.PHONY: test-android-camera
+test-android-camera:
+	cd android && bash ./tests/camera-qualification.sh
+
+.PHONY: test-android-camera-recovery
+test-android-camera-recovery: toolbar-test-deps
+	PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/camera-recovery.py

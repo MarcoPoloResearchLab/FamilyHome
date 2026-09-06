@@ -8,6 +8,28 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
+- [x] [B004] (P1) Restore automatic weather updates on Home.
+  Goal:
+  The weather card must show current service data while Home stays open.
+  Requirements:
+  - Request weather data after the 15-minute cache period.
+  - After a request failure, show an error and repeat the request after 30 seconds.
+  - Remove the old temperature, condition, and clothing advice after the cache period.
+  - Reject request results after Home closes or the location changes.
+  Validation:
+  - Verify cache expiry and automatic recovery through the Android Home screen.
+  - Run `make test-android-weather` and `make ci`.
+  Current result:
+  The Portal showed a saved report from the previous day after startup requests failed.
+  The live service returned current weather data.
+  The integration test failed before the production change.
+  The integration test passed after the production change.
+  `make ci` passed.
+  The signed update is installed on the Portal.
+  The installed APK hash matches the update artifact.
+  The Portal shows 68 degrees and rain for Manhattan Beach.
+  The language review covered B004.
+
 - [x] [B003] Correct Android upgrade test setup and selection.
   Goal:
   The upgrade test must identify the current Home controls and game cards.
@@ -331,6 +353,86 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Features
 
+- [!] [F003] (P1) Qualify the Photo Booth camera.
+  Goal:
+  FamilyHome can show camera preview and take a JPEG picture through one Camera2 session.
+  P004 defines the accepted product scope.
+  Requirements:
+  - Add camera access through the Android permission interface.
+  - Select supported camera preview and JPEG dimensions from camera characteristics.
+  - Verify orientation, camera preview reflection, and normal text direction in the JPEG picture.
+  - Release camera resources on Back, Home, activity pause, and screensaver entry.
+  - Reject callbacks from a camera session after its cancellation.
+  Validation:
+  - Start with a failing integration test through Home.
+  - Verify the real camera pipeline with an emulator camera scene.
+  - Verify camera preview and JPEG output together on the physical Portal before F004 through F006.
+  Current result:
+  The Home integration test failed with `Missing control: Photo Booth. Take a picture` before the camera adapter implementation.
+  `PortalCamera` is the candidate Camera2 adapter. The FamilyHome interface does not use this adapter yet.
+  The separate qualification APK uses application ID `com.mprlab.portal.cameraqualification`.
+  This APK has no service connection and does not replace FamilyHome or change its saved data.
+  `make test-android-camera` passed on `emulator-5580` with an emulated front camera.
+  The test verified permission denial, JPEG output, 20 camera cycles, cancellation during camera open, and activity resume.
+  The selected emulator dimensions were 1024 by 768 for camera preview and 1440 by 1080 for JPEG output.
+  Visual review found an incorrect camera preview rotation. The corrected camera preview matches the JPEG orientation with horizontal reflection.
+  The test passed after correction of the rotation and camera release sequence.
+  `make test-android-contract` passed.
+  The qualification APK and evidence are in `android/build/tests/camera-qualification/`.
+  The Home integration test remains an expected failure until F004 adds the activity.
+  Shared toolbar and screensaver code did not change. Full CI remains pending until the final implementation checkpoint.
+  ADB showed only the emulator after qualification. No physical camera result is available.
+  Blocked: Connect the physical Portal through ADB to verify camera preview and JPEG output together before F004 through F006.
+  References:
+  - [Android camera preview](https://developer.android.com/media/camera/camera2/camera-preview): sensor rotation and camera preview behavior.
+
+- [ ] [F004] (P1) {F003} Add Photo Booth capture and review.
+  Requirements:
+  - Add the embedded offline activity to Home through the common toolbar.
+  - Use a three-second countdown before each picture.
+  - Show Save, Retake, and Discard on the review screen.
+  - Keep normal text direction in review and saved pictures.
+  - Preserve completed review images across screensaver entry and wake.
+  - Cancel incomplete capture on exit, pause, or screensaver entry.
+  Validation:
+  - Verify the capture flow, cancellation, and camera release through the Android interface.
+
+- [ ] [F005] (P1) {F004} Add child photo albums.
+  Requirements:
+  - Save pictures with the profile ID selected at capture start.
+  - Use one current metadata schema and complete each Save once.
+  - Keep saved pictures after process restart and APK update.
+  - Show the active child's photo album with image review and confirmed deletion.
+  - Keep at most 100 entries or 256 MiB per child and 512 MiB across all photo albums.
+  - Include images, thumbnails, and metadata in capacity calculations.
+  - Stop capture when temporary data and the final result cannot fit.
+  - Keep saved pictures until explicit deletion without automatic removal of older entries.
+  - Keep pictures in application storage without export or upload.
+  Validation:
+  - Verify two profiles, duplicate Save input, deletion, restart, APK update, and storage failures through public entry points.
+
+- [ ] [F006] (P1) {F005} Add photo strips and decorative frames.
+  Requirements:
+  - Add four-picture vertical photo strips with a countdown before each picture.
+  - Add None, Stars, and Confetti frame choices.
+  - Save only the combined strip and remove temporary individual pictures.
+  - Use JPEG quality 90 with at most 1600 pixels on the longest side of a single picture.
+  - Use at most 1200 by 3600 pixels for a photo strip without enlargement of source pictures.
+  - Keep decoded renderer images within 64 MiB.
+  - Select the temporary storage bound from qualified camera dimensions.
+  Validation:
+  - Verify four distinct pictures, frame rendering, crop, orientation, memory use, and cancellation through the Android interface.
+
+- [ ] [F007] (P1) {F006} Verify Photo Booth on the physical Portal.
+  Requirements:
+  - Complete the P004 physical camera procedure and full application checks.
+  - Verify the layout at 1280 by 800.
+  - Verify camera cover behavior and screensaver transitions.
+  - Record physical acceptance separately from emulator results.
+  Validation:
+  - Run the Photo Booth, toolbar, screensaver, and upgrade tests.
+  - Run `make ci` after the final implementation change.
+
 - [x] [F002] Add a screensaver with a timeout in Settings.
   Goal:
   The user can select a screensaver, including a black screen, and its timeout.
@@ -402,15 +504,23 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Planning
 
-- [ ] [P004] Plan the Photo Booth application.
+- [x] [P004] Plan the Photo Booth application.
   Goal:
   This issue defines an implementation proposal for Photo Booth in FamilyHome.
-  The user requested a plan. Application implementation requires a separate request.
+  The user accepted the proposed defaults and requested implementation on 2026-09-05.
+  F003 through F007 contain the implementation work.
 
   Requirements:
   - Plan the Photo Booth application.
   - Use the current FamilyHome contracts.
   - Keep proposed product choices separate from confirmed requirements.
+
+  Confirmed scope:
+  The user selected this scope on 2026-09-05.
+  - Add Photo Booth as an activity within FamilyHome.
+  - Keep Photo Booth available without a service connection.
+  - Include single pictures, four-picture photo strips, decorative frames, and child photo albums.
+  The subsequent implementation request also accepted the detailed product defaults below.
 
   Current evidence:
   The source review date is 2026-09-05.
@@ -422,7 +532,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   `PortalActivity` shows the screensaver as an overlay without an activity pause.
   Physical Portal camera access remains unverified.
 
-  Proposed first version:
+  First-version flow:
   The first version works on the Portal without a service connection.
   A Photo Booth control on Home opens one native FamilyHome activity.
   Back, Home, and application controls use the common toolbar.
@@ -433,13 +543,46 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   A small selection of decorative frames provides the first effects.
   Save adds the result to the active child's photo album.
   The photo album provides picture review and explicit deletion.
-  These choices remain proposals pending the user's scope decision.
+  The activity, offline operation, picture types, decorative frames, and child photo albums are confirmed scope.
+  The countdown, review controls, and detailed image policy are accepted defaults.
+
+  Proposed image policy:
+  The user accepted these design values for implementation. Physical measurements must still verify the technical limits.
+  | Choice | Proposed value | Reason |
+  | --- | --- | --- |
+  | Countdown | Three seconds before each picture | Time for the child to prepare |
+  | Decorative frames | None, Stars, and Confetti | A small initial selection |
+  | Reflection | Mirror camera preview. Normal text direction in review and saved images | Camera preview like a mirror and readable saved text |
+  | Single picture | At most 1600 pixels on the longest side, without enlargement | Bounded image size |
+  | Photo strip | Four pictures in one vertical image, at most 1200 by 3600 pixels | One saved result for each sequence |
+  | JPEG quality | 90 | Initial image quality for device review |
+  | Decoded images | At most 64 MiB for the renderer | Bounded memory for image assembly |
+  | Photo album capacity | At most 100 entries or 256 MiB per child, whichever occurs first | Bounded local storage |
+  | Application photo capacity | At most 512 MiB across all photo albums | Bounded storage across child profiles |
+  | Storage duration | Until explicit deletion | No automatic deletion of saved pictures |
+  | Photo strip originals | Remove temporary individual pictures after Save or Discard | One photo album entry for each strip |
+  | Deletion | One selected entry after a confirmation dialog | Protection against accidental input |
+  | Export | No export or upload operation in the first version | Offline scope without recipient access |
+  Capacity calculations include saved images, thumbnails, and metadata.
+  Temporary image storage has a separate bound, selected from the qualified camera dimensions.
+  Before a sequence starts, the photo store checks capacity for temporary data and the final result.
+  Insufficient capacity stops the sequence with an explicit error. The application does not remove existing pictures to create space.
+  The camera qualification must verify the proposed dimensions, image quality, memory limit, and temporary storage bound.
+  A failed qualification requires a revised design value before implementation continues.
+
+  Child photo albums organize pictures by profile ID. The child selector does not provide secrecy between children on the Portal.
+  A profile name change keeps the same photo album.
+  Future profile removal must include explicit confirmation for removal of its photo album.
+  Future family transfer must complete the local data-removal procedure defined with P002 before another family uses the Portal.
+  These future operations must include photos in their data policy. They are not additional first-version features.
 
   Proposed technical design:
   `PhotoBoothActivity` owns the screen and user commands.
   A camera adapter owns camera access, camera preview, image output, and resource release.
   Camera2 is the initial candidate because the current build uses platform APIs without AndroidX dependencies.
   Camera2 selection requires physical Portal evidence for camera preview and JPEG output together.
+  Android documentation recommends CameraX for general camera applications.
+  Device qualification must establish this choice before the remaining implementation stages.
   The adapter selects supported dimensions from the device characteristics.
   Image orientation and camera preview reflection require explicit handling.
   The proposed camera preview reflects the user like a mirror. Saved images preserve normal text direction.
@@ -457,9 +600,32 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Camera denial, camera loss, and insufficient storage produce explicit errors with applicable next actions.
   The camera adapter releases its resources on Back, Home, activity pause, and screensaver entry.
   Screensaver entry cancels an incomplete capture sequence.
-  Screensaver wake returns to camera preview after resource acquisition. The wake touch takes no picture.
+  After an interrupted countdown or capture, screensaver wake returns to camera preview after resource acquisition.
+  Screensaver entry keeps a completed review image and the current photo album screen. Wake returns to that screen.
+  A Save already in progress completes once while the screensaver is visible.
+  The wake touch takes no picture and activates no control.
   A screensaver callback in `PortalActivity` is necessary because the current overlay does not pause the activity.
   Pending camera callbacks must not save a discarded picture or restart the camera after exit.
+
+  Proposed physical camera qualification procedure:
+  Camera access and output checks belong to stage 1. The full application checks finish in stage 5.
+  No physical camera result is recorded for this planning task.
+  1. Record the Portal model, Android version, APK identity, camera IDs, and camera characteristics.
+  2. Request camera access through the Photo Booth interface.
+  3. Verify explicit interface states for permission denial and unavailable camera access.
+  4. Select one camera and supported camera preview and JPEG dimensions.
+  5. Verify camera preview and JPEG output in the same camera session.
+  6. Photograph a numbered chart with text through the countdown and capture controls.
+  7. Verify crop, orientation, text direction, and correspondence between camera preview and saved image.
+  8. Complete 20 open, capture, exit, and reopen cycles through the Android interface.
+  9. Verify camera release through Back, Home, activity pause, and screensaver entry.
+  10. Close and open the physical camera cover during camera preview and countdown.
+  11. Record cover behavior and verify that the interface reports any camera error.
+  12. Measure image memory and temporary storage during a four-picture sequence at the proposed dimensions.
+  13. Record the selected camera configuration, measurements, and acceptance result.
+  Camera cover behavior requires observation. The plan does not assume that a closed cover produces an Android error.
+  If camera access or the required output combination fails, stop stage 1 with the native diagnostic.
+  The plan must then select one supported camera contract before implementation continues.
 
   Proposed implementation sequence:
   | Stage | Scope | Proposed exit evidence |
@@ -476,18 +642,11 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   `make ci` runs after the final application change. Physical camera acceptance remains a separate result.
 
   Open Decisions:
-  - Select an embedded FamilyHome activity or a separate APK.
-  - Select local pictures, AI transformations, or both for the first version.
-  - Confirm the picture count, countdown duration, decorative frames, and image reflection behavior.
-  - Select image dimensions, JPEG quality, and memory limits after the camera qualification.
-  - Define photo album limits, deletion controls, and storage duration.
-  - Select whether saved photo strips also keep their individual pictures.
-  - Define treatment of local pictures when a profile is removed or a Portal changes families.
-  - Select whether a parent can export pictures from the first version.
-  - If connected features are selected, define photo ownership and parent authorization with P002.
-  - If AI transformations are selected, define photo inputs, provider access, parent controls, and cost limits with P003.
-  AI provider routing requires current contract verification before selection because the P003 source and later architecture notes differ.
-  Local camera work can proceed independently after its scope is selected.
+  - Select camera dimensions and the temporary storage bound from physical qualification evidence during implementation.
+  - Confirm image quality and memory limits from the same evidence.
+  The selected offline scope has no AI transformation or provider integration dependency.
+  P002 applies to future family transfer. P003 applies only if a later request adds AI transformations.
+  F003 through F007 record the implementation sequence for the accepted product values.
 
   Deliverables:
   - Record the selected first-version flow and image policy.
@@ -500,6 +659,13 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Verify the distinction between emulator coverage and physical Portal acceptance.
   - Run the document language checker and Governor check.
   - Verify issue identifiers and `git diff --check`.
+
+  Current planning result:
+  The source review confirmed the Android build, Home controls, profile IDs, and screensaver behavior.
+  The user selected the offline activity scope and accepted the detailed image policy for implementation.
+  The language checker, Governor check, issue identifier check, and `git diff --check` passed.
+  The language review covered the P004 changes against the official Issue 9 reference.
+  Physical camera qualification and application acceptance remain pending.
 
   References:
   - `android/app/src/main/AndroidManifest.xml`, `android/build.sh`: Android runtime and build contracts.

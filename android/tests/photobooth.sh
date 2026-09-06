@@ -9,33 +9,35 @@ if "$adb" shell pm path com.mprlab.portal | grep -q '^package:'; then
   echo 'The emulator must have no FamilyHome installation.' >&2
   exit 2
 fi
-output=build/tests/weather-widget
+output=build/tests/photobooth
 tools_dir="$ANDROID_SDK_ROOT/build-tools/${BUILD_TOOLS_VERSION:-36.1.0}"
 android_jar="$ANDROID_SDK_ROOT/platforms/${ANDROID_PLATFORM:-android-35}/android.jar"
 mkdir -p "$output/classes" "$output/dex"
 keystore="$output/test-keystore.jks"
 if [[ ! -f "$keystore" ]]; then
   keytool -genkeypair -noprompt -keystore "$keystore" -storepass android -keypass android \
-    -alias test -keyalg RSA -validity 3650 -dname 'CN=Weather Widget Test' >/dev/null
+    -alias test -keyalg RSA -validity 3650 -dname 'CN=PhotoBooth Test' >/dev/null
 fi
 cleanup() {
-  "$adb" uninstall com.mprlab.portal.weathertest >/dev/null 2>&1 || true
+  "$adb" uninstall com.mprlab.portal.photoboothtest >/dev/null 2>&1 || true
   "$adb" uninstall com.mprlab.portal >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
-FAMILYHOME_SERVICE_BASE_URL=http://127.0.0.1:18765 \
-FAMILYHOME_DEVICE_TOKEN=familyhome-weather-test-token-000000 \
+ANDROID_DEBUGGABLE=1 \
+FAMILYHOME_SERVICE_BASE_URL=https://familyhome.invalid \
+FAMILYHOME_DEVICE_TOKEN=familyhome-photobooth-test-token-000000 \
 PORTAL_KEYSTORE="$keystore" PORTAL_KEYSTORE_PASSWORD=android PORTAL_KEY_PASSWORD=android \
-APK_BASENAME=weather-app ./build.sh "$output/app"
-"$tools_dir/aapt2" link -I "$android_jar" --manifest tests/weather-widget/AndroidManifest.xml -o "$output/test.apk"
-javac -source 8 -target 8 -classpath "$android_jar" -d "$output/classes" tests/weather-widget/WeatherWidgetTest.java
-"$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$output/dex" "$output"/classes/com/mprlab/portal/weathertest/*.class
+APK_BASENAME=photobooth-app bash ./build.sh "$output/app"
+"$tools_dir/aapt2" link -I "$android_jar" --manifest tests/photobooth/AndroidManifest.xml -o "$output/test.apk"
+javac -source 8 -target 8 -classpath "$android_jar" -d "$output/classes" tests/photobooth/PhotoBoothTest.java
+"$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$output/dex" "$output/classes/com/mprlab/portal/photoboothtest/PhotoBoothTest.class"
 zip -j -q "$output/test.apk" "$output/dex/classes.dex"
 "$tools_dir/zipalign" -f 4 "$output/test.apk" "$output/test-aligned.apk"
 "$tools_dir/apksigner" sign --ks "$keystore" --ks-pass pass:android --key-pass pass:android \
   --out "$output/test-signed.apk" "$output/test-aligned.apk"
-"$adb" install "$output/app/weather-app.apk"
+"$adb" install "$output/app/photobooth-app.apk"
 "$adb" install "$output/test-signed.apk"
-result="$("$adb" shell am instrument -w com.mprlab.portal.weathertest/.WeatherWidgetTest)"
+result="$("$adb" shell am instrument -w com.mprlab.portal.photoboothtest/.PhotoBoothTest)"
 printf '%s\n' "$result"
-[[ "$result" == *'Weather widget passed:'* ]]
+[[ "$result" == *'PhotoBooth passed:'* ]]
+

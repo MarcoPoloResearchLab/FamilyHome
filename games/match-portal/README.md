@@ -5,6 +5,11 @@ Back asks before it closes an active game.
 Home opens FamilyHome and keeps the game task.
 The Help, Settings, About, Statistics, and Highscore screens also show Back and Home.
 
+The board uses the available screen area below the toolbar and game statistics.
+Each card has the same width and height.
+The screen shows all cards.
+The board dimensions change with the screen dimensions.
+
 The source is SECUSO Privacy Friendly Memo Game 1.1.3.
 The build uses these upstream revisions:
 
@@ -46,6 +51,8 @@ ANDROID_SERIAL=emulator-5582 make test-match-toolbar
 ```
 
 The test verifies toolbar dimensions, the game menu, Help, Back confirmation, and Home.
+It also verifies board dimensions for all three difficulty levels and card selection at opposite corners.
+The screen dimensions are 1280 by 800, 1920 by 1080, and 800 by 1280.
 It saves `combined-toolbar.png` under `android/build/match-portal/`.
 
 ## Portal installation
