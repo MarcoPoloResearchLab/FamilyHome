@@ -1,6 +1,6 @@
 # FamilyHome engine interfaces
 
-I005 adds the FamilyHome appearance to Kart and Freedoom.
+I005 adds the FamilyHome appearance to Kart.
 The appearance contract is `android/STYLING.md`.
 
 ## Build
@@ -10,7 +10,6 @@ Set `ANDROID_SDK_ROOT` to the Android SDK directory.
 
 ```sh
 make build-kart
-make build-freedoom
 ```
 
 `sources.json` fixes the upstream APK versions and their SHA-256 digests.
@@ -20,8 +19,8 @@ The native engine libraries come from the upstream APKs.
 The build verifies that each native library stays the same.
 It does not compile the native engines from source.
 
-The output directories are `android/build/kart-portal/` and `android/build/freedoom-portal/`.
-Each directory contains an unsigned APK, an interface source archive, and `interface-build.json`.
+The output directory is `android/build/kart-portal/`.
+It contains an unsigned APK, an interface source archive, and `interface-build.json`.
 The build record contains the source digests and the unsigned APK digest.
 The interface source archive contains the FamilyHome adaptation and shared font.
 It does not contain the upstream engine source.
@@ -30,7 +29,6 @@ The build has fixed inputs. Byte-identical APK output is unverified.
 If `PORTAL_KEYSTORE` is set, the build also creates and verifies a signed APK.
 The signer reads `PORTAL_KEYSTORE_PASSWORD` and `PORTAL_KEY_PASSWORD` from the process environment.
 Use the existing signing key for an installed game update.
-Use the same signing key for Freedoom and FamilyHome.
 
 ## Interface ownership
 
@@ -38,11 +36,6 @@ Use the same signing key for Freedoom and FamilyHome.
 The Kart adapter sets the skin and text size before engine initialization.
 An interface digest controls asset extraction after an update.
 The engine keeps its `home` directory during extraction.
-
-`freedoom.py` generates Freedoom fonts, menus, instructions, and status panels.
-The Freedoom adapter uses `PortalStyle` for preparation and error screens.
-It selects the resource pack for the Android font scale.
-Saved games stay in the existing directory for each child profile.
 
 ## Validation
 
@@ -60,7 +53,4 @@ Run the test at font scales of 1.0 and 1.3.
 Review the screenshots for text bounds and control dimensions.
 Verify instructions, scores, results, and saved games separately.
 
-The available ARM64 emulator cannot install the 32-bit Freedoom engine.
-Freedoom Android acceptance requires a compatible device.
-Desktop GZDoom resource checks do not prove Android acceptance.
 I005 records the current validation results and remaining work.

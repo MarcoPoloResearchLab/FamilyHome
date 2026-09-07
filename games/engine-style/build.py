@@ -1,6 +1,5 @@
 """Compile source-owned engine interfaces against pinned upstream Android engines."""
 
-from pathlib import Path
 import argparse
 import hashlib
 import json
@@ -12,10 +11,11 @@ import tempfile
 import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
-from PIL import Image, ImageDraw
-import freedoom
+from pathlib import Path
+
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = ROOT / "android/build/engine-style/cache"
@@ -306,7 +306,7 @@ def compile_java(source: Path, output: Path, sdk: Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("game", choices=("kart", "freedoom"))
+    parser.add_argument("game", choices=("kart",))
     args = parser.parse_args()
     game = args.game
     CACHE.mkdir(parents=True, exist_ok=True)
@@ -327,10 +327,7 @@ def main() -> None:
     font_path = build / "Fredoka-Bold.ttf"
     font.save(font_path)
     source = ROOT / f"games/{game}-portal/src"
-    if game == "kart":
-        kart(decoded, font_path)
-    else:
-        source = freedoom.create(decoded, font_path, build, ROOT)
+    kart(decoded, font_path)
     config = decoded / "apktool.yml"
     text = config.read_text()
     spec = SOURCES[game]
@@ -349,9 +346,12 @@ def main() -> None:
     # The adaptation must preserve every native engine library exactly.
     with zipfile.ZipFile(apk) as upstream, zipfile.ZipFile(unsigned) as adapted:
         for name in upstream.namelist():
-            if name.startswith("lib/") and name.endswith(".so"):
-                if upstream.read(name) != adapted.read(name):
-                    raise ValueError(f"Native engine changed: {name}")
+            if (
+                name.startswith("lib/")
+                and name.endswith(".so")
+                and upstream.read(name) != adapted.read(name)
+            ):
+                raise ValueError(f"Native engine changed: {name}")
     title = game.capitalize()
     aligned = output / f"{title}-Portal-unsigned.apk"
     run(sdk / "build-tools/36.1.0/zipalign", "-f", "-p", "4", unsigned, aligned)
