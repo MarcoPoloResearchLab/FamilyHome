@@ -12,7 +12,6 @@ The audit uses a 1280 by 800 screen with density 160.
 | Match | Navigation, game menu, and game status share one 64 dp row. | Signed APK integration test. |
 | Blocks | Navigation, score, level, lines, and Settings share one 64 dp row. | Signed APK integration test. |
 | Tiles | Navigation and menu tabs share one 64 dp row. The active game menu uses the same row. | Signed APK integration test and web view review. |
-| Freedoom | Fullscreen game controls. No stacked headers. | Physical Portal menu and gameplay review. |
 | Kart | Fullscreen game controls. Setup screens have one game header. | Physical Portal menu, setup, gameplay, and pause review. |
 
 The native test covers all seven child screens.
@@ -64,5 +63,5 @@ Installed hashes are in `android/build/toolbar-preview/portal-installation.json`
 Physical screenshots are in `android/build/toolbar-preview/portal/`.
 The Portal is on Home.
 
-Freedoom and Kart keep their existing fullscreen layouts.
-They have no duplicate toolbar row to remove.
+Kart keeps its existing fullscreen layout.
+It has no duplicate toolbar row to remove.
