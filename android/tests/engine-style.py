@@ -73,6 +73,49 @@ def cream_surface() -> None:
     )
 
 
+def test_kart_selected_text() -> None:
+    """Select the existing Player fixture without changing its saved name."""
+    nav.command("shell", "am", "force-stop", "org.supertuxkart.stk")
+    nav.command("shell", "am", "start", "-W", "-n", "com.mprlab.portal/.MainActivity")
+    nav.command("shell", "input", "tap", "884", "679")
+    nav.tap(nav.control(nav.snapshot(), "Kart"))
+    wait_text("kart-text-menu", "Singleplayer")
+    nav.command("shell", "input", "tap", "1060", "30")
+    wait_text("kart-player-menu", "Rename")
+    nav.command("shell", "input", "tap", "535", "690")
+    words = wait_text("kart-rename", "Local name")
+    player = next(word for word in words if word["text"] == "Player")
+    left = round(player["x"])
+    right = round(player["x"] + player["width"])
+    top = round(player["y"])
+    bottom = round(player["y"] + player["height"])
+    middle = (top + bottom) // 2
+    nav.command(
+        "shell",
+        "input",
+        "swipe",
+        str(right + 5),
+        str(middle),
+        str(left),
+        str(middle),
+        "700",
+    )
+    wait_text("kart-selected-text", "Player")
+    raw = subprocess.check_output(nav.ADB + ["exec-out", "screencap"])
+    width, height, fmt = struct.unpack_from("<III", raw)
+    assert fmt == 1
+    pixels = raw[-width * height * 4 :]
+    selected = [
+        pixels[(y * width + x) * 4 : (y * width + x) * 4 + 3]
+        for y in range(top, bottom)
+        for x in range(left, right)
+    ]
+    assert selected.count(bytes((212, 236, 245))) > 50, "Selection is not visible"
+    assert selected.count(bytes((53, 80, 96))) > 50, "Selection obscures the glyphs"
+    nav.command("shell", "input", "keyevent", "4")
+    nav.command("shell", "am", "force-stop", "org.supertuxkart.stk")
+
+
 def test_kart_screens() -> None:
     game, package = "Kart", "org.supertuxkart.stk"
     nav.command("shell", "am", "force-stop", package)
