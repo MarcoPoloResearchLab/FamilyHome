@@ -3,6 +3,10 @@
 Blocks puts Back, Home, score, level, lines, and Settings in one toolbar.
 Settings and the multiplayer screens use the same navigation controls.
 Home opens FamilyHome and keeps the game task.
+The gameplay toolbar Back control returns to the previous application task and keeps the game available.
+When Games launches Blocks, this control returns to Games.
+Settings Back returns to gameplay.
+The gameplay Back gesture keeps its configured hold or Settings behavior.
 
 The upstream source revision is `019db6c2fc69937160901572192982b5cb843f4b`.
 The build verifies the source archive hash before extraction.

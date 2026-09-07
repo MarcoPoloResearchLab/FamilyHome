@@ -8,6 +8,25 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
+- [x] [B008] (P2) Return to Games from the Blocks toolbar Back control.
+  Goal:
+  The gameplay toolbar Back control must return to the FamilyHome Games screen.
+  The control currently invokes the gameplay gesture handler, which can open Settings or hold a piece.
+  Requirements:
+  - Give the gameplay toolbar an explicit return action.
+  - Preserve the game task when the user returns to Games.
+  - Keep Settings Back connected to gameplay and Home connected to FamilyHome Home.
+  - Preserve the configured gameplay gestures.
+  - Verify public navigation at normal and enlarged text dimensions.
+  Validation:
+  The initial navigation test failed because gameplay Back opened Settings.
+  The three Blocks toolbar tests passed at font scales of 1.0 and 1.3 after the correction.
+  Screenshot review confirmed visible controls and text at both dimensions.
+  `make build-blocks` and `make ci` passed.
+  The signed update was installed on the physical Portal without removal of application data.
+  Physical checks confirmed Back to Games, return to the same game task, Settings Back, and Home.
+  The installed APK hash matches the built APK hash.
+
 - [x] [B007] (P2) Preserve player colors in Kart selection controls.
   Goal:
   Each player must have a different color for the current selection.
@@ -156,6 +175,51 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   The user confirmed audible piano sound on the Portal.
 
 ## Improvements
+
+- [x] [I007] Separate current weather from daily preparation advice.
+  Goal:
+  Show current conditions and the daily forecast as separate reports on Home.
+  Requirements:
+  - Use current conditions for current clothing recommendations.
+  - Show the daily high, low, and precipitation chance under Today.
+  - Recommend supplies for heat, precipitation, and cooler hours when applicable.
+  - Show heat and precipitation recommendations together when both apply.
+  - Preserve forecast uncertainty, attribution, automatic refresh, and unavailable states.
+  - Verify normal and enlarged text through Home on an Android emulator.
+  - Record physical Portal verification separately.
+  Validation:
+  The initial Home test failed because the Now report was absent.
+  Eleven weather scenarios passed at font scales of 1.0 and 1.3.
+  The checks cover separate reports, combined heat and precipitation advice, temperature changes, cache expiry, and automatic recovery.
+  Expired daily advice disappears with unavailable weather data.
+  The appearance suite and `make ci` passed.
+  Physical Portal screenshots confirmed both reports with live service data at both font scales.
+  The enlarged report scrolls to its recommendations and attribution.
+  The installed APK matched the new build by SHA-256, and the existing profile remained available.
+
+- [x] [I006] Apply the approved flat Home and Games design.
+  Goal:
+  Use large adjacent color surfaces with bold labels and character illustrations.
+  Requirements:
+  - Divide Games into four equal quadrants.
+  - Divide the timer into four equal quadrants without a heading.
+  - Join the five Home activity controls with shared black borders.
+  - Use the complete screen without an outer outline, shadow, or margins.
+  - Preserve navigation, timer controls, weather, and saved data.
+  Validation:
+  The initial public appearance test rejected the gaps between the Home activity controls.
+  Public appearance checks passed at font scales of 1.0 and 1.3 on an Android 9 emulator.
+  The checks cover shared borders, equal quadrants, game illustrations, pressed states, keyboard focus, and timer access.
+  Running and paused timers remain accessible after the countdown dialog closes.
+  Toolbar, weather refresh, Photo Booth, and APK upgrade checks passed.
+  Screenshot review confirmed the large illustrations and bold text.
+  The shared font keeps its weight when a text role changes.
+  Toolbars permit the height required by enlarged titles.
+  A subsequent appearance test rejected the outer frame and margins.
+  Home and Games now reach all screen edges and keep their cream toolbar backgrounds.
+  Normal and enlarged text checks passed without the outer frame.
+  Physical Portal screenshots confirmed both layouts after an update that preserved application data.
+  The installed APK matched the new build by SHA-256.
 
 - [-] [I005] {I004} Apply the FamilyHome appearance inside Kart.
   Goal:

@@ -2,8 +2,17 @@ package com.mprlab.portal;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 final class WeatherReport {
+    private static final int HOT_DAY_F = 85;
+    private static final int WARM_DAY_F = 70;
+    private static final int COOL_DAY_F = 55;
+    private static final int VERY_COLD_DAY_F = 40;
+    private static final int PRECIPITATION_POSSIBLE = 40;
+    private static final int PRECIPITATION_LIKELY = 70;
     final String place, condition, icon;
     final int temperature, feelsLike, high, low, precipitation;
 
@@ -43,38 +52,80 @@ final class WeatherReport {
     }
 
     Outfit outfit() {
-        boolean wet = precipitation >= 40 || icon.equals("rain") || icon.equals("storm");
+        boolean wet = icon.equals("rain") || icon.equals("storm");
         boolean snow = icon.equals("snow");
         if (snow || feelsLike < 40) {
             return new Outfit(R.drawable.ic_weather_hoodie, "Warm coat", R.drawable.ic_weather_boot,
-                    "Warm boots", "Add a hat and gloves.");
+                    "Warm boots");
         }
         if (wet) {
             return new Outfit(R.drawable.ic_weather_hoodie, "Raincoat", R.drawable.ic_weather_boot,
-                    "Rain boots", feelsLike < 55 ? "Wear warm layers underneath." : "Take a raincoat for rainy moments.");
+                    "Rain boots");
         }
         if (feelsLike < 55) {
             return new Outfit(R.drawable.ic_weather_hoodie, "Jacket", R.drawable.ic_weather_sneaker,
-                    "Sneakers", "A warm layer will feel cozy.");
+                    "Sneakers");
         }
         if (feelsLike < 70) {
             return new Outfit(R.drawable.ic_weather_hoodie, "Light layer", R.drawable.ic_weather_sneaker,
-                    "Sneakers", "A light layer for the cool air.");
+                    "Sneakers");
         }
         return new Outfit(R.drawable.ic_weather_t_shirt, "T-shirt", R.drawable.ic_weather_sneaker,
-                "Sneakers", "Light clothes for a warm day.");
+                "Sneakers");
+    }
+
+    DayPlan dayPlan() {
+        List<String> advice = new ArrayList<>();
+        String outlook;
+        if (high >= HOT_DAY_F) {
+            outlook = "Hot";
+            advice.add("Bring water and a sun hat.");
+        } else if (high >= WARM_DAY_F) {
+            outlook = "Warm";
+            advice.add("Wear light clothes.");
+        } else if (high >= COOL_DAY_F) {
+            outlook = "Cool";
+            advice.add("Take a light layer.");
+        } else if (high >= VERY_COLD_DAY_F) {
+            outlook = "Cold";
+            advice.add("Take a warm jacket.");
+        } else {
+            outlook = "Very cold";
+            advice.add("Take a coat, hat and gloves.");
+        }
+        String precipitationLabel = high < VERY_COLD_DAY_F ? "Rain / snow chance " : "Rain chance ";
+        if (precipitation >= PRECIPITATION_POSSIBLE) {
+            String kind = high < VERY_COLD_DAY_F ? "Rain or snow" : "Rain";
+            outlook += " · " + kind + (precipitation >= PRECIPITATION_LIKELY ? " likely" : " possible");
+            advice.add(high < VERY_COLD_DAY_F ? "Pack waterproof layers and boots."
+                    : precipitation >= PRECIPITATION_LIKELY ? "Pack a raincoat and waterproof shoes." : "Pack a raincoat.");
+        }
+        if (high >= WARM_DAY_F && low < 60 && high - low >= 20) {
+            advice.add("Take a layer for cooler hours.");
+        }
+        return new DayPlan(outlook, precipitationLabel + precipitation + "%", advice);
+    }
+
+    static final class DayPlan {
+        final String outlook, precipitation;
+        final List<String> advice;
+
+        private DayPlan(String outlook, String precipitation, List<String> advice) {
+            this.outlook = outlook;
+            this.precipitation = precipitation;
+            this.advice = Collections.unmodifiableList(advice);
+        }
     }
 
     static final class Outfit {
         final int topIcon, shoesIcon;
-        final String top, shoes, advice;
+        final String top, shoes;
 
-        private Outfit(int topIcon, String top, int shoesIcon, String shoes, String advice) {
+        private Outfit(int topIcon, String top, int shoesIcon, String shoes) {
             this.topIcon = topIcon;
             this.top = top;
             this.shoesIcon = shoesIcon;
             this.shoes = shoes;
-            this.advice = advice;
         }
     }
 }

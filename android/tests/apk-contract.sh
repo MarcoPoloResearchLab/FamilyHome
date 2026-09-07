@@ -67,7 +67,7 @@ reject_text "$dex_strings" "Landroid/media/FaceDetector;" "obsolete frontal-only
 require_text "$dex_strings" "https://familyhome.invalid" "generated service URL"
 require_text "$dex_strings" "familyhome-ci-device-token-000000000" "generated device token"
 require_text "$dex_strings" "/v1/weather?location=" "weather service route"
-require_text "$dex_strings" "Weather by Open-Meteo" "weather attribution"
+require_text "$dex_strings" "Open-Meteo" "weather attribution"
 for timer_text in "Reading" "20 min" "Brush teeth" "2 min 15 sec" "Quick timer" "5 min" "Custom" "Choose time" "Time is up!"; do
   require_text "$dex_strings" "$timer_text" "timer control $timer_text"
 done

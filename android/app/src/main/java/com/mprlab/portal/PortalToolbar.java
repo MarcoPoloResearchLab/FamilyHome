@@ -10,6 +10,7 @@ final class PortalToolbar {
 
     static void navigation(PortalActivity activity, LinearLayout toolbar) {
         toolbar.setContentDescription("Screen toolbar");
+        toolbar.setMinimumHeight(dp(activity, HEIGHT_DP));
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setPadding(dp(activity, 14), dp(activity, 6), dp(activity, 14), dp(activity, 6));
         toolbar.addView(button(activity, "Back", R.drawable.ic_nav_back, view -> activity.onBackPressed()), 0);
@@ -22,7 +23,7 @@ final class PortalToolbar {
         LinearLayout screen = new LinearLayout(activity);
         screen.setOrientation(LinearLayout.VERTICAL);
         screen.setBackgroundColor(color);
-        screen.addView(toolbar, new LinearLayout.LayoutParams(-1, dp(activity, HEIGHT_DP)));
+        screen.addView(toolbar, new LinearLayout.LayoutParams(-1, -2));
         screen.addView(content, new LinearLayout.LayoutParams(-1, 0, 1f));
         return screen;
     }

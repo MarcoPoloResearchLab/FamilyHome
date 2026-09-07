@@ -11,6 +11,9 @@ I003 introduced the appearance. I004 applies shared text roles and larger contro
 - Game titles can use a bright fill with a black outline.
 - Game score panels can use a black background with white or bright text.
 - Use a 3 dp black outline and a 4 dp solid shadow for control surfaces.
+- Group Home and Games controls on large, flat color surfaces with shared 3 dp black borders.
+- Use the complete screen for Home and Games, with no outer outline, shadow, or margins.
+- Use square corners for these groups. Do not put shadows between their controls.
 - Use Fredoka Bold, weight 700, for titles, section headings, and control labels.
 - Use the medium system typeface for instructions, descriptions, and status messages.
 - Use the shared text roles and control dimensions below.
@@ -32,6 +35,7 @@ Other platforms must use the equivalent units that support the selected font sca
 | Other action or option | Fredoka Bold | 22 sp | 60 dp |
 | Section heading | Fredoka Bold | 22 sp | — |
 | Instructions or status | System medium | 20 sp | — |
+| Attribution link | System medium | 14 sp | 48 dp |
 | Large value | Fredoka Bold | 48 sp | — |
 | Countdown | Fredoka Bold | 76 sp | — |
 
@@ -68,7 +72,25 @@ The system camera permission window and other operating-system windows use the p
 
 Photo Booth uses a fixed main action below its scrollable options.
 Home keeps five activity controls visible in one row at the Portal screen dimensions.
+These five controls form one continuous strip with equal widths and shared borders.
+The timer uses four equal quadrants without a section heading.
+A control in the Home toolbar opens the running or paused countdown.
+Hide this control when no timer is active.
+Games uses four equal quadrants in two rows below the existing toolbar.
+Each game has a large character illustration and a bold title near its upper-left corner.
+Keep the missing-installation message and the game launch action in each quadrant.
+`JoinedSurface` owns these group layouts. `PortalStyle.tile` supplies their pressed, focused, selected, and disabled states.
+The child selector uses large colored surfaces with character illustrations and bold names.
+Mark the active child with a check mark and a visible status message.
+Keep Close visible when the child choices scroll.
 The weather card permits scroll input when its larger text needs more space.
+Separate the weather card into Now and Today reports.
+Use current conditions for the Now report and its clothing illustrations.
+Show the daily high, low, and precipitation chance in the Today report.
+Give concrete daily recommendations for heat, precipitation, and cooler hours.
+Show all applicable recommendations together and preserve forecast uncertainty.
+Use a small, right-aligned Open-Meteo attribution link below the weather details.
+Keep its touch region at least 48 dp high and link to the source license.
 Drawing keeps its canvas, saved documents, brush controls, and share operation.
 
 ## Font

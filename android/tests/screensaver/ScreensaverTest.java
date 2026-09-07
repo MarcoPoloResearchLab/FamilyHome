@@ -244,7 +244,12 @@ public final class ScreensaverTest extends Instrumentation {
         android.graphics.Rect dateBounds = new android.graphics.Rect();
         dateNode.getBoundsInScreen(dateBounds);
         android.graphics.Paint datePaint = new android.graphics.Paint();
-        datePaint.setTextSize(24 * getTargetContext().getResources().getDisplayMetrics().scaledDensity);
+        android.content.res.Resources resources = getTargetContext().getResources();
+        datePaint.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
+                24, resources.getDisplayMetrics()));
+        datePaint.setTypeface(android.graphics.Typeface.create(resources.getFont(
+                resources.getIdentifier("fredoka", "font", getTargetContext().getPackageName())), 700, false));
+        datePaint.setFontVariationSettings("'wght' 700");
         if (dateBounds.width() + 1 < datePaint.measureText(date))
             throw new AssertionError("Full date is clipped: " + dateBounds.width() + " < " + datePaint.measureText(date));
         if (findTextNode(saverNode("Clock screensaver. Tap to return"), time) == null)

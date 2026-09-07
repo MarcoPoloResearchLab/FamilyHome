@@ -31,11 +31,19 @@ public final class WeatherWidgetTest extends Instrumentation {
             scenario(69, 0, "cloudy", "Cloudy", "Light layer", "Sneakers");
             scenario(54, 0, "fog", "Foggy", "Jacket", "Sneakers");
             scenario(39, 0, "clear", "Sunny", "Warm coat", "Warm boots");
-            scenario(75, 40, "clear", "Sunny", "Raincoat", "Rain boots");
+            scenario(75, 40, "clear", "Sunny", "T-shirt", "Sneakers");
             scenario(52, 0, "rain", "Light rain showers", "Raincoat", "Rain boots");
             scenario(42, 80, "snow", "Snowy", "Warm coat", "Warm boots");
+            scenario(52, 92, 50, 80, "clear", "Sunny", "Jacket", "Sneakers",
+                    "Hot · Rain likely", "Bring water and a sun hat.", "Pack a raincoat and waterproof shoes.", "Take a layer for cooler hours.");
+            scenario(74, 85, 68, 40, "clear", "Sunny", "T-shirt", "Sneakers",
+                    "Hot · Rain possible", "Bring water and a sun hat.", "Pack a raincoat.");
+            scenario(74, 84, 68, 39, "clear", "Sunny", "T-shirt", "Sneakers",
+                    "Warm", "Wear light clothes.");
+            scenario(30, 38, 25, 75, "clear", "Sunny", "Warm coat", "Warm boots",
+                    "Very cold · Rain or snow likely", "Take a coat, hat and gloves.", "Pack waterproof layers and boots.");
             refreshWhileHomeStaysOpen();
-            result.putString("stream", "Weather widget passed: seven outfits, cache startup, card bounds, expiry, and automatic recovery.\n");
+            result.putString("stream", "Weather widget passed: eleven Now and Today scenarios, combined daily advice, cache startup, card bounds, expiry, and automatic recovery.\n");
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
             result.putString("stream", "Weather widget failed: " + error + "\n");
@@ -89,12 +97,18 @@ public final class WeatherWidgetTest extends Instrumentation {
                     if (containsText(root, "72°") || containsText(root, "Sunny") || containsText(root, "T-shirt")) {
                         throw new AssertionError("Expired weather is still presented as current");
                     }
+                    if (containsText(root, "High 79°  •  Low 62°") || containsText(root, "Wear light clothes."))
+                        throw new AssertionError("Expired daily advice is still presented as current");
+                    requireText((ViewGroup) root, "Forecast unavailable");
                 });
                 if (requests.get() != 1) throw new AssertionError("Expected one failed request, got " + requests.get());
                 awaitText(activity, "Rainy", 40000L);
                 runOnMainSync(() -> {
                     View root = activity.getWindow().getDecorView();
                     if (!containsText(root, "68°") || !containsText(root, "Raincoat")) throw new AssertionError("Live weather was not rendered");
+                    requireText((ViewGroup) root, "High 80°  •  Low 66°");
+                    requireText((ViewGroup) root, "Warm · Rain likely");
+                    requireText((ViewGroup) root, "Pack a raincoat and waterproof shoes.");
                 });
                 Thread.sleep(1000L);
                 if (requests.get() != 2) throw new AssertionError("Duplicate weather requests: " + requests.get());
@@ -117,8 +131,13 @@ public final class WeatherWidgetTest extends Instrumentation {
     }
 
     private void scenario(int feelsLike, int rain, String icon, String condition, String top, String shoes) throws Exception {
+        scenario(feelsLike, 76, 36, rain, icon, condition, top, shoes, new String[0]);
+    }
+
+    private void scenario(int feelsLike, int high, int low, int rain, String icon, String condition,
+            String top, String shoes, String... dailyAdvice) throws Exception {
         JSONObject weather = new JSONObject().put("location", "Manhattan Beach, California")
-                .put("temperature_f", 65).put("feels_like_f", feelsLike).put("high_f", 76).put("low_f", 36)
+                .put("temperature_f", 65).put("feels_like_f", feelsLike).put("high_f", high).put("low_f", low)
                 .put("precipitation_probability", rain).put("condition", condition).put("icon", icon);
         boolean saved = getTargetContext().getSharedPreferences("children_portal", Context.MODE_PRIVATE).edit()
                 .putString("profiles_json", "[{\"id\":\"weather-test\",\"name\":\"Weather Test\"}]")
@@ -138,13 +157,20 @@ public final class WeatherWidgetTest extends Instrumentation {
                 if (card == null) throw new AssertionError("Weather card is missing");
                 float density = activity.getResources().getDisplayMetrics().density;
                 if (card.getHeight() / density < 360) throw new AssertionError("Weather card needs space for the outlined outfit illustrations");
-                requireText(card, "Feels like " + feelsLike + "°");
-                requireText(card, "High 76°  •  Low 36°  •  Rain " + rain + "%");
-                requireText(card, "READY TO GO?");
-                requireText(card, top);
-                requireText(card, "Pants");
-                requireText(card, shoes);
-                requireText(card, "Weather by Open-Meteo");
+                requireText(card, "Now");
+                requireText(card, "Today");
+                ViewGroup now = (ViewGroup) findText(card, "Now").getParent().getParent();
+                ViewGroup today = (ViewGroup) findText(card, "Today").getParent().getParent();
+                if (now == today) throw new AssertionError("Now and Today must be separate reports");
+                requireText(now, "Feels like " + feelsLike + "°");
+                requireText(now, condition);
+                requireText(now, top);
+                requireText(now, "Pants");
+                requireText(now, shoes);
+                requireText(today, "High " + high + "°  •  Low " + low + "°");
+                requireText(today, (high < 40 ? "Rain / snow chance " : "Rain chance ") + rain + "%");
+                for (String advice : dailyAdvice) requireText(today, advice);
+                requireText(card, "Open-Meteo");
                 Rect bounds = new Rect();
                 card.getGlobalVisibleRect(bounds);
                 checkBounds(card, bounds);
@@ -186,6 +212,18 @@ public final class WeatherWidgetTest extends Instrumentation {
 
     private void requireText(ViewGroup card, String text) {
         if (!containsText(card, text)) throw new AssertionError("Missing text: " + text);
+    }
+
+    private TextView findText(View view, String label) {
+        if (view instanceof TextView && ((TextView) view).getText().toString().equals(label)) return (TextView) view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                TextView found = findText(group.getChildAt(i), label);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     private void checkTextLayouts(View view) {

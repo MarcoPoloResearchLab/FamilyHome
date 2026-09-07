@@ -11,6 +11,9 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -27,19 +30,24 @@ final class PortalStyle {
     static final int MINT = 0xff77ddb5;
     static final int YELLOW = 0xffffd65c;
     static final int WHITE = Color.WHITE;
+    static final int OUTLINE_DP = 3;
+    static final int SHADOW_DP = 4;
     enum TextRole {
-        TITLE(32, true), PRIMARY(24, true), CONTROL(22, true), SECTION(22, true), BODY(20, false), DISPLAY(48, true), COUNTDOWN(76, true);
+        TITLE(32, true), PRIMARY(24, true), CONTROL(22, true), SECTION(22, true), BODY(20, false), ATTRIBUTION(14, false), DISPLAY(48, true), COUNTDOWN(76, true);
         final int sp;
         final boolean rounded;
         TextRole(int sp, boolean rounded) { this.sp = sp; this.rounded = rounded; }
     }
     static final int CONTROL_HEIGHT = 60;
     static final int PRIMARY_HEIGHT = 64;
+    static final int ATTRIBUTION_HEIGHT = 48;
     static void text(TextView view, TextRole role) {
         view.setTag(R.id.portal_text_role, role);
         view.setTextSize(role.sp);
         view.setAccessibilityHeading(role == TextRole.TITLE || role == TextRole.SECTION);
         view.setTypeface(role.rounded ? heading(view.getContext()) : Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        view.setFontVariationSettings(null);
+        if (role.rounded) view.setFontVariationSettings("'wght' 700");
     }
     static void primary(Button view) {
         button(view);
@@ -66,6 +74,24 @@ final class PortalStyle {
 
     static Drawable surface(Context context, int color, int radius) {
         return new OutlinedSurface(context, color, radius);
+    }
+
+    static void tile(View view, int color) {
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{-android.R.attr.state_enabled}, new ColorDrawable(0xffdeded8));
+        GradientDrawable pressed = new GradientDrawable();
+        pressed.setColor(Color.rgb(Color.red(color) * 4 / 5, Color.green(color) * 4 / 5, Color.blue(color) * 4 / 5));
+        pressed.setStroke(dp(view.getContext(), OUTLINE_DP), INK);
+        states.addState(new int[]{android.R.attr.state_pressed}, pressed);
+        GradientDrawable focus = new GradientDrawable();
+        focus.setColor(color);
+        focus.setStroke(dp(view.getContext(), OUTLINE_DP * 2), INK);
+        states.addState(new int[]{android.R.attr.state_focused}, focus);
+        states.addState(new int[]{android.R.attr.state_selected}, focus);
+        states.addState(new int[]{}, new ColorDrawable(color));
+        view.setBackground(states);
+        view.setDefaultFocusHighlightEnabled(false);
+        view.setStateListAnimator(null);
     }
 
     static void button(TextView view) {
@@ -131,8 +157,8 @@ final class PortalStyle {
         OutlinedSurface(Context context, int color, int radius) {
             this.color = color;
             this.radius = dp(context, radius);
-            stroke = dp(context, 3);
-            shadow = dp(context, 4);
+            stroke = dp(context, OUTLINE_DP);
+            shadow = dp(context, SHADOW_DP);
         }
 
         @Override public void draw(Canvas canvas) {
