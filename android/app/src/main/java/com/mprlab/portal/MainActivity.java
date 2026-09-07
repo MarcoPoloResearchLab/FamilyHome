@@ -4,6 +4,7 @@ import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Canvas;
@@ -11,10 +12,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.net.Uri;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
@@ -38,9 +39,7 @@ import java.util.Date;
 import java.util.Locale;
 
 public final class MainActivity extends PortalActivity {
-    private static final int BG = PortalStyle.PAPER;
     private static final int SYSTEM_BAR = PortalStyle.INK;
-    private static final int SURFACE = PortalStyle.WHITE;
     private static final int INK = PortalStyle.INK;
     private static final int MUTED = PortalStyle.SECONDARY;
     private static final int BLUE = PortalStyle.BLUE;
@@ -56,7 +55,8 @@ public final class MainActivity extends PortalActivity {
     private static final long QUICK_TIMER_MS = 5L * 60L * 1000L;
     private static final long WEATHER_CACHE_MS = 15L * 60L * 1000L;
     private static final long WEATHER_RETRY_MS = 30L * 1000L;
-    private static final String WEATHER_SOURCE = "Weather by Open-Meteo";
+    private static final String WEATHER_SOURCE = "Open-Meteo";
+    private static final String WEATHER_SOURCE_URL = "https://open-meteo.com/en/licence";
     private final Handler handler = new Handler();
     private ProfileStore store;
     private TimeFormatSettings.Format timeFormat;
@@ -64,9 +64,9 @@ public final class MainActivity extends PortalActivity {
     private TextView countdownDisplay;
     private Button countdownPause;
     private TextView weatherTemperature, weatherCondition, weatherDetails, weatherPlace, weatherFeelsLike;
-    private TextView weatherAdvice, weatherTopLabel, weatherShoesLabel, weatherSource;
+    private TextView weatherTopLabel, weatherShoesLabel, weatherDayOutlook, weatherPrecipitation;
     private ImageView weatherTopIcon, weatherShoesIcon;
-    private LinearLayout weatherOutfit;
+    private LinearLayout weatherOutfit, weatherDayAdvice;
     private WeatherReport weatherReport;
     private LinearLayout weatherCard;
     private WeatherIconView weatherIcon;
@@ -126,14 +126,10 @@ public final class MainActivity extends PortalActivity {
     }
 
     private void render() {
-        ScrollView scroll = PortalStyle.scroll(this);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(BG);
-        LinearLayout root = column();
-        root.setPadding(dp(24), dp(12), dp(24), dp(20));
-        scroll.addView(root, new ScrollView.LayoutParams(-1, -1));
-
+        LinearLayout root = JoinedSurface.column(this);
+        root.setBackgroundColor(PortalStyle.PAPER);
         LinearLayout header = row();
+        header.setPadding(dp(12), dp(8), dp(12), dp(8));
         Button profile = button(store.active == null ? "Set up FamilyHome" : "Hi, " + store.active.name + "!  ▾", PURPLE);
         profile.setOnClickListener(v -> {
             if (store.profiles.isEmpty()) openSettings();
@@ -141,6 +137,17 @@ public final class MainActivity extends PortalActivity {
         });
         PortalStyle.text(profile, PortalStyle.TextRole.TITLE);
         header.addView(profile, weighted(1f, 72));
+        timerText = text("", PortalStyle.TextRole.CONTROL, INK);
+        timerText.setGravity(Gravity.CENTER);
+        timerText.setPadding(dp(12), 0, dp(12), 0);
+        timerText.setBackground(rounded(PALE_YELLOW, 16));
+        timerText.setClickable(true);
+        timerText.setFocusable(true);
+        timerText.setVisibility(View.GONE);
+        timerText.setOnClickListener(v -> showCountdown());
+        LinearLayout.LayoutParams activeTimer = new LinearLayout.LayoutParams(-2, dp(64));
+        activeTimer.leftMargin = dp(10);
+        header.addView(timerText, activeTimer);
         clock = text("", PortalStyle.TextRole.SECTION, INK);
         clock.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         header.addView(clock, weighted(1.35f, 72));
@@ -156,62 +163,43 @@ public final class MainActivity extends PortalActivity {
         header.addView(settings, settingsParams);
         root.addView(header, matchWrap());
 
-        LinearLayout cards = row();
-        cards.setPadding(dp(8), 0, dp(8), dp(12));
-        cards.setClipChildren(false);
-        cards.setClipToPadding(false);
-        LinearLayout calendarCard = card(PALE_BLUE);
-        calendarCard.addView(label("COMING UP"));
-        eventTitle = text("What’s next?", PortalStyle.TextRole.TITLE, INK);
-        eventTitle.setPadding(0, dp(22), 0, dp(8));
-        LinearLayout calendarHeading = row();
-        calendarHeading.addView(eventTitle, new LinearLayout.LayoutParams(0, -2, 1));
-        calendarHeading.addView(new CharacterView(this, CharacterView.Kind.CALENDAR), new LinearLayout.LayoutParams(dp(108), dp(108)));
-        calendarCard.addView(calendarHeading, matchWrap());
+        LinearLayout cards = JoinedSurface.row(this);
+        LinearLayout calendarCard = column();
+        calendarCard.setBackgroundColor(PALE_BLUE);
+        calendarCard.setPadding(dp(20), dp(16), dp(20), dp(16));
+        calendarCard.addView(text("Coming up", PortalStyle.TextRole.SECTION, INK), matchWrap());
+        CharacterView calendar = new CharacterView(this, CharacterView.Kind.CALENDAR);
+        calendarCard.addView(calendar, new LinearLayout.LayoutParams(-1, 0, 1f));
+        eventTitle = text("What’s next?", PortalStyle.TextRole.PRIMARY, INK);
+        calendarCard.addView(eventTitle, matchWrap());
         eventTime = text("Add a calendar to see the next adventure.", PortalStyle.TextRole.BODY, MUTED);
-        calendarCard.addView(eventTime);
+        calendarCard.addView(eventTime, matchWrap());
         Button connect = button("Add or change calendar", BLUE);
         connect.setOnClickListener(v -> openSettings());
         LinearLayout.LayoutParams connectParams = matchWrap();
-        calendarCard.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1));
         connectParams.topMargin = dp(12);
         calendarCard.addView(connect, connectParams);
 
-        LinearLayout timerCard = card(SURFACE);
-        timerCard.setPadding(dp(10), dp(8), dp(14), dp(14));
-        timerCard.setClipToOutline(false);
-        LinearLayout timerSummary = row();
-        timerSummary.setPadding(dp(18), 0, dp(18), 0);
-        timerSummary.addView(label("TIMER"), new LinearLayout.LayoutParams(0, -2, 1f));
-        timerText = text("Choose your time", PortalStyle.TextRole.SECTION, MUTED);
-        timerText.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        timerText.setClickable(true);
-        timerText.setFocusable(true);
-        timerText.setOnClickListener(v -> showCountdown());
-        timerSummary.addView(timerText, new LinearLayout.LayoutParams(-2, -1));
-        timerCard.addView(timerSummary, new LinearLayout.LayoutParams(-1, dp(42)));
-
-        LinearLayout timerGrid = column();
-        LinearLayout firstPresetRow = row();
+        LinearLayout timerGrid = JoinedSurface.column(this);
+        LinearLayout firstPresetRow = JoinedSurface.row(this);
         firstPresetRow.addView(timerPreset("Reading", "20 min", PALE_BLUE, CharacterView.Kind.BOOK,
                 () -> startTimer(READING_MS, "Reading")), timerParams());
         firstPresetRow.addView(timerPreset("Brush teeth", "2 min 15 sec", PALE_GREEN, CharacterView.Kind.TOOTH,
                 () -> startTimer(BRUSH_TEETH_MS, "Brush teeth")), timerParams());
         timerGrid.addView(firstPresetRow, new LinearLayout.LayoutParams(-1, 0, 1f));
-        LinearLayout secondPresetRow = row();
+        LinearLayout secondPresetRow = JoinedSurface.row(this);
         secondPresetRow.addView(timerPreset("Quick timer", "5 min", PALE_YELLOW, CharacterView.Kind.HOURGLASS,
                 () -> startTimer(QUICK_TIMER_MS, "Quick")), timerParams());
         secondPresetRow.addView(timerPreset("Custom", "Choose time", CORAL, CharacterView.Kind.CLOCK,
                 this::showCustomTimer), timerParams());
         timerGrid.addView(secondPresetRow, new LinearLayout.LayoutParams(-1, 0, 1f));
-        timerCard.addView(timerGrid, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         boolean showWeather = WeatherVisibility.isConfigured(store.weatherLocation);
-        cards.addView(calendarCard, cardParams(0, showWeather ? 3 : 2));
-        cards.addView(timerCard, cardParams(1, showWeather ? 3 : 2));
+        cards.addView(calendarCard, new LinearLayout.LayoutParams(0, -1, 1f));
+        cards.addView(timerGrid, new LinearLayout.LayoutParams(0, -1, 1.25f));
         if (showWeather) {
             weatherCard = createWeatherCard();
-            cards.addView(weatherCard, cardParams(2, 3));
+            cards.addView(weatherCard, new LinearLayout.LayoutParams(0, -1, 1f));
         } else {
             weatherCard = null;
             weatherIcon = null;
@@ -220,12 +208,8 @@ public final class MainActivity extends PortalActivity {
             weatherDetails = null;
             weatherPlace = null;
         }
-        root.addView(cards, matchWrap());
-
-        View activitySpacer = new View(this);
-        root.addView(activitySpacer, new LinearLayout.LayoutParams(-1, 0, 1f));
-
-        LinearLayout actions = row();
+        root.addView(cards, new LinearLayout.LayoutParams(-1, 0, 1f));
+        LinearLayout actions = JoinedSurface.row(this);
         ActivityTile draw = actionTile("Draw", "Make a picture", CORAL, CharacterView.Kind.PENCIL); draw.setOnClickListener(v -> launch(DrawingActivity.class));
         ActivityTile ask = actionTile("Ask", "Learn something", PURPLE, CharacterView.Kind.QUESTION); ask.setOnClickListener(v -> launch(AskActivity.class));
         ActivityTile music = actionTile("Music", "Choose an instrument", MUSIC_BLUE, CharacterView.Kind.MUSIC); music.setOnClickListener(v -> launch(MusicActivity.class));
@@ -237,10 +221,8 @@ public final class MainActivity extends PortalActivity {
         ActivityTile photo = actionTile("Photo Booth", "Take a picture", PALE_YELLOW, CharacterView.Kind.CAMERA);
         photo.setOnClickListener(v -> launch(PhotoBoothActivity.class));
         actions.addView(photo, actionParams());
-        LinearLayout.LayoutParams actionRow = matchWrap(); actionRow.topMargin = dp(20);
-        root.addView(actions, actionRow);
-
-        setContentView(scroll);
+        root.addView(actions, new LinearLayout.LayoutParams(-1, dp(200)));
+        setContentView(root);
         updateTimer();
         refreshCalendar();
     }
@@ -258,16 +240,11 @@ public final class MainActivity extends PortalActivity {
             openSettings();
             return;
         }
-        String[] names = new String[store.profiles.size()];
-        for (int i = 0; i < store.profiles.size(); i++) names[i] = store.profiles.get(i).name;
-        showPortalDialog(new android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Whose turn is it?")
-                .setItems(names, (dialog, which) -> {
-                    store.active = store.profiles.get(which);
-                    store.save();
-                    render();
-                })
-                .setNegativeButton("Close", null)
-                .create());
+        showPortalDialog(new ProfilePickerDialog(this, store.profiles, store.active, profile -> {
+            store.active = profile;
+            store.save();
+            render();
+        }));
     }
 
     private void openSettings() {
@@ -444,7 +421,9 @@ public final class MainActivity extends PortalActivity {
         }
         long seconds = (remaining + 999) / 1000;
         String countdown = String.format(Locale.US, "%02d:%02d", seconds / 60, seconds % 60);
-        timerText.setText(running ? "◷ " + countdown : remaining > 0 ? "Paused · " + countdown : "Choose your time");
+        boolean hasTimer = store.active != null && store.active.timerEndEpochMs > 0 && remaining > 0;
+        timerText.setVisibility(hasTimer ? View.VISIBLE : View.GONE);
+        timerText.setText((running ? "Timer " : "Paused ") + countdown);
         timerText.setContentDescription("Open timer " + countdown);
         if (countdownDisplay != null) {
             countdownDisplay.setText(remaining == 0 ? "All done!" : countdown);
@@ -479,49 +458,30 @@ public final class MainActivity extends PortalActivity {
 
     private LinearLayout createWeatherCard() {
         LinearLayout weather = column();
-        LinearLayout shell = card(PALE_YELLOW);
-        shell.setPadding(0, 0, 0, 0);
+        LinearLayout shell = column();
+        shell.setBackgroundColor(PALE_YELLOW);
         weatherCard = shell;
         weatherReport = null;
         weather.setPadding(dp(20), dp(16), dp(24), dp(18));
-        weather.addView(label("TODAY’S WEATHER"));
-        weatherPlace = text(store.weatherLocation, PortalStyle.TextRole.BODY, MUTED);
-        weatherPlace.setSingleLine(true);
-        weatherPlace.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        weatherPlace = text(store.weatherLocation, PortalStyle.TextRole.SECTION, INK);
         weather.addView(weatherPlace, matchWrap());
 
+        LinearLayout now = column();
+        weatherCondition = text("Checking the sky…", PortalStyle.TextRole.BODY, INK);
+        now.addView(weatherHeading("Now", weatherCondition), matchWrap());
         LinearLayout current = row();
         current.setGravity(Gravity.CENTER_VERTICAL);
-        weatherIcon = new WeatherIconView();
-        weatherIcon.setVisibility(View.INVISIBLE);
-        current.addView(weatherIcon, new LinearLayout.LayoutParams(dp(70), dp(70)));
+        LinearLayout readings = column();
         weatherTemperature = text("—", PortalStyle.TextRole.DISPLAY, INK);
         weatherTemperature.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams temperatureParams = new LinearLayout.LayoutParams(dp(108), -2);
-        temperatureParams.leftMargin = dp(6);
-        current.addView(weatherTemperature, temperatureParams);
-        LinearLayout description = column();
-        description.setGravity(Gravity.CENTER_VERTICAL);
-        weatherCondition = text("Checking the sky…", PortalStyle.TextRole.SECTION, INK);
-        weatherCondition.setMaxLines(2);
-        description.addView(weatherCondition, matchWrap());
+        readings.addView(weatherTemperature, matchWrap());
         weatherFeelsLike = text("", PortalStyle.TextRole.BODY, MUTED);
-        description.addView(weatherFeelsLike, matchWrap());
-        current.addView(description, new LinearLayout.LayoutParams(0, -2, 1f));
-        LinearLayout.LayoutParams currentParams = matchWrap();
-        currentParams.topMargin = dp(3);
-        weather.addView(current, currentParams);
-
-        weatherDetails = text("", PortalStyle.TextRole.BODY, MUTED);
-        weather.addView(weatherDetails, matchWrap());
-
-        View divider = new View(this);
-        divider.setBackgroundColor(INK);
-        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(-1, dp(2));
-        dividerParams.topMargin = dp(9);
-        dividerParams.bottomMargin = dp(7);
-        weather.addView(divider, dividerParams);
-        weather.addView(text("READY TO GO?", PortalStyle.TextRole.SECTION, MUTED), matchWrap());
+        readings.addView(weatherFeelsLike, matchWrap());
+        current.addView(readings, new LinearLayout.LayoutParams(0, -2, 1f));
+        weatherIcon = new WeatherIconView();
+        weatherIcon.setVisibility(View.INVISIBLE);
+        current.addView(weatherIcon, new LinearLayout.LayoutParams(dp(72), dp(72)));
+        now.addView(current, matchWrap());
 
         weatherOutfit = row();
         weatherOutfit.setGravity(Gravity.CENTER);
@@ -535,14 +495,42 @@ public final class MainActivity extends PortalActivity {
         weatherShoesLabel = text("", PortalStyle.TextRole.SECTION, INK);
         weatherOutfit.addView(outfitItem(weatherShoesIcon, weatherShoesLabel), new LinearLayout.LayoutParams(0, -1, 1f));
         weatherOutfit.setVisibility(View.INVISIBLE);
-        weather.addView(weatherOutfit, new LinearLayout.LayoutParams(-1, -2));
-        weatherAdvice = text("Checking what to wear…", PortalStyle.TextRole.BODY, INK);
-        weatherAdvice.setGravity(Gravity.CENTER);
-        weatherAdvice.setMaxLines(2);
-        weather.addView(weatherAdvice, matchWrap());
-        weatherSource = text(WEATHER_SOURCE, PortalStyle.TextRole.BODY, MUTED);
-        weatherSource.setGravity(Gravity.CENTER);
-        weatherSource.setPadding(0, dp(3), 0, 0);
+        now.addView(weatherOutfit, new LinearLayout.LayoutParams(-1, -2));
+        weather.addView(now, matchWrap());
+
+        View divider = new View(this);
+        divider.setBackgroundColor(INK);
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(-1, dp(PortalStyle.OUTLINE_DP));
+        dividerParams.topMargin = dp(8);
+        dividerParams.bottomMargin = dp(8);
+        weather.addView(divider, dividerParams);
+
+        LinearLayout today = column();
+        weatherDayOutlook = text("", PortalStyle.TextRole.BODY, INK);
+        today.addView(weatherHeading("Today", weatherDayOutlook), matchWrap());
+        weatherDetails = text("Checking today's forecast…", PortalStyle.TextRole.BODY, MUTED);
+        today.addView(weatherDetails, matchWrap());
+        weatherPrecipitation = text("", PortalStyle.TextRole.BODY, MUTED);
+        today.addView(weatherPrecipitation, matchWrap());
+        weatherDayAdvice = column();
+        weatherDayAdvice.setPadding(0, dp(6), 0, 0);
+        today.addView(weatherDayAdvice, matchWrap());
+        weather.addView(today, matchWrap());
+        TextView weatherSource = text(WEATHER_SOURCE, PortalStyle.TextRole.ATTRIBUTION, MUTED);
+        weatherSource.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        weatherSource.setMinHeight(dp(PortalStyle.ATTRIBUTION_HEIGHT));
+        weatherSource.setPadding(dp(8), 0, dp(8), 0);
+        weatherSource.setPaintFlags(weatherSource.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        weatherSource.setContentDescription("Weather data by Open-Meteo. Open source and license.");
+        weatherSource.setFocusable(true);
+        PortalStyle.tile(weatherSource, PALE_YELLOW);
+        weatherSource.setOnClickListener(v -> {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(WEATHER_SOURCE_URL)));
+            } catch (ActivityNotFoundException error) {
+                Toast.makeText(this, "No browser is available to open the weather source.", Toast.LENGTH_LONG).show();
+            }
+        });
         weather.addView(weatherSource, matchWrap());
 
         if (store.hasWeatherCacheFor(store.weatherLocation) && weatherCacheIsFresh()) {
@@ -561,13 +549,25 @@ public final class MainActivity extends PortalActivity {
 
     private LinearLayout outfitItem(ImageView icon, TextView title) {
         LinearLayout item = column();
+        PortalStyle.text(title, PortalStyle.TextRole.BODY);
         item.setGravity(Gravity.CENTER);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        item.addView(icon, new LinearLayout.LayoutParams(dp(72), dp(72)));
+        item.addView(icon, new LinearLayout.LayoutParams(dp(52), dp(52)));
         title.setGravity(Gravity.CENTER);
         item.addView(title, matchWrap());
         return item;
+    }
+
+    private LinearLayout weatherHeading(String label, TextView summary) {
+        LinearLayout heading = row();
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        TextView title = text(label, PortalStyle.TextRole.SECTION, INK);
+        title.setPadding(0, dp(4), dp(12), dp(4));
+        heading.addView(title, new LinearLayout.LayoutParams(-2, -2));
+        summary.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        heading.addView(summary, new LinearLayout.LayoutParams(0, -2, 1f));
+        return heading;
     }
 
     private boolean weatherCacheIsFresh() {
@@ -632,13 +632,15 @@ public final class MainActivity extends PortalActivity {
         weatherTemperature.setText("—");
         weatherCondition.setText("Weather unavailable");
         weatherFeelsLike.setText("");
-        weatherDetails.setText("Trying again automatically.");
-        weatherAdvice.setText("Ask a grown-up what to wear.");
+        weatherDayOutlook.setText("");
+        weatherDetails.setText("Forecast unavailable");
+        weatherPrecipitation.setText("");
+        weatherDayAdvice.removeAllViews();
+        weatherDayAdvice.addView(text("Trying again automatically.", PortalStyle.TextRole.BODY, MUTED), matchWrap());
         weatherTopLabel.setText("");
         weatherShoesLabel.setText("");
         weatherOutfit.setVisibility(View.INVISIBLE);
         weatherIcon.setVisibility(View.INVISIBLE);
-        weatherSource.setText(WEATHER_SOURCE);
         weatherCard.setContentDescription("Weather unavailable for " + store.weatherLocation + ". Trying again automatically.");
     }
 
@@ -647,7 +649,7 @@ public final class MainActivity extends PortalActivity {
         weatherTemperature.setText(weather.temperature + "°");
         weatherCondition.setText(weather.condition);
         weatherFeelsLike.setText("Feels like " + weather.feelsLike + "°");
-        String details = "High " + weather.high + "°  •  Low " + weather.low + "°  •  Rain " + weather.precipitation + "%";
+        String details = "High " + weather.high + "°  •  Low " + weather.low + "°";
         weatherDetails.setText(details);
         weatherPlace.setText(weather.place);
         weatherIcon.setCondition(weather.icon);
@@ -657,12 +659,18 @@ public final class MainActivity extends PortalActivity {
         weatherTopLabel.setText(outfit.top);
         weatherShoesIcon.setImageResource(outfit.shoesIcon);
         weatherShoesLabel.setText(outfit.shoes);
-        weatherAdvice.setText(outfit.advice);
         weatherOutfit.setVisibility(View.VISIBLE);
-        weatherSource.setText(WEATHER_SOURCE);
-        weatherCard.setContentDescription("Weather for " + weather.place + ". " + weather.temperature
-                + " degrees and " + weather.condition + ". Feels like " + weather.feelsLike + ". " + details
-                + ". Ready to go? " + outfit.top + ", pants, " + outfit.shoes + ". " + outfit.advice);
+        WeatherReport.DayPlan day = weather.dayPlan();
+        weatherDayOutlook.setText(day.outlook);
+        weatherPrecipitation.setText(day.precipitation);
+        weatherDayAdvice.removeAllViews();
+        for (String advice : day.advice) {
+            weatherDayAdvice.addView(text(advice, PortalStyle.TextRole.BODY, INK), matchWrap());
+        }
+        weatherCard.setContentDescription("Weather for " + weather.place + ". Now: " + weather.temperature
+                + " degrees and " + weather.condition + ". Feels like " + weather.feelsLike
+                + ". Wear " + outfit.top + ", pants, " + outfit.shoes + ". Today: " + day.outlook + ". "
+                + details + ". " + day.precipitation + ". " + android.text.TextUtils.join(" ", day.advice));
     }
 
     static String read(HttpURLConnection connection) throws Exception {
@@ -684,8 +692,6 @@ public final class MainActivity extends PortalActivity {
 
     private LinearLayout row() { LinearLayout v = new LinearLayout(this); v.setOrientation(LinearLayout.HORIZONTAL); v.setGravity(Gravity.CENTER_VERTICAL); return v; }
     private LinearLayout column() { LinearLayout v = new LinearLayout(this); v.setOrientation(LinearLayout.VERTICAL); return v; }
-    private LinearLayout card(int color) { LinearLayout v = column(); v.setPadding(dp(22), dp(18), dp(26), dp(22)); v.setBackground(rounded(color, 24)); v.setElevation(0); return v; }
-    private TextView label(String value) { TextView v = text(value, PortalStyle.TextRole.SECTION, MUTED); v.setLetterSpacing(.08f); return v; }
     private TextView text(String value, PortalStyle.TextRole role, int color) { TextView v = new TextView(this); v.setText(value); PortalStyle.text(v, role); v.setTextColor(color); return v; }
     private Button button(String value, int color) { Button v = new Button(this); v.setText(value); v.setAllCaps(false); PortalStyle.button(v); v.setBackground(rounded(color, 20)); v.setPadding(dp(18), dp(8), dp(18), dp(8)); return v; }
     private Button customTimerButton(String value, int color) { Button v = button(value, color); PortalStyle.text(v, PortalStyle.TextRole.CONTROL); return v; }
@@ -695,44 +701,25 @@ public final class MainActivity extends PortalActivity {
     private LinearLayout.LayoutParams matchWrap() { return new LinearLayout.LayoutParams(-1, -2); }
     private LinearLayout.LayoutParams weighted(float weight, int height) { return new LinearLayout.LayoutParams(0, dp(height), weight); }
     private LinearLayout.LayoutParams spacedWeighted(float weight, int height, boolean left) { LinearLayout.LayoutParams p = weighted(weight, height); if (left) p.leftMargin = dp(8); else p.rightMargin = dp(8); return p; }
-    private LinearLayout.LayoutParams timerParams() { LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1f); params.setMargins(dp(3), dp(3), dp(3), dp(3)); return params; }
-    private LinearLayout.LayoutParams actionParams() { LinearLayout.LayoutParams p = weighted(1f, 200); p.leftMargin = dp(6); p.rightMargin = dp(6); return p; }
-    private LinearLayout.LayoutParams cardParams(int position, int count) {
-        LinearLayout.LayoutParams params = weighted(1f, 420);
-        params.topMargin = dp(20);
-        params.bottomMargin = dp(12);
-        int gap = count == 3 ? 8 : 12;
-        if (position > 0) params.leftMargin = dp(gap);
-        if (position < count - 1) params.rightMargin = dp(gap);
-        return params;
-    }
+    private LinearLayout.LayoutParams timerParams() { return new LinearLayout.LayoutParams(0, -1, 1f); }
+    private LinearLayout.LayoutParams actionParams() { return new LinearLayout.LayoutParams(0, -1, 1f); }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 
     private final class TimerPresetTile extends LinearLayout {
         TimerPresetTile(String titleValue, String durationValue, int color, CharacterView.Kind iconKind, Runnable command) {
             super(MainActivity.this);
             setOrientation(VERTICAL);
-            setGravity(Gravity.CENTER);
-            setPadding(dp(8), dp(4), dp(8), dp(4));
-            setBackground(rounded(color, 18));
+            setPadding(dp(16), dp(12), dp(16), dp(10));
+            PortalStyle.tile(this, color);
             setClickable(true);
             setFocusable(true);
             setOnClickListener(view -> command.run());
-
+            TextView title = text(titleValue, PortalStyle.TextRole.CONTROL, INK);
+            TextView duration = text(durationValue, PortalStyle.TextRole.BODY, INK);
+            addView(title, matchWrap());
+            addView(duration, matchWrap());
             CharacterView illustration = new CharacterView(MainActivity.this, iconKind);
-            illustration.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            addView(illustration, new LinearLayout.LayoutParams(dp(70), dp(70)));
-            LinearLayout words = column();
-            TextView title = text(titleValue, PortalStyle.TextRole.SECTION, INK);
-            title.setGravity(Gravity.CENTER);
-            TextView duration = text(durationValue, PortalStyle.TextRole.BODY, MUTED);
-            duration.setGravity(Gravity.CENTER);
-            duration.setPadding(0, dp(2), 0, 0);
-            words.addView(title, matchWrap());
-            words.addView(duration, matchWrap());
-            LinearLayout.LayoutParams wordsParams = matchWrap();
-            wordsParams.topMargin = dp(2);
-            addView(words, wordsParams);
+            addView(illustration, new LinearLayout.LayoutParams(-1, 0, 1f));
             setContentDescription(titleValue + " timer, " + durationValue);
         }
     }
@@ -743,12 +730,12 @@ public final class MainActivity extends PortalActivity {
             super(MainActivity.this);
             setOrientation(VERTICAL);
             setGravity(Gravity.CENTER);
-            setPadding(dp(14), dp(10), dp(18), dp(18));
+            setPadding(dp(12), dp(10), dp(12), dp(12));
             setClickable(true);
             setFocusable(true);
-            setBackground(rounded(color, 24));
+            PortalStyle.tile(this, color);
             addView(new CharacterView(MainActivity.this, iconKind), new LinearLayout.LayoutParams(-1, 0, 1));
-            TextView title = text(titleValue, PortalStyle.TextRole.TITLE, INK);
+            TextView title = text(titleValue, PortalStyle.TextRole.PRIMARY, INK);
             title.setGravity(Gravity.CENTER);
             addView(title, matchWrap());
             setContentDescription(titleValue + ". " + subtitleValue);

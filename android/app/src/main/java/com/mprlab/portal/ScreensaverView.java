@@ -9,7 +9,6 @@ import android.view.Gravity;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextClock;
-import android.widget.TextView;
 import java.util.Locale;
 
 final class ScreensaverView extends FrameLayout {
@@ -67,12 +66,6 @@ final class ScreensaverView extends FrameLayout {
             date.setTextColor(Color.rgb(190, 198, 210));
             date.setGravity(Gravity.CENTER);
             clock.addView(date, new LinearLayout.LayoutParams(-2, -2));
-            TextView help = new TextView(context);
-            help.setText("Tap anywhere to return");
-            PortalStyle.text(help, PortalStyle.TextRole.BODY);
-            help.setTextColor(Color.GRAY);
-            help.setGravity(Gravity.CENTER);
-            clock.addView(help, new LinearLayout.LayoutParams(-2, -2));
             addView(clock, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.LEFT));
         } else {
             clock = null;

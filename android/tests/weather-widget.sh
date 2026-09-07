@@ -18,7 +18,9 @@ if [[ ! -f "$keystore" ]]; then
   keytool -genkeypair -noprompt -keystore "$keystore" -storepass android -keypass android \
     -alias test -keyalg RSA -validity 3650 -dname 'CN=Weather Widget Test' >/dev/null
 fi
+original_font_scale="$("$adb" shell settings get system font_scale | tr -d '\r')"
 cleanup() {
+  "$adb" shell settings put system font_scale "$original_font_scale" >/dev/null
   "$adb" uninstall com.mprlab.portal.weathertest >/dev/null 2>&1 || true
   "$adb" uninstall com.mprlab.portal >/dev/null 2>&1 || true
 }
@@ -36,6 +38,10 @@ zip -j -q "$output/test.apk" "$output/dex/classes.dex"
   --out "$output/test-signed.apk" "$output/test-aligned.apk"
 "$adb" install "$output/app/weather-app.apk"
 "$adb" install "$output/test-signed.apk"
-result="$("$adb" shell am instrument -w com.mprlab.portal.weathertest/.WeatherWidgetTest)"
-printf '%s\n' "$result"
-[[ "$result" == *'Weather widget passed:'* ]]
+for scale in 1.0 1.3; do
+  "$adb" shell settings put system font_scale "$scale"
+  "$adb" shell am force-stop com.mprlab.portal
+  result="$("$adb" shell am instrument -w com.mprlab.portal.weathertest/.WeatherWidgetTest)"
+  printf '%s\n' "$result"
+  [[ "$result" == *'Weather widget passed:'* ]]
+done

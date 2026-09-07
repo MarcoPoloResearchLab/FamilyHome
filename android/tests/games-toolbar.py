@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import subprocess
 import struct
+import time
 import xml.etree.ElementTree as ET
 import pytest
 
@@ -16,7 +17,8 @@ def command(*args: str) -> str:
     return subprocess.check_output(ADB + list(args), text=True)
 
 def snapshot() -> ET.Element:
-    command("shell", "uiautomator", "dump", "/sdcard/games-toolbar.xml")
+    result = command("shell", "uiautomator", "dump", "/sdcard/games-toolbar.xml")
+    assert "dumped to:" in result, f"No current UI hierarchy: {result}"
     return ET.fromstring(command("exec-out", "cat", "/sdcard/games-toolbar.xml"))
 
 def control(root: ET.Element, label: str) -> ET.Element:
@@ -35,8 +37,20 @@ def tap(node: ET.Element) -> None:
     command("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
 
 def open_game(game: str) -> None:
-    tap(control(snapshot(), "Games"))
+    wait_familyhome("MainActivity")
+    # The fourth activity tile on the fixed 1280 by 800 Portal viewport.
+    command("shell", "input", "tap", "890", "700")
+    wait_familyhome("GameLibraryActivity")
     tap(control(snapshot(), game.title()))
+
+def wait_familyhome(activity: str) -> None:
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        state = command("shell", "dumpsys", "activity", "activities")
+        if re.search(r"(?:mResumedActivity|topResumedActivity).*com.mprlab.portal/." + activity + r"\b", state):
+            return
+        time.sleep(.1)
+    raise AssertionError(f"FamilyHome did not open {activity}")
 
 def game_activity(game: str) -> str:
     state = command("shell", "dumpsys", "activity", "activities")
@@ -68,11 +82,12 @@ def check_button_face(root: ET.Element) -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 def familyhome_profile() -> None:
-    command("shell", "am", "start", "-W", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME", "-n", "com.mprlab.portal/.MainActivity")
+    command("shell", "am", "start", "-f", "0x24000000", "-n", "com.mprlab.portal/.MainActivity")
+    state = command("shell", "dumpsys", "activity", "activities")
+    if re.search(r"(?:mResumedActivity|topResumedActivity).*com.mprlab.portal/.MainActivity", state):
+        command("shell", "input", "tap", "1232", "40")
+    wait_familyhome("SettingsActivity")
     root = snapshot()
-    if any(n.get("content-desc") == "Open settings" for n in root.iter("node")):
-        tap(control(root, "Open settings"))
-        root = snapshot()
     if any(n.get("text") == "No child spaces yet" for n in root.iter("node")):
         tap(control(root, "＋  Add a child"))
         root = snapshot()
@@ -82,12 +97,12 @@ def familyhome_profile() -> None:
         tap(control(snapshot(), "Save"))
         root = snapshot()
     tap(control(root, "Home"))
-    snapshot()
+    wait_familyhome("MainActivity")
 
 @pytest.mark.parametrize("game", GAMES)
 def test_game_toolbar(game: str) -> None:
     command("shell", "am", "force-stop", GAMES[game].split("/")[0])
-    command("shell", "am", "start", "-W", "-n", "com.mprlab.portal/.MainActivity")
+    command("shell", "am", "start", "-f", "0x24000000", "-n", "com.mprlab.portal/.MainActivity")
     open_game(game)
     # Wait for the WebView or Flutter accessibility tree after the launch screen.
     for attempt in range(5):
@@ -135,7 +150,7 @@ def test_game_toolbar(game: str) -> None:
     (directory / f"{game}-toolbar.png").write_bytes(subprocess.check_output(ADB + ["exec-out", "screencap", "-p"]))
     active_game = game_activity(game)
     tap(control(root, "Home"))
-    snapshot()
+    wait_familyhome("MainActivity")
     state = command("shell", "dumpsys", "activity", "activities")
     assert re.search(r"(?:mResumedActivity|topResumedActivity).*com.mprlab.portal/.MainActivity", state), "Home did not return to FamilyHome"
     assert re.search(r"\* Hist\s+#\d+: " + re.escape(active_game), state), f"Home destroyed the active {game} game"
@@ -144,4 +159,44 @@ def test_game_toolbar(game: str) -> None:
     check_toolbar(root)
     assert game_activity(game) == active_game, f"The Games tile replaced the active {game} game"
     tap(control(root, "Home"))
-    snapshot()
+    wait_familyhome("MainActivity")
+
+
+@pytest.mark.parametrize("font_scale", ("1.0", "1.3"))
+def test_blocks_game_back(font_scale: str) -> None:
+    original_scale = command("shell", "settings", "get", "system", "font_scale").strip()
+    try:
+        command("shell", "settings", "put", "system", "font_scale", font_scale)
+        command("shell", "am", "force-stop", "com.blockdrop.game")
+        command("shell", "am", "start", "-f", "0x24000000", "-n", "com.mprlab.portal/.MainActivity")
+        open_game("blocks")
+        for attempt in range(5):
+            root = snapshot()
+            if any(n.get("content-desc") == "Back" for n in root.iter("node")):
+                break
+        active_game = game_activity("blocks")
+        tap(control(root, "Back"))
+        root = snapshot()
+        state = command("shell", "dumpsys", "activity", "activities")
+        assert re.search(r"(?:mResumedActivity|topResumedActivity).*com.mprlab.portal/.GameLibraryActivity", state), \
+            "Gameplay toolbar Back must return to FamilyHome Games, not open Blocks Settings"
+        assert re.search(r"\* Hist\s+#\d+: " + re.escape(active_game), state), "Back destroyed the active Blocks game"
+        tap(control(root, "Blocks"))
+        root = snapshot()
+        assert game_activity("blocks") == active_game, "Returning from Games replaced the Blocks game"
+        tap(control(root, "Settings"))
+        root = snapshot()
+        check_toolbar(root)
+        tap(control(root, "Back"))
+        root = snapshot()
+        check_toolbar(root)
+        assert any("Score:" in n.get("content-desc", "") for n in root.iter("node")), "Settings Back did not return to gameplay"
+        directory = Path("android/build/blocks-back")
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / f"game-{font_scale}.png").write_bytes(subprocess.check_output(ADB + ["exec-out", "screencap", "-p"]))
+        tap(control(root, "Home"))
+        wait_familyhome("MainActivity")
+        state = command("shell", "dumpsys", "activity", "activities")
+        assert re.search(r"(?:mResumedActivity|topResumedActivity).*com.mprlab.portal/.MainActivity", state), "Home did not return to FamilyHome"
+    finally:
+        command("shell", "settings", "put", "system", "font_scale", original_scale)

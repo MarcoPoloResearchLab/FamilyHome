@@ -69,7 +69,8 @@ public final class ToolbarTest extends Instrumentation {
                 float density = child.getResources().getDisplayMetrics().density;
                 Rect barRect = new Rect(), backRect = new Rect(), homeRect = new Rect();
                 toolbar.getGlobalVisibleRect(barRect); back.getGlobalVisibleRect(backRect); home.getGlobalVisibleRect(homeRect);
-                if (barRect.top != 0 || barRect.height() / density > 72) throw new AssertionError(name + " wastes top space: " + barRect);
+                float heightLimit = 72 * Math.max(1f, child.getResources().getConfiguration().fontScale);
+                if (barRect.top != 0 || barRect.height() / density > heightLimit) throw new AssertionError(name + " wastes top space: " + barRect);
                 if (backRect.top != homeRect.top || backRect.bottom != homeRect.bottom) throw new AssertionError(name + " uses two rows");
                 for (Rect rect : new Rect[]{backRect, homeRect}) {
                     if (rect.width() / density < 60 || rect.height() / density < 60) throw new AssertionError(name + " small target");

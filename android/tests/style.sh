@@ -56,7 +56,7 @@ for scale in 1.0 1.3; do
   "$adb" shell am force-stop com.mprlab.portal
   result="$("$adb" shell am instrument -w com.mprlab.portal.styletest/.StyleTest)"
   printf '%s\n' "$result"
-  for screen in home drawing ask music piano guitar games games-scrolled settings timer photobooth photobooth-filters photobooth-scrolled; do
+  for screen in failure children children-selected children-scrolled home home-running-timer home-paused-timer drawing ask music piano guitar games games-scrolled settings timer photobooth photobooth-filters photobooth-scrolled; do
     "$adb" exec-out run-as com.mprlab.portal cat "files/style-$screen.png" > "$output/$screen-$scale.png" 2>/dev/null || true
   done
   [[ "$result" == *'Style passed:'* ]]
