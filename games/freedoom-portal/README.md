@@ -1,16 +1,22 @@
 # FamilyHome Freedoom adapter
 
-This directory contains the FamilyHome adapter for Freedoom for Android 0.4.3 from `https://github.com/mkrupczak3/Freedoom-for-Android`.
+Freedoom uses Freedoom for Android 0.4.3.
+`PortalGameActivity` supplies the FamilyHome entry point.
+The entry point requires the same signing certificate as FamilyHome.
+It validates the child profile, prepares game files, and opens the original game activity.
+Saved games stay in a separate directory for each child profile.
 
-The adaptation adds `PortalGameActivity`, a signature-protected entry point that:
+The adaptation adds Fredoka Bold, bright menu controls, instructions, and status panels.
+Preparation and error screens use the shared `PortalStyle` source.
+The Android font scale selects the generated resource pack.
 
-- accepts only calls signed with the same key as `com.mprlab.portal`;
-- prepares the bundled open-source Freedoom data in application-private storage;
-- keeps saved games in a separate directory for each Children's Portal profile; and
-- opens the original touch-enabled game activity directly, avoiding the launcher layout that is unreadable on PortalOS.
+The manifest is `AndroidManifest.xml`.
+The Java adapter is `src/net/nullsum/freedoom/PortalGameActivity.java`.
+The original game activity has no exported entry point.
+The game appears through the FamilyHome Games screen.
 
-The Portal edition removes the original `LAUNCHER` and `LEANBACK_LAUNCHER` entry points. Children therefore cannot reach the engine’s technical arguments screen from PortalOS; the game appears only through an enabled Children's Portal profile.
-
-The original game activity remains non-exported. The modified manifest is in `decoded/AndroidManifest.xml`, and the added Java source is in `portal-src/net/nullsum/freedoom/PortalGameActivity.java`.
-
-Freedoom supplies free game data and is distinct from the commercial Doom data files. Upstream licensing is retained in the source tree and APK assets.
+Run `make build-freedoom` from the repository root.
+The [interface build guide](../engine-style/README.md) defines inputs, outputs, and validation.
+The build keeps the upstream native libraries and license records.
+The interface source archive contains the adaptation, not the complete upstream engine source.
+Freedoom supplies free game data under its upstream license terms.
