@@ -71,10 +71,10 @@ require_text "$dex_strings" "Weather by Open-Meteo" "weather attribution"
 for timer_text in "Reading" "20 min" "Brush teeth" "2 min 15 sec" "Quick timer" "5 min" "Custom" "Choose time" "Time is up!"; do
   require_text "$dex_strings" "$timer_text" "timer control $timer_text"
 done
-for game_package in net.nullsum.freedoom org.supertuxkart.stk com.blockdrop.game net.vantulder.tessel org.secuso.privacyfriendlymemory; do
+for game_package in org.supertuxkart.stk com.blockdrop.game net.vantulder.tessel org.secuso.privacyfriendlymemory; do
   require_text "$dex_strings" "$game_package" "game catalog package $game_package"
 done
-for game_name in Freedoom Kart Blocks Tiles Match; do
+for game_name in Kart Blocks Tiles Match; do
   require_text "$dex_strings" "$game_name" "visible game catalog name $game_name"
 done
 reject_text "$dex_strings" "Kart Adventure" "redundant Home game shortcut"

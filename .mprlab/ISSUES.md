@@ -8,6 +8,33 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
+- [x] [B007] (P2) Preserve player colors in Kart selection controls.
+  Goal:
+  Each player must have a different color for the current selection.
+  Requirements:
+  - Give the five player selection borders different colors.
+  - Use the same color for each player name control and its selection border.
+  - Keep black outlines and transparent centers on the selection borders.
+  Validation:
+  The initial APK test failed because all five borders had only black outlines.
+  `make build-kart` and `make test-kart-skin` passed after the correction.
+  The generated assets have five different colors and matching name controls.
+  The test verifies that each stretched border contains the player color.
+  A session with multiple physical controllers remains unverified under I005.
+
+- [x] [B006] (P2) Keep selected text visible in Kart.
+  Goal:
+  Text must stay visible when the player selects characters in a text field.
+  Requirements:
+  - Use a blue selection color with partial transparency.
+  - Preserve text contrast when the game engine draws the selection over the characters.
+  Validation:
+  The initial APK tests failed at both text dimensions because the selection was opaque.
+  The APK tests passed after the correction.
+  `make test-kart-text-selection` passed through Games at font scales of 1.0 and 1.3.
+  Screenshot review confirmed visible selected characters at both dimensions.
+  I005 retains physical Portal acceptance.
+
 - [x] [B005] Correct application window selection in the Android upgrade test.
   Goal:
   The upgrade test must read the FamilyHome window after each activity change.
@@ -130,18 +157,28 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Improvements
 
-- [ ] [I005] {I004} Apply the FamilyHome appearance inside Kart and Freedoom.
+- [-] [I005] {I004} Apply the FamilyHome appearance inside Kart.
   Goal:
   Extend the shared appearance to the remaining engine interfaces.
   Requirements:
-  - Add reproducible source builds for the Kart and Freedoom interface adaptations.
+  - Add reproducible source builds for the Kart interface adaptation.
   - Apply `android/STYLING.md` to preparation, menus, instructions, scores, pause screens, and results.
   - Verify the adapted games through the FamilyHome Games entry point.
   - Preserve gameplay controls and saved games.
   Validation:
-  The repository has no Kart interface adapter or build target.
-  The Freedoom adapter contains launch preparation code but no engine interface build target.
-  The I004 game checks cover Match, Blocks, and Tiles.
+  The initial public Kart test rejected the original menu appearance.
+  `make build-kart` compiles the interface adaptation from fixed inputs.
+  The build verifies that the native game libraries stay the same.
+  Two clean builds produced the same contents for all 5,114 Kart APK entries.
+  Kart navigation, race preparation, pause, expanded instructions, and results passed through Games at font scales of 1.0 and 1.3.
+
+  An in-place emulator update kept all 11 game home files unchanged.
+  Kart score and input files stayed unchanged after asset extraction and game launch.
+  The results test found white scores on the cream panel. A black score panel supplies the required contrast.
+
+  Physical Portal acceptance remains pending.
+
+  The final `make ci`, Python lint, document checks, and Governor check passed.
 
 - [x] [I004] Apply shared text roles to FamilyHome and its game adapters.
   Goal:
@@ -160,7 +197,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Screenshot review found a Blocks shadow defect. The added pixel check failed before the correction and passed after it.
   The Blocks settings tests passed. The final `make ci` passed.
   Root `AGENTS.md` requires `android/STYLING.md` before each interface change.
-  I005 tracks the remaining Kart and Freedoom engine interfaces.
+  I005 tracks the Kart engine interface.
   Physical Portal acceptance remains pending.
 
 - [x] [I003] Apply the approved FamilyHome appearance.
@@ -203,7 +240,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Match combines navigation, its game menu, and game status.
   Blocks combines navigation, score, level, lines, and Settings.
   Tiles combines navigation and menu tabs. Its active game menu uses the same row.
-  Freedoom and Kart already use fullscreen controls without stacked headers.
+  Kart already uses fullscreen controls without stacked headers.
   The audit covers their menus and active games, plus the Kart pause menu.
   Validation:
   Integration tests failed before the toolbar changes.

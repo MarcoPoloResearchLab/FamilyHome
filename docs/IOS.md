@@ -194,7 +194,6 @@ An unfinished game port remains visible in the parity matrix and release scope.
 | Tiles | [Web and Android adaptation](../games/tiles-portal/README.md) | Verify the web build, touch behavior, storage, and permitted Apple packaging |
 | Match | [Android adaptation](../games/match-portal/README.md) | Select a new native implementation or a separately qualified source port |
 | Kart | [External game catalog](../android/GAMES.md) | Verify an available Apple source port, device performance, and distribution rights |
-| Freedoom | [Android engine adaptation](../games/freedoom-portal/README.md) | Select an Apple engine and verify content rights, controls, and age suitability |
 
 An Android license notice or successful Flutter build does not establish Apple distribution acceptance.
 Game selection must account for the intended age group and normal iOS navigation.

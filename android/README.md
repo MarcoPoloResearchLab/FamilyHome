@@ -4,7 +4,9 @@
 
 The weather card is household-wide rather than child-specific. Enter a ZIP code or city in Settings to show it. Clear the field to remove the entire card from the home screen. FamilyHome does not reserve an empty weather slot.
 
-The Home screen has one Games entry. The game library always shows Freedoom, Kart (SuperTuxKart), Blocks (Block Drop), Tiles (Tessel), and Match (Privacy Friendly Memo Game). The library marks a game clearly when its separate APK has not been installed.
+The Home screen has one Games entry.
+The game library shows Kart (SuperTuxKart), Blocks (Block Drop), Tiles (Tessel), and Match (Privacy Friendly Memo Game).
+The library marks a game clearly when its separate APK has not been installed.
 
 The exact third-party builds accepted on the physical Portal, including hashes, signing certificates, and permissions, are recorded in [`GAMES.md`](GAMES.md).
 
@@ -43,7 +45,11 @@ The fast APK contract test builds a debuggable APK with non-production configura
 ANDROID_SDK_ROOT=/path/to/android-sdk ./tests/apk-contract.sh
 ```
 
-The upgrade test uses a frozen legacy APK fixture signed with the same temporary test key as the current APK. It seeds two profiles, old game-choice fields, timer settings, a weather location, a drawing, drawing-tool preferences, and an app-private sentinel. The test installs the current APK with `adb install -r`. It then verifies that the data survives and that obsolete game-choice fields are removed. It also verifies the Home entry, all five games, and the applicable activities.
+The upgrade test uses a legacy APK fixture signed with the same temporary test key as the current APK.
+It supplies two profiles, old game-choice fields, timer settings, a weather location, a drawing, drawing-tool preferences, and an app-private sentinel.
+The test installs the current APK with `adb install -r`.
+It verifies that the data survives and that obsolete game-choice fields are removed.
+It also verifies the Home entry, all four games, and the applicable activities.
 
 ## Games
 
@@ -51,7 +57,6 @@ Game APKs remain independent of FamilyHome. Install each reviewed APK with ordin
 
 | Game | Package | Activity |
 | --- | --- | --- |
-| Freedoom | `net.nullsum.freedoom` | `net.nullsum.freedoom.PortalGameActivity` |
 | Kart | `org.supertuxkart.stk` | `org.supertuxkart.stk.SuperTuxKartActivity` |
 | Blocks | `com.blockdrop.game` | `com.blockdrop.game.MainActivity` |
 | Tiles | `net.vantulder.tessel` | `net.vantulder.tessel.MainActivity` |
@@ -85,8 +90,8 @@ Blocks puts its score and settings controls in the navigation row.
 Tiles puts its menu tabs and navigation controls in one top row.
 See the build procedures for [Match](../games/match-portal/README.md), [Blocks](../games/blocks-portal/README.md), and [Tiles](../games/tiles-portal/README.md).
 
-The physical Portal audit found no stacked headers in Freedoom or Kart.
-Both games use fullscreen gameplay and game controls.
+The physical Portal audit found no stacked headers in Kart.
+Kart uses fullscreen gameplay and game controls.
 The audit included the game menus, active games, and the Kart pause menu.
 
 Run the toolbar integration test on a dedicated emulator:

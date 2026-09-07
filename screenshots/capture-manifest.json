@@ -206,14 +206,235 @@
       "bytes": 67400
     },
     {
-      "path": "familyhome-demo.mp4",
-      "sha256": "1ed84bee36ee493387aef83c9c9afe804527eed13a379fdbd20f555c4c1b87a3",
-      "bytes": 5060362
-    },
-    {
       "path": "games.png",
-      "sha256": "97e3d492a3dc0356f9f6a95861f0b078d93f9d8abb241f068ed07d916d463b4a",
-      "bytes": 46002
+      "sha256": "4bb94ac62152fecf1322e476ce31fb3cd02c3c38c164a5c58566a29c765c96c3",
+      "bytes": 79617,
+      "captureDate": "2026-09-07",
+      "fontScale": 1.0,
+      "installedGames": [],
+      "captureCommand": "ANDROID_SERIAL=emulator-5588 make test-android-style",
+      "source": {
+        "gitHead": "635e76266ee1f6a486ee41c486ead331eb2d3a42",
+        "workingTreeChanges": true,
+        "files": [
+          {
+            "path": "AndroidManifest.xml",
+            "sha256": "cb763c035436439c982c46f6aba034528211ea6177ac97bd4fcef43704f93c7d"
+          },
+          {
+            "path": "java/com/mprlab/portal/AskActivity.java",
+            "sha256": "96bf6d40a606af25f03e2d5812ee893f94736d1788a84921585a61a73f74067b"
+          },
+          {
+            "path": "java/com/mprlab/portal/CharacterView.java",
+            "sha256": "11d52c89886c6259b2ba4572af0150228a1f3f64eb326b242e615bdd7e4dd405"
+          },
+          {
+            "path": "java/com/mprlab/portal/DrawingActivity.java",
+            "sha256": "bb954eeaf2d808adc9e08162706a5af86b7de271c528372d81b06d048d2c2893"
+          },
+          {
+            "path": "java/com/mprlab/portal/GameCatalog.java",
+            "sha256": "ca74d4d98750fbdf9cc962543beecb9f07a4940a17692a945f75eb47b367d909"
+          },
+          {
+            "path": "java/com/mprlab/portal/GameLauncher.java",
+            "sha256": "d4e4c6e18b144d44cbd111c1ffcf2b9fbc9dd17cb4e5fe47a706b4f0f15bf19f"
+          },
+          {
+            "path": "java/com/mprlab/portal/GameLibraryActivity.java",
+            "sha256": "125ad771665b7c11977be51706e58ee3ae3d2ac70f20c63a015286238323e988"
+          },
+          {
+            "path": "java/com/mprlab/portal/GuitarActivity.java",
+            "sha256": "d46a19d7e7317e4c1d4c7b41ee9b711d2b4e8fcc8cad6d936a7a0710af765d8e"
+          },
+          {
+            "path": "java/com/mprlab/portal/GuitarPlayer.java",
+            "sha256": "9ed33b159903ff2677cb1551c1e2e5ab136da14344d89ea012f03ce4382a1b95"
+          },
+          {
+            "path": "java/com/mprlab/portal/MainActivity.java",
+            "sha256": "b5add93cda3ef53124a68da1431e8a156e31b8fe96a9e4667eb9d77ff92c6ea9"
+          },
+          {
+            "path": "java/com/mprlab/portal/MusicActivity.java",
+            "sha256": "71d19bd2c1648d51cfd99be906f1d7c4d72a0dfa80497b3477ae2d53dcbec919"
+          },
+          {
+            "path": "java/com/mprlab/portal/PhotoBoothActivity.java",
+            "sha256": "795e78af73e40e64ec2a10dcc5744c97edd0ae64df5c6b84a63c1460ca1d7658"
+          },
+          {
+            "path": "java/com/mprlab/portal/PhotoEffects.java",
+            "sha256": "16fc1b90c5e705fcb656e78049ba80a650187e6f4d608b26bf4221171b0c83f2"
+          },
+          {
+            "path": "java/com/mprlab/portal/PhotoFaces.java",
+            "sha256": "06541625ed634a0ca90cc551997897986dd7bef18f1ebae4b802ef204361cb9f"
+          },
+          {
+            "path": "java/com/mprlab/portal/PhotoFraming.java",
+            "sha256": "b65bf62fb352bc213ed5a69a96fd91b47e31d926cb6403520fd23a1d3e01d5b4"
+          },
+          {
+            "path": "java/com/mprlab/portal/PhotoMotion.java",
+            "sha256": "e7b24dbb4dec0e95806cb22e04d2cf96b648927c30601ba29f5a7713634878b9"
+          },
+          {
+            "path": "java/com/mprlab/portal/PhotoOptionIcon.java",
+            "sha256": "f88de416370d395096514d9d6856f99ac8754fc9c4ca58a714d09cd6151294ed"
+          },
+          {
+            "path": "java/com/mprlab/portal/PhotoRenderer.java",
+            "sha256": "cd282f719fa1ceb139fab04b574541c9b7ed115edfe11a4d27edc272265da9f0"
+          },
+          {
+            "path": "java/com/mprlab/portal/PhotoStore.java",
+            "sha256": "37ff6d87e0d296a2b52f25b56681e382054e15011e1b00d187589fe29a844b63"
+          },
+          {
+            "path": "java/com/mprlab/portal/PianoActivity.java",
+            "sha256": "0083609d09459f65db2103bae31fdedc1fa8ff12dac1915661e857f07cebc935"
+          },
+          {
+            "path": "java/com/mprlab/portal/PortalActivity.java",
+            "sha256": "edb1c066e103bb62e7cbc1412aa74a01eb8b0d8e68082d7281019b3aa81d8ae6"
+          },
+          {
+            "path": "java/com/mprlab/portal/PortalCamera.java",
+            "sha256": "d8bf52d4d6d8958fddc947eee7d8a98e1c159debc52123c6b2685e37e81510a1"
+          },
+          {
+            "path": "java/com/mprlab/portal/PortalConfig.java",
+            "sha256": "9c923c5d97fc6d935263b4fe62ea60a66169658b24ff4027dc6f3d95689f8ae3"
+          },
+          {
+            "path": "java/com/mprlab/portal/PortalSpinner.java",
+            "sha256": "00b05be0211fa068c74fb08a02b9c292900f2b6a7a24a4e25b4e7a9639ce1872"
+          },
+          {
+            "path": "java/com/mprlab/portal/PortalStyle.java",
+            "sha256": "424692f676a4a8ef94f6e348a9e45ab2076d328979eb7c019192e48a69c7e316"
+          },
+          {
+            "path": "java/com/mprlab/portal/PortalToolbar.java",
+            "sha256": "aa551b26758e90b325f06cfea30cc1a897a2a4c6ca8f9fe77b1fe971f2300782"
+          },
+          {
+            "path": "java/com/mprlab/portal/PortalWindowCallback.java",
+            "sha256": "348eac2c9e30ce0973cd4a17eba0d6d468d0cc687436958c67ea1ac24d674f82"
+          },
+          {
+            "path": "java/com/mprlab/portal/ProfileStore.java",
+            "sha256": "c62397597427fd92409698bab8d85be28e7e8a06aed3e6da3d9d54c73e90cd14"
+          },
+          {
+            "path": "java/com/mprlab/portal/ScreensaverClockView.java",
+            "sha256": "5b3ecd009a92f68848bfdcc3fdbf73e4742ca142fdcfe4a2356014202710be86"
+          },
+          {
+            "path": "java/com/mprlab/portal/ScreensaverSettings.java",
+            "sha256": "ee4898c666a18d7237f4b2ddc1652ecfd5b7d8b67c5a6b48a97501e6cc6ebf76"
+          },
+          {
+            "path": "java/com/mprlab/portal/ScreensaverView.java",
+            "sha256": "077def501729c9eddbb3c589aab1b2af234ebacc7e845c8003dd8c5282c3cbda"
+          },
+          {
+            "path": "java/com/mprlab/portal/SettingsActivity.java",
+            "sha256": "333b192690139140d5eb6c86e9b7c3444bd72a0704b9da6d29bdcf89c3b7ba0e"
+          },
+          {
+            "path": "java/com/mprlab/portal/ShareProvider.java",
+            "sha256": "8943fa43314e18b1917ac0aff1a0064e1674ffdf0ba8e49ba9dcfbb5513ccc57"
+          },
+          {
+            "path": "java/com/mprlab/portal/TimeFormatSettings.java",
+            "sha256": "d9d984465870c40d4b1517a1c1603ed0e33e6abc6277c9c3ab3f6890d7322ae9"
+          },
+          {
+            "path": "java/com/mprlab/portal/TimerAlarmReceiver.java",
+            "sha256": "b06490a91e94cfb49390d4e8ed070a0d7b8186e5703101e03be5f76a4fb4bb0f"
+          },
+          {
+            "path": "java/com/mprlab/portal/WeatherReport.java",
+            "sha256": "ea6d237d9328a868d8ceb371b0692b0ed2f90a7d174278eab6d61f7b291e28b8"
+          },
+          {
+            "path": "java/com/mprlab/portal/WeatherVisibility.java",
+            "sha256": "a426098444b3cf180eb5be3ef1cf3ef1a73bb90a20085ce9ca1f4a5eff189e30"
+          },
+          {
+            "path": "res/drawable/ic_ink_eraser.xml",
+            "sha256": "bde6f6ae108f58a01d243d07bf0abc03f16a6c2e91e806f44737834fbe158a0e"
+          },
+          {
+            "path": "res/drawable/ic_music_note.xml",
+            "sha256": "9b7b7bb7fb17dd628ba116fcd6dbb954e58e06b0583e4e7959d2c91c89e165f3"
+          },
+          {
+            "path": "res/drawable/ic_nav_back.xml",
+            "sha256": "32f02ebd50a8497b8ec456f7fad069e8d973b834074fadbbaa2ffa608ee5986e"
+          },
+          {
+            "path": "res/drawable/ic_nav_home.xml",
+            "sha256": "b2457cda636a195eb1ad1955d8b05c0c639c116d33716e4b4e9e4090f65b2877"
+          },
+          {
+            "path": "res/drawable/ic_settings.xml",
+            "sha256": "3f9ca38ca222681c40fe489a2f8d3871aaed12dd7565cfe1caeacfd3518b5806"
+          },
+          {
+            "path": "res/drawable/ic_weather_boot.xml",
+            "sha256": "b8a7ec1ed17b754bd91d261fa7b599d98c98cd244d3501f14ea9fdaa00e15ad4"
+          },
+          {
+            "path": "res/drawable/ic_weather_hoodie.xml",
+            "sha256": "48a3a6571abfc9e8fa30394bfccd4af24963f201820b374d775b019d41687f5f"
+          },
+          {
+            "path": "res/drawable/ic_weather_pants.xml",
+            "sha256": "d90aefc598758221786fd54d2004966328d569247b10ecbc48457e7ed0b70a72"
+          },
+          {
+            "path": "res/drawable/ic_weather_sneaker.xml",
+            "sha256": "1c99393ea9bf064f1531767535773d59caf6b4cc60bd52e5f8999e38d787838d"
+          },
+          {
+            "path": "res/drawable/ic_weather_t_shirt.xml",
+            "sha256": "1adc93a96e772398e985b63ab23f52a9fe10f0d4888bc48abe25a0dd6e798a20"
+          },
+          {
+            "path": "res/font/fredoka.ttf",
+            "sha256": "2ba02e68b152868aef9ba28e24b3648c7d457fe6f25c761f2c2c53fb61a73fc8"
+          },
+          {
+            "path": "res/mipmap-xxxhdpi/ic_alice.png",
+            "sha256": "3511fd63146b7e0da02841d9fd5a183815f83ccef1b51cac2a18303cdadc3346"
+          },
+          {
+            "path": "res/raw/fredoka_license.txt",
+            "sha256": "5c9e7eee5c6b25f4b05b8d53b2e470ea4962f9ced742d044a98f7d95d1375bab"
+          },
+          {
+            "path": "res/raw/phosphor_license.txt",
+            "sha256": "b5b1f1da112d18ea2147decfd48ddc1bf2b5aeb6c265381579340e95b15a2bb2"
+          },
+          {
+            "path": "res/values/portal_style.xml",
+            "sha256": "5f47487c0d64bf396b40349d73ae151e3e1b79d6d2e9565bf0df0037c9f9f84e"
+          },
+          {
+            "path": "res/values/strings.xml",
+            "sha256": "99be2b5a830dc7a72c2d2835219a551e8e1bccc15b41ee1f381787eeec0c8da3"
+          },
+          {
+            "path": "res/values/styles.xml",
+            "sha256": "0717cc6434be57760fbcd24396b8ebc88dc409bb63206c35de343184121014d6"
+          }
+        ]
+      }
     },
     {
       "path": "guitar.png",
@@ -282,7 +503,6 @@
     }
   ],
   "gameCaptureLimitations": [
-    "Freedoom is not installed: the available APK has no matching ABI for this arm64-only emulator.",
     "Kart installation succeeded; this preview does not establish racing or physical-device acceptance."
   ]
 }

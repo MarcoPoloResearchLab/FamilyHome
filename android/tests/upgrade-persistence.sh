@@ -178,7 +178,7 @@ for expected in Alice Bob alice-profile bob-profile Sunset sunset-drawing legacy
     exit 1
   fi
 done
-for removed in enabled_game_ids freedoom_enabled kart_enabled; do
+for removed in enabled_game_ids kart_enabled; do
   if [[ "$preferences" == *"$removed"* ]]; then
     printf 'Upgrade test failed: migrated preferences still contain legacy key %s\n' "$removed" >&2
     exit 1

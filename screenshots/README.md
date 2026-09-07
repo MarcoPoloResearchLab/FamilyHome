@@ -1,4 +1,4 @@
-# FamilyHome screenshots and demo
+# FamilyHome screenshots
 
 These images show FamilyHome and its separately installed game adaptations with sample data.
 The app rendered the sample drawing from a local drawing document.
@@ -9,6 +9,7 @@ The screenshots have no added controls or image edits.
 | Field | Value |
 | --- | --- |
 | Capture date | 2026-09-04 |
+| Games capture date | 2026-09-07 |
 | App version | 0.13.0, version code 19 |
 | Runtime | Dedicated Android emulator, API 37 |
 | Screen | 1280 × 800, landscape, density 160 |
@@ -18,7 +19,6 @@ The screenshots have no added controls or image edits.
 | Weather | Example report for Demo town, loaded into the local cache |
 | Other connected features | Unconfigured, with a reserved invalid service address |
 | Installed games | Kart, Blocks, Tiles, and Match |
-| Video | Silent screen recording with touch indicators |
 
 The preview APK uses development configuration and a temporary test signing key.
 The screenshot set does not contain production credentials, real family names, calendar events, or household locations.
@@ -52,10 +52,11 @@ The [capture manifest](capture-manifest.json) records the source and asset hashe
 
 ## Games
 
-![Game library with four games installed](games.png)
+![Game library with Kart, Blocks, Tiles, and Match](games.png)
 
-Freedoom is not installed in this emulator.
-The library displays its installation state.
+The Games image was updated on 2026-09-07 from the four-game catalog.
+This image uses a clean emulator with no game APKs installed.
+The other images retain their original capture details.
 
 ## Tiles
 
@@ -75,12 +76,6 @@ The games retain their [third-party licenses](../THIRD_PARTY.md).
 
 ![Profile selection with Sam and Alex](profiles.png)
 
-## Short demo
-
-[Open the silent app walkthrough](familyhome-demo.mp4).
-
-The recording shows Home with weather, the game library, Tiles, Blocks, Music, Piano, Guitar, and Drawing.
-
 ## Refresh procedure
 
 1. Build the selected source with development configuration and a dedicated test signing key.
@@ -95,10 +90,8 @@ The recording shows Home with weather, the game library, Tiles, Blocks, Music, P
    adb -s <preview-emulator> exec-out screencap -p > screenshots/home.png
    ```
 
-8. Capture the walkthrough with `adb shell screenrecord` on that emulator.
-9. Review every image for clipped controls, readable labels, and sample data.
-10. Review the video for complete transitions and readable screens.
-11. Update the capture manifest and version statements.
+8. Review every image for clipped controls, readable labels, and sample data.
+9. Update the capture manifest and version statements.
 
 Use the accepted release build for the public launch images.
 Record physical-device acceptance separately.

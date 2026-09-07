@@ -80,7 +80,7 @@ public final class UpgradeUiFlow extends Instrumentation {
         clickLabel("Games. Choose and play");
         waitForActivity("GameLibraryActivity");
         String library = capture("content-desc=\"Match. ");
-        for (String game : new String[]{"Freedoom", "Kart", "Blocks", "Tiles", "Match"}) {
+        for (String game : new String[]{"Kart", "Blocks", "Tiles", "Match"}) {
             if (!library.contains("content-desc=\"" + game + ". ")) {
                 throw new AssertionError("Game library is missing " + game);
             }

@@ -276,3 +276,7 @@ Add repository-specific technical verbs below this line.
 
 - `sp`: The Android text unit that supports the selected font scale.
 - `text role`: A named combination of typeface, weight, and text dimensions.
+
+- `game engine`: The native program that operates game rules, graphics, and input.
+- `resource pack`: An archive that supplies game interface assets.
+- `skin`: A named set of game interface colors and images.

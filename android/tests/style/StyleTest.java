@@ -85,6 +85,10 @@ public final class StyleTest extends Instrumentation {
                     ready();
                 }
                 capture(entry[2]);
+                if (entry[1].equals("GameLibraryActivity")) {
+                    assertGameIllustrations(screen);
+                    capture("games-scrolled");
+                }
                 home = clickOpen(screen, "Home", "MainActivity");
                 ready();
                 if (entry[1].equals("DrawingActivity")) {
@@ -162,6 +166,63 @@ public final class StyleTest extends Instrumentation {
         } catch (Throwable error) {
             result.putString("stream", "Style failed: " + error + "\n");
             finish(Activity.RESULT_CANCELED, result);
+        }
+    }
+    private void assertGameIllustrations(Activity screen) throws Exception {
+        onUi(() -> {
+            ViewGroup card = (ViewGroup) findText(screen.getWindow().getDecorView(), "Kart").getParent();
+            ViewGroup grid = (ViewGroup) card.getParent().getParent();
+            java.util.List<String> labels = new java.util.ArrayList<>();
+            for (int row = 0; row < grid.getChildCount(); row++) {
+                ViewGroup cells = (ViewGroup) grid.getChildAt(row);
+                for (int cell = 0; cell < cells.getChildCount(); cell++) {
+                    View game = cells.getChildAt(cell);
+                    if (game.isClickable()) labels.add(game.getContentDescription().toString().split("\\.")[0]);
+                }
+            }
+            if (!labels.equals(java.util.Arrays.asList("Kart", "Blocks", "Tiles", "Match")))
+                throw new AssertionError("The game library must contain exactly Kart, Blocks, Tiles, and Match: " + labels);
+        });
+        java.util.HashSet<Integer> drawings = new java.util.HashSet<>();
+        for (String game : new String[]{"Kart", "Blocks", "Tiles", "Match"}) {
+            ViewGroup[] card = {null};
+            onUi(() -> {
+                TextView title = findText(screen.getWindow().getDecorView(), game);
+                if (title == null) throw new AssertionError("Missing game: " + game);
+                card[0] = (ViewGroup) title.getParent();
+                card[0].requestRectangleOnScreen(new Rect(0, 0, card[0].getWidth(), card[0].getHeight()), true);
+            });
+            ready();
+            onUi(() -> {
+                View illustration = card[0].getChildAt(0);
+                float density = illustration.getResources().getDisplayMetrics().density;
+                if (illustration instanceof TextView || Math.min(illustration.getWidth(), illustration.getHeight()) < 144 * density)
+                    throw new AssertionError(game + " needs a large illustration instead of a text symbol");
+                bounds(illustration);
+                assertOutline(card[0]);
+                assertTextFits(card[0]);
+                if (!card[0].isClickable() || !card[0].isFocusable() || !card[0].getContentDescription().toString().startsWith(game + "."))
+                    throw new AssertionError(game + " must keep its labeled launch control");
+                Bitmap pixels = Bitmap.createBitmap(illustration.getWidth(), illustration.getHeight(), Bitmap.Config.ARGB_8888);
+                illustration.draw(new android.graphics.Canvas(pixels));
+                int occupied = 0, black = 0, colorful = 0, signature = 1;
+                for (int y = 0; y < pixels.getHeight(); y++) for (int x = 0; x < pixels.getWidth(); x++) {
+                    int color = pixels.getPixel(x, y);
+                    signature = 31 * signature + color;
+                    if (Color.alpha(color) < 240) continue;
+                    occupied++;
+                    int min = Math.min(Color.red(color), Math.min(Color.green(color), Color.blue(color)));
+                    int max = Math.max(Color.red(color), Math.max(Color.green(color), Color.blue(color)));
+                    if (max < 30) black++;
+                    if (max - min > 70) colorful++;
+                }
+                int area = pixels.getWidth() * pixels.getHeight();
+                pixels.recycle();
+                if (occupied < area * .25f || black < occupied * .03f || colorful < occupied * .12f)
+                    throw new AssertionError(game + " needs bold black outlines and a large colorful drawing: occupied="
+                        + occupied + ", black=" + black + ", colorful=" + colorful);
+                if (!drawings.add(signature)) throw new AssertionError(game + " needs its own illustration");
+            });
         }
     }
     private int largestTimerText(android.view.accessibility.AccessibilityNodeInfo node) {
