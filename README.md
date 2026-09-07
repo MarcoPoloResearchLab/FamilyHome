@@ -7,7 +7,7 @@ Children can draw, play piano and guitar, use timers, and open games from one ho
 Each child has a profile with separate drawings and settings.
 The weather widget shows the forecast and suggests clothes for the day.
 
-[Setup guide](docs/INSTALL.md) · [Screenshots and demo](screenshots/README.md) · [Development](docs/DEVELOPMENT.md) · [Family authentication plan](docs/MULTI-FAMILY.md)
+[Setup guide](docs/INSTALL.md) · [Screenshots](screenshots/README.md) · [Development](docs/DEVELOPMENT.md) · [Family authentication plan](docs/MULTI-FAMILY.md)
 
 ![FamilyHome home screen with a sample profile, timer choices, weather, and clothing suggestions](screenshots/home.png)
 
@@ -26,7 +26,7 @@ Both instruments generate sound on the device and work without a service connect
 
 ## Games: puzzles, patterns, and matching pairs
 
-![The game library with Kart, Blocks, Tiles, and Match installed](screenshots/games.png)
+![The game library with Kart, Blocks, Tiles, and Match](screenshots/games.png)
 
 | Tiles | Blocks |
 | --- | --- |
@@ -40,7 +40,7 @@ Both instruments generate sound on the device and work without a service connect
 
 Games use separately installed APKs with their own licenses.
 These captures show the Portal adaptations of Tessel, Block Drop, and Privacy Friendly Memo Game.
-The library also has entries for Kart and Freedoom.
+The library also has an entry for Kart.
 See the [game guide](android/GAMES.md) and [third-party notices](THIRD_PARTY.md).
 
 ## Weather and daily routines
@@ -51,8 +51,6 @@ Enter a ZIP code or city in Settings to show the widget.
 
 Each child has a turn and a profile with separate drawings and timer settings.
 [See the profile selector](screenshots/profiles.png).
-
-[Watch the short, silent demo](screenshots/familyhome-demo.mp4).
 
 ## What works today
 
@@ -66,7 +64,7 @@ Each child has a turn and a profile with separate drawings and timer settings.
 | Ask by text or recorded voice | Requires the companion service and its LLM Proxy connection. |
 | Drawing share links | Requires the companion service. Recipients can open a link in a browser. |
 
-The game library contains entries for Freedoom, Kart, Blocks, Tiles, and Match.
+The game library contains entries for Kart, Blocks, Tiles, and Match.
 Game installation is separate from FamilyHome installation.
 The [game guide](android/GAMES.md) records the reviewed builds.
 
