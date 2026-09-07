@@ -224,3 +224,14 @@ diff --git a/app/src/main/res/layout/activity_game_stats_content.xml b/app/src/m
 
      <TextView
          android:layout_width="wrap_content"
+--- a/app/src/main/java/org/secuso/privacyfriendlymemory/ui/MemoImageAdapter.java
++++ b/app/src/main/java/org/secuso/privacyfriendlymemory/ui/MemoImageAdapter.java
+@@ -58,6 +58,8 @@
+             int cardSize = layoutProvider.getCardSizePixel();
+             card.setLayoutParams(new GridView.LayoutParams(cardSize, cardSize));
+             card.setScaleType(ImageView.ScaleType.CENTER_CROP);
++            card.setBackground(PortalStyle.surface(context, PortalStyle.WHITE, 12));
++            card.setPadding(PortalStyle.dp(context, 5), PortalStyle.dp(context, 5), PortalStyle.dp(context, 9), PortalStyle.dp(context, 9));
+         } else {
+             card = (ImageView) convertView;
+         }

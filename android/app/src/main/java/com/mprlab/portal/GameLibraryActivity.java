@@ -2,7 +2,6 @@ package com.mprlab.portal;
 
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -14,10 +13,10 @@ import android.widget.TextView;
 import java.util.List;
 
 public final class GameLibraryActivity extends PortalActivity {
-    private static final int BG = Color.rgb(255, 248, 234);
-    private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
-    private static final int INK = Color.rgb(36, 49, 71);
-    private static final int MUTED = Color.rgb(92, 104, 124);
+    private static final int BG = PortalStyle.PAPER;
+    private static final int SYSTEM_BAR = PortalStyle.INK;
+    private static final int INK = PortalStyle.INK;
+    private static final int MUTED = PortalStyle.SECONDARY;
     private static final int DISABLED = Color.rgb(217, 220, 228);
 
     private ProfileStore store;
@@ -38,7 +37,7 @@ public final class GameLibraryActivity extends PortalActivity {
     }
 
     private void render() {
-        ScrollView scroll = new ScrollView(this);
+        ScrollView scroll = PortalStyle.scroll(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
         LinearLayout root = column();
@@ -46,7 +45,7 @@ public final class GameLibraryActivity extends PortalActivity {
         scroll.addView(root, new ScrollView.LayoutParams(-1, -1));
 
         LinearLayout header = row();
-        header.addView(text("Games", 27, INK, true), new LinearLayout.LayoutParams(0, -2, 1f));
+        header.addView(text("Games", PortalStyle.TextRole.TITLE, INK), new LinearLayout.LayoutParams(0, -2, 1f));
 
         List<GameCatalog.Game> games = GameCatalog.all();
         LinearLayout grid = column();
@@ -77,25 +76,25 @@ public final class GameLibraryActivity extends PortalActivity {
         card.setGravity(Gravity.CENTER);
         card.setPadding(dp(18), dp(20), dp(18), dp(18));
         card.setBackground(rounded(installed ? game.color : DISABLED, 24));
-        card.setElevation(dp(4));
+        card.setElevation(0);
         card.setClickable(true);
         card.setFocusable(true);
         card.setContentDescription(game.name + ". " + game.description + (installed ? "" : ". Not installed yet"));
         card.setOnClickListener(view -> GameLauncher.open(this, store.active, game));
 
-        TextView icon = text(game.icon, 40, installed ? Color.WHITE : MUTED, true);
+        TextView icon = text(game.icon, PortalStyle.TextRole.DISPLAY, INK);
         icon.setGravity(Gravity.CENTER);
         card.addView(icon, matchWrap());
-        TextView name = text(game.name, 25, installed ? Color.WHITE : INK, true);
+        TextView name = text(game.name, PortalStyle.TextRole.SECTION, INK);
         name.setGravity(Gravity.CENTER);
         name.setPadding(0, dp(7), 0, 0);
         card.addView(name, matchWrap());
-        TextView description = text(game.description, 16, installed ? Color.WHITE : MUTED, true);
+        TextView description = text(game.description, PortalStyle.TextRole.BODY, INK);
         description.setGravity(Gravity.CENTER);
         description.setPadding(0, dp(3), 0, 0);
         card.addView(description, matchWrap());
         if (!installed) {
-            TextView status = text("Not installed yet", 13, MUTED, true);
+            TextView status = text("Not installed yet", PortalStyle.TextRole.BODY, MUTED);
             status.setGravity(Gravity.CENTER);
             status.setPadding(0, dp(8), 0, 0);
             card.addView(status, matchWrap());
@@ -116,28 +115,22 @@ public final class GameLibraryActivity extends PortalActivity {
         return column;
     }
 
-    private TextView text(String value, int size, int color, boolean bold) {
+    private TextView text(String value, PortalStyle.TextRole role, int color) {
         TextView text = new TextView(this);
         text.setText(value);
-        text.setTextSize(size);
+        PortalStyle.text(text, role);
         text.setTextColor(color);
-        text.setTypeface(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL);
         return text;
     }
 
-    private GradientDrawable rounded(int color, int radius) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(dp(radius));
-        return drawable;
-    }
+    private android.graphics.drawable.Drawable rounded(int color, int radius) { return PortalStyle.surface(this, color, radius); }
 
     private LinearLayout.LayoutParams matchWrap() {
         return new LinearLayout.LayoutParams(-1, -2);
     }
 
     private LinearLayout.LayoutParams gameParams() {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(205), 1f);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(280), 1f);
         params.leftMargin = dp(9);
         params.rightMargin = dp(9);
         return params;

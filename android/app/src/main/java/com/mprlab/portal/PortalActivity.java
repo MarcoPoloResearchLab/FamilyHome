@@ -55,6 +55,7 @@ public abstract class PortalActivity extends Activity {
 
     protected final EditText textInput() {
         EditText input = new EditText(this);
+        PortalStyle.text(input, PortalStyle.TextRole.BODY);
         input.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
             @Override public void onTextChanged(CharSequence text, int start, int before, int count) { }
@@ -70,6 +71,7 @@ public abstract class PortalActivity extends Activity {
         dialogWindows.add(window);
         window.setCallback(new PortalWindowCallback(this, window));
         dialog.show();
+        if (dialog instanceof android.app.AlertDialog) PortalStyle.dialog((android.app.AlertDialog) dialog);
         resetScreensaverTimeout();
     }
 
@@ -110,6 +112,7 @@ public abstract class PortalActivity extends Activity {
         if (!resumed || owner == null || touching || screensaver != null
                 || screensaverSettings.mode == ScreensaverSettings.Mode.DISABLED) return;
         idleHandler.removeCallbacks(enterScreensaver);
+        onScreensaverStarted();
         ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE))
                 .hideSoftInputFromWindow(owner.getDecorView().getWindowToken(), 0);
         screensaver = new Dialog(this, android.R.style.Theme_Material_NoActionBar);
@@ -134,6 +137,7 @@ public abstract class PortalActivity extends Activity {
         Dialog previous = screensaver;
         screensaver = null;
         previous.dismiss();
+        onScreensaverStopped();
     }
 
     private void wakeScreensaver() {
@@ -192,6 +196,8 @@ public abstract class PortalActivity extends Activity {
     }
 
     protected void beforeHome() { }
+    protected void onScreensaverStarted() { }
+    protected void onScreensaverStopped() { }
 
     final void openHome() {
         beforeHome();

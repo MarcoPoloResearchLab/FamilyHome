@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -24,9 +23,9 @@ public final class GuitarActivity extends PortalActivity {
     private static final String TAG = "GuitarActivity";
     private static final String FRETS_STATE = "guitar_frets";
     private static final String CHORD_STATE = "guitar_chord";
-    private static final int INK = Color.rgb(36, 49, 71);
-    private static final int PURPLE = Color.rgb(124, 92, 252);
-    private static final int BACKGROUND = Color.rgb(255, 248, 234);
+    private static final int INK = PortalStyle.INK;
+    private static final int PURPLE = PortalStyle.PURPLE;
+    private static final int BACKGROUND = PortalStyle.PAPER;
     private static final int MUTED_STRING = -1;
     private static final float NUT = .14f, NECK_END = .68f, FRET_WIDTH = .108f, STRUM_START = .76f, BRIDGE = .96f;
     private static final String[] NOTE_NAMES = {"C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"};
@@ -58,8 +57,8 @@ public final class GuitarActivity extends PortalActivity {
         }
         player = new GuitarPlayer();
         LinearLayout toolbar = new LinearLayout(this);
-        toolbar.addView(text("Guitar", 27, INK), new LinearLayout.LayoutParams(dp(112), -2));
-        readout = text("Tap a string to play", 18, PURPLE);
+        toolbar.addView(text("Guitar", PortalStyle.TextRole.TITLE, INK), new LinearLayout.LayoutParams(dp(136), -2));
+        readout = text("Tap a string to play", PortalStyle.TextRole.BODY, PURPLE);
         readout.setPadding(dp(16), 0, dp(12), 0);
         readout.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         readout.setSingleLine(true);
@@ -71,7 +70,7 @@ public final class GuitarActivity extends PortalActivity {
             Button button = button(preset.label);
             button.setOnClickListener(view -> selectChord(preset));
             chordButtons[preset.ordinal()] = button;
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(64), dp(56));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(64), dp(PortalStyle.CONTROL_HEIGHT));
             params.rightMargin = dp(10); toolbar.addView(button, params);
         }
         Button open = button("Open strings");
@@ -79,14 +78,14 @@ public final class GuitarActivity extends PortalActivity {
             player.close(); Arrays.fill(selected, 0); chord = null;
             board.clearTouches(); updateChordButtons(); readout.setText("Open strings · Swipe to strum"); board.invalidate();
         });
-        toolbar.addView(open, new LinearLayout.LayoutParams(dp(148), dp(56)));
+        toolbar.addView(open, new LinearLayout.LayoutParams(dp(176), dp(PortalStyle.CONTROL_HEIGHT)));
         toolbar.addView(readout, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView hint = text("Tap a fret for a higher note. Swipe the strings on the right to strum.", 17, INK);
+        TextView hint = text("Tap a fret for a higher note. Swipe the strings on the right to strum.", PortalStyle.TextRole.BODY, INK);
         hint.setPadding(0, dp(12), 0, dp(6)); content.addView(hint);
         content.addView(new FretLabels(), new LinearLayout.LayoutParams(-1, dp(32)));
         board = new Fretboard();
         content.addView(board, new LinearLayout.LayoutParams(-1, 0, 1));
-        TextView footer = text("Shorter string = higher note     •     Dots show where to put your fingers", 16, INK);
+        TextView footer = text("Shorter string = higher note     •     Dots show where to put your fingers", PortalStyle.TextRole.BODY, INK);
         footer.setGravity(Gravity.CENTER); footer.setPadding(0, dp(10), 0, 0); content.addView(footer);
         updateChordButtons();
         if (chord != null) readout.setText(chord.label + " chord · Swipe to strum");
@@ -109,7 +108,7 @@ public final class GuitarActivity extends PortalActivity {
     private void updateChordButtons() {
         for (Chord preset : Chord.values()) {
             Button button = chordButtons[preset.ordinal()]; boolean active = chord == preset;
-            button.setSelected(active); button.setTextColor(active ? Color.WHITE : INK);
+            button.setSelected(active); button.setTextColor(INK);
             button.setBackground(rounded(active ? PURPLE : Color.WHITE, 16));
         }
     }
@@ -132,17 +131,15 @@ public final class GuitarActivity extends PortalActivity {
             readout.setText("Sound unavailable");
         }
     }
-    private TextView text(String value, int size, int color) {
-        TextView view = new TextView(this); view.setText(value); view.setTextSize(size); view.setTextColor(color);
-        view.setTypeface(Typeface.DEFAULT, Typeface.BOLD); return view;
+    private TextView text(String value, PortalStyle.TextRole role, int color) {
+        TextView view = new TextView(this); view.setText(value); PortalStyle.text(view, role); view.setTextColor(color);
+         return view;
     }
     private Button button(String label) {
-        Button view = new Button(this); view.setText(label); view.setAllCaps(false); view.setTextSize(20);
+        Button view = new Button(this); view.setText(label); view.setAllCaps(false); PortalStyle.button(view);
         view.setContentDescription(label); view.setTextColor(INK); view.setBackground(rounded(Color.WHITE, 16)); return view;
     }
-    private GradientDrawable rounded(int color, int radius) {
-        GradientDrawable shape = new GradientDrawable(); shape.setColor(color); shape.setCornerRadius(dp(radius)); return shape;
-    }
+    private android.graphics.drawable.Drawable rounded(int color, int radius) { return PortalStyle.surface(this, color, radius); }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private final class FretLabels extends View {
         final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);

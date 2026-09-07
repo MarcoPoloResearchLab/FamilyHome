@@ -4,6 +4,11 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import java.io.ByteArrayOutputStream;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -41,6 +46,17 @@ final class PortalCamera {
         void closed();
     }
 
+    interface PreviewFrame { void received(Bitmap image); }
+    private PreviewFrame pendingPreview;
+    private int previewOrientation;
+
+    /** One bounded, upright frame for local image processing; callback owns the bitmap. */
+    void requestPreviewFrame(PreviewFrame callback) {
+        if (closed) return;
+        int orientation = imageRotation();
+        worker.post(() -> { if (!closed) { pendingPreview = callback; previewOrientation = orientation; } });
+    }
+
     static final class Configuration {
         final String cameraId;
         final Size previewSize;
@@ -53,9 +69,10 @@ final class PortalCamera {
             sensorOrientation = sensor; lensFacing = facing; hardwareLevel = level;
         }
         String description() {
-            return "Camera " + cameraId + " · preview " + previewSize + " · JPEG " + imageSize
+            return "Camera " + cameraId + " · preview " + previewSize + " · YUV " + imageSize
                     + " · sensor " + sensorOrientation + " · facing " + lensFacing + " · level " + hardwareLevel;
         }
+        long captureByteLimit() { return (long) imageSize.getWidth() * imageSize.getHeight() * 4 + 65536; }
     }
 
     private final Context context;
@@ -70,6 +87,9 @@ final class PortalCamera {
         }
     };
     private final Handler main = new Handler(Looper.getMainLooper());
+    private static final long CAMERA_DEADLINE_MS = 10000;
+    private final Runnable openDeadline = () -> fail("Camera preview did not become ready");
+    private final Runnable captureDeadline = () -> fail("Camera did not deliver the requested picture");
     private final HandlerThread thread = new HandlerThread("PhotoBoothCamera");
     private final Handler worker;
     private volatile boolean closed;
@@ -78,6 +98,7 @@ final class PortalCamera {
     private boolean closeCompleted;
     private boolean ready;
     private boolean capturing;
+    private int captureOrientation;
     private Configuration configuration;
     private CameraDevice device;
     private CameraCaptureSession session;
@@ -93,6 +114,7 @@ final class PortalCamera {
     void open() {
         if (started || closed) throw new IllegalStateException("Camera session cannot open twice");
         started = true;
+        main.postDelayed(openDeadline, CAMERA_DEADLINE_MS);
         if (context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             fail("Open camera: camera permission is required"); return;
         }
@@ -106,18 +128,20 @@ final class PortalCamera {
             displays.registerDisplayListener(displayListener, main);
             previewSurface = new Surface(texture);
             reader = ImageReader.newInstance(configuration.imageSize.getWidth(), configuration.imageSize.getHeight(),
-                    ImageFormat.JPEG, 2);
+                    ImageFormat.YUV_420_888, 2);
             reader.setOnImageAvailableListener(source -> {
                 try (Image image = source.acquireNextImage()) {
                     if (image == null || closed) return;
-                    if (!capturing) throw new IllegalStateException("Camera delivered an unrequested JPEG");
-                    ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                    if (buffer.remaining() == 0 || buffer.remaining() > MAX_JPEG_BYTES)
-                        throw new IllegalStateException("Camera JPEG exceeds the image byte limit");
-                    byte[] bytes = new byte[buffer.remaining()]; buffer.get(bytes);
+                    if (pendingPreview != null) {
+                        PreviewFrame callback = pendingPreview; pendingPreview = null;
+                        Bitmap frame = previewBitmap(image, previewOrientation);
+                        main.post(() -> { if (closed) frame.recycle(); else callback.received(frame); });
+                    }
+                    if (!capturing) return;
+                    byte[] bytes = encode(image, captureOrientation);
                     capturing = false;
-                    deliver(() -> listener.picture(bytes));
-                } catch (RuntimeException error) { fail("Read JPEG from camera " + configuration.cameraId + ": " + error); }
+                    deliver(() -> { main.removeCallbacks(captureDeadline); listener.picture(bytes); });
+                } catch (RuntimeException error) { fail("Read YUV from camera " + configuration.cameraId + ": " + error); }
             }, worker);
             opening = true;
             manager.openCamera(configuration.cameraId, new CameraDevice.StateCallback() {
@@ -160,7 +184,7 @@ final class PortalCamera {
             Integer level = values.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
             if (streams == null || sensor == null || level == null)
                 throw new IllegalStateException("Camera " + id + " has incomplete characteristics");
-            Size image = largest(streams.getOutputSizes(ImageFormat.JPEG), MAX_IMAGE_SIDE, MAX_IMAGE_SIDE, null);
+            Size image = largest(streams.getOutputSizes(ImageFormat.YUV_420_888), MAX_IMAGE_SIDE, MAX_IMAGE_SIDE, null);
             Size preview = largest(streams.getOutputSizes(SurfaceTexture.class), 1280, 960, image);
             return new Configuration(id, preview, image, sensor, facing, level);
         }
@@ -217,9 +241,13 @@ final class PortalCamera {
                     try {
                         CaptureRequest.Builder request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
                         request.addTarget(previewSurface);
+                        request.addTarget(reader.getSurface());
                         session.setRepeatingRequest(request.build(), new CameraCaptureSession.CaptureCallback() {
                             @Override public void onCaptureCompleted(CameraCaptureSession source, CaptureRequest request, TotalCaptureResult result) {
-                                if (!ready && !closed) { ready = true; deliver(() -> listener.ready(configuration)); }
+                                if (!ready && !closed) {
+                                    ready = true;
+                                    deliver(() -> { main.removeCallbacks(openDeadline); listener.ready(configuration); });
+                                }
                             }
                             @Override public void onCaptureFailed(CameraCaptureSession source, CaptureRequest request, CaptureFailure failure) {
                                 fail("Camera preview failed: reason " + failure.getReason());
@@ -228,7 +256,7 @@ final class PortalCamera {
                     } catch (CameraAccessException | RuntimeException error) { fail("Start camera preview: " + error); }
                 }
                 @Override public void onConfigureFailed(CameraCaptureSession configured) {
-                    configured.close(); fail("Configure camera " + configuration.cameraId + " preview and JPEG session failed");
+                    configured.close(); fail("Configure camera " + configuration.cameraId + " preview and YUV session failed");
                 }
             }, worker);
         } catch (CameraAccessException | RuntimeException error) { fail("Create camera session: " + error); }
@@ -237,29 +265,103 @@ final class PortalCamera {
     void capture() {
         if (closed) throw new IllegalStateException("Capture after camera close");
         int orientation = imageRotation();
+        main.postDelayed(captureDeadline, CAMERA_DEADLINE_MS);
         worker.post(() -> {
             if (closed) return;
             if (!ready || capturing) { fail("Capture camera picture: camera is not ready"); return; }
             capturing = true;
-            try {
-                CaptureRequest.Builder request = device.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-                request.addTarget(reader.getSurface());
-                request.set(CaptureRequest.JPEG_ORIENTATION, orientation);
-                request.set(CaptureRequest.JPEG_QUALITY, (byte) JPEG_QUALITY);
-                session.capture(request.build(), new CameraCaptureSession.CaptureCallback() {
-                    @Override public void onCaptureFailed(CameraCaptureSession source, CaptureRequest request, CaptureFailure failure) {
-                        fail("Capture JPEG failed: reason " + failure.getReason());
-                    }
-                }, worker);
-            } catch (CameraAccessException | RuntimeException error) { fail("Capture JPEG: " + error); }
+            captureOrientation = orientation;
+
         });
+    }
+
+    private static byte[] encode(Image image, int orientation) {
+        int width = image.getWidth(), height = image.getHeight();
+        if (width <= 0 || height <= 0 || width > MAX_IMAGE_SIDE || height > MAX_IMAGE_SIDE
+                || width % 2 != 0 || height % 2 != 0 || image.getFormat() != ImageFormat.YUV_420_888)
+            throw new IllegalStateException("Invalid camera YUV dimensions or format");
+        byte[] nv21 = new byte[width * height * 3 / 2];
+        Image.Plane[] planes = image.getPlanes();
+        for (int planeIndex = 0; planeIndex < 3; planeIndex++) {
+            Image.Plane plane = planes[planeIndex];
+            ByteBuffer buffer = plane.getBuffer();
+            int rows = planeIndex == 0 ? height : height / 2;
+            int columns = planeIndex == 0 ? width : width / 2;
+            int output = planeIndex == 0 ? 0 : width * height + (planeIndex == 1 ? 1 : 0);
+            int step = planeIndex == 0 ? 1 : 2;
+            int start = buffer.position();
+            for (int row = 0; row < rows; row++) {
+                int offset = start + row * plane.getRowStride();
+                for (int column = 0; column < columns; column++) {
+                    nv21[output] = buffer.get(offset + column * plane.getPixelStride());
+                    output += step;
+                }
+            }
+        }
+        ByteArrayOutputStream encoded = new ByteArrayOutputStream();
+        if (!new YuvImage(nv21, ImageFormat.NV21, width, height, null)
+                .compressToJpeg(new Rect(0, 0, width, height), JPEG_QUALITY, encoded))
+            throw new IllegalStateException("Encode camera YUV as JPEG failed");
+        byte[] raw = encoded.toByteArray();
+        Bitmap decoded = BitmapFactory.decodeByteArray(raw, 0, raw.length);
+        if (decoded == null) throw new IllegalStateException("Decode camera image failed");
+        Matrix transform = new Matrix(); transform.postRotate(orientation);
+        Bitmap rotated = Bitmap.createBitmap(decoded, 0, 0, width, height, transform, true);
+        try {
+            encoded.reset();
+            if (!rotated.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, encoded))
+                throw new IllegalStateException("Encode oriented camera picture failed");
+            return encoded.toByteArray();
+        } finally {
+            if (rotated != decoded) rotated.recycle();
+            decoded.recycle();
+        }
+    }
+
+    private static Bitmap previewBitmap(Image image, int orientation) {
+        int sourceWidth = image.getWidth(), sourceHeight = image.getHeight();
+        if (image.getFormat() != ImageFormat.YUV_420_888 || sourceWidth < 1 || sourceHeight < 1
+                || sourceWidth > MAX_IMAGE_SIDE || sourceHeight > MAX_IMAGE_SIDE)
+            throw new IllegalStateException("Invalid preview YUV dimensions or format");
+        float scale = Math.min(1f, 640f / Math.max(sourceWidth, sourceHeight));
+        int width = Math.max(2, Math.round(sourceWidth * scale)), height = Math.max(2, Math.round(sourceHeight * scale));
+        Image.Plane[] planes = image.getPlanes();
+        byte[][] data = new byte[3][];
+        int[] rows = new int[3], strides = new int[3];
+        for (int plane = 0; plane < 3; plane++) {
+            ByteBuffer buffer = planes[plane].getBuffer();
+            data[plane] = new byte[buffer.remaining()]; buffer.duplicate().get(data[plane]);
+            rows[plane] = planes[plane].getRowStride(); strides[plane] = planes[plane].getPixelStride();
+        }
+        int[] pixels = new int[width * height];
+        for (int row = 0; row < height; row++) {
+            int sy = row * sourceHeight / height;
+            for (int column = 0; column < width; column++) {
+                int sx = column * sourceWidth / width;
+                int y = Math.max(0, (data[0][sy * rows[0] + sx * strides[0]] & 255) - 16);
+                int u = (data[1][sy / 2 * rows[1] + sx / 2 * strides[1]] & 255) - 128;
+                int v = (data[2][sy / 2 * rows[2] + sx / 2 * strides[2]] & 255) - 128;
+                int r = Math.max(0, Math.min(255, (298 * y + 409 * v + 128) >> 8));
+                int g = Math.max(0, Math.min(255, (298 * y - 100 * u - 208 * v + 128) >> 8));
+                int b = Math.max(0, Math.min(255, (298 * y + 516 * u + 128) >> 8));
+                pixels[row * width + column] = 0xff000000 | r << 16 | g << 8 | b;
+            }
+        }
+        Bitmap bitmap = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888);
+        Matrix rotation = new Matrix(); rotation.postRotate(orientation);
+        Bitmap upright = Bitmap.createBitmap(bitmap, 0, 0, width, height, rotation, true);
+        if (upright != bitmap) bitmap.recycle();
+        return upright;
     }
 
     void close() {
         if (closed) return;
         closed = true;
+        main.removeCallbacks(openDeadline);
+        main.removeCallbacks(captureDeadline);
         displays.unregisterDisplayListener(displayListener);
         worker.post(() -> {
+            pendingPreview = null;
             if (session != null) { session.close(); session = null; }
             if (reader != null) { reader.close(); reader = null; }
             if (previewSurface != null) { previewSurface.release(); previewSurface = null; }

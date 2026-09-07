@@ -81,7 +81,7 @@ def toolbar() -> tuple[ET.Element, ET.Element, ET.Element]:
     back_box, home_box = bounds(back), bounds(home)
     assert back_box[1] == home_box[1] and back_box[3] == home_box[3], 'Navigation rows differ'
     assert back_box[1] < 16 and back_box[3] <= 72, f'Toolbar must occupy only the first row: {back_box}'
-    assert back_box[2] - back_box[0] >= 48 and back_box[3] - back_box[1] >= 48, 'Back touch target too small'
+    assert back_box[2] - back_box[0] >= 60 and back_box[3] - back_box[1] >= 60, 'Back touch target too small'
     return root, back, home
 
 def board_fills_available_space(root: ET.Element, card_count: int) -> None:

@@ -45,13 +45,25 @@ require_text "$badging" "sdkVersion:'28'" "minimum Android version"
 require_text "$badging" "targetSdkVersion:'28'" "target Android version"
 
 xmltree="$($aapt dump xmltree "$apk" AndroidManifest.xml)"
-for component in MainActivity AskActivity DrawingActivity MusicActivity GuitarActivity PianoActivity SettingsActivity GameLibraryActivity TimerAlarmReceiver ShareProvider; do
+for component in MainActivity AskActivity DrawingActivity MusicActivity GuitarActivity PianoActivity SettingsActivity GameLibraryActivity PhotoBoothActivity TimerAlarmReceiver ShareProvider; do
   require_text "$xmltree" "$component" "manifest component $component"
 done
+require_text "$xmltree" "android.permission.CAMERA" "Photo Booth camera permission"
 require_text "$xmltree" "android.intent.category.HOME" "HOME intent"
 require_text "$xmltree" "android.intent.category.LAUNCHER" "launcher intent"
 
+entries="$(unzip -Z1 "$apk")"
+require_text "$entries" "assets/face.onnx" "bundled face detector model"
+for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+  require_text "$entries" "lib/$abi/libopencv_java4.so" "native face detector for $abi"
+  require_text "$entries" "lib/$abi/libc++_shared.so" "native C++ runtime for $abi"
+done
+reject_text "$entries" "assets/head-turn.png" "private head-turn fixture in the application"
+reject_text "$entries" "assets/face.gif" "test portrait in the application"
+
 dex_strings="$(unzip -p "$apk" classes.dex | strings)"
+require_text "$dex_strings" "Lorg/opencv/objdetect/FaceDetectorYN;" "local YuNet face detector"
+reject_text "$dex_strings" "Landroid/media/FaceDetector;" "obsolete frontal-only face detector"
 require_text "$dex_strings" "https://familyhome.invalid" "generated service URL"
 require_text "$dex_strings" "familyhome-ci-device-token-000000000" "generated device token"
 require_text "$dex_strings" "/v1/weather?location=" "weather service route"

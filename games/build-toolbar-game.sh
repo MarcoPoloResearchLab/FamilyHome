@@ -35,13 +35,20 @@ GIT_CEILING_DIRECTORIES="$output" git apply "$root/games/$game-portal/upstream.p
 cp -R "$root/games/$game-portal/overlay/." .
 case "$game" in
   blocks)
+    mkdir -p assets/fonts
+    cp "$root/android/app/src/main/res/font/fredoka.ttf" assets/fonts/
+    cp "$root/android/app/src/main/res/raw/fredoka_license.txt" assets/fonts/
     "$FLUTTER_ROOT/bin/flutter" pub get --enforce-lockfile
     "$FLUTTER_ROOT/bin/flutter" build apk --release --target-platform android-arm64 --build-number 443 --build-name 1.0.47-portal1
     cp build/app/outputs/flutter-apk/app-release.apk "$output/$title-Portal-build.apk"
     ;;
   tiles)
+    mkdir -p assets/fonts
+    cp "$root/android/app/src/main/res/font/fredoka.ttf" assets/fonts/
+    cp "$root/android/app/src/main/res/raw/fredoka_license.txt" assets/fonts/
     npm ci
     npm run build-cap-html
+    cp "$root/android/app/src/main/res/raw/fredoka_license.txt" dist-capacitor/fredoka_license.txt
     npx --no-install cap sync android
     (cd android && bash gradlew assembleDebug assembleRelease --console=plain)
     cp android/app/build/outputs/apk/debug/app-debug.apk "$output/$title-Portal-debug.apk"

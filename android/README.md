@@ -120,3 +120,75 @@ ANDROID_SERIAL=emulator-5580 make -C .. test-android-guitar
 ```
 
 The test covers instrument navigation, notes, chords, fast strums, simultaneous touches, audio cleanup, and Portal screen dimensions.
+
+## Photo Booth
+
+Photo Booth takes pictures on the Portal without a service connection.
+Each child has a separate photo album on this device.
+The camera preview reflects the scene like a mirror. Saved pictures keep normal text direction.
+
+1. Select a child on Home.
+2. Open Photo Booth.
+3. Permit camera access when Android requests it.
+4. Select the single-picture icon or the four-picture strip icon.
+5. Select the plain, Stars, or Confetti frame preview.
+6. Open Filters to select a photo filter.
+7. Select Back to return to the picture controls.
+8. Step into the picture. Photo Booth follows one visible person automatically.
+9. If several persons appear, tap your face inside its yellow rectangle.
+10. Select Take picture.
+11. Wait for the three-second countdown before each picture.
+12. Select Save, Retake, or Discard on the review screen.
+13. Open Album to see saved pictures.
+
+Funhouse choices are Big nose, Stretch, and Mirror twins.
+Face accessories are Bunny ears, Googly eyes, and Party hat.
+Original removes the photo filter.
+Keep your face near the image center for Big nose.
+Face accessories require a visible face directed toward the camera.
+The interface shows a face instruction when face detection finds no face.
+A picture without a detected face has no face accessory.
+The selected photo filter applies to every picture in a photo strip.
+Saved pixels contain the photo filter. Existing photos and the metadata schema stay the same.
+
+Person tracking starts automatically with a maximum zoom of 2× when one face appears.
+The crop expands when necessary to include the head, hair, and shoulders.
+Several faces produce a full camera preview with rectangles for touch selection.
+After a selection, Photo Booth follows that person while other persons remain visible.
+After tracking loss, Photo Booth detects persons again without a setup command.
+Zoom offers optional maximum settings of 1×, 1.5×, 2×, and 3×.
+Higher zoom uses fewer source pixels in saved pictures.
+See [camera controls](PHOTO_BOOTH_CAMERA.md) for the physical camera findings and tracking limits.
+
+Local face detection uses the bundled YuNet model through OpenCV.
+The filtered preview uses images with at most 640 pixels on the longest side.
+Full-size pictures use the same effect before JPEG encoding.
+The renderer includes the source, effect output, and face-detection image in its memory calculation.
+
+See [camera controls](PHOTO_BOOTH_CAMERA.md) for the physical Portal investigation.
+
+To remove a picture, open its album entry and select Delete.
+Confirm the deletion in the dialog.
+Each album permits 100 entries or 256 MiB, whichever occurs first.
+All photo albums together permit 512 MiB.
+The capacity calculation includes images, thumbnails, and metadata.
+The application keeps saved pictures until explicit deletion.
+A photo strip saves one combined image. The application removes its temporary individual pictures.
+
+The screensaver closes the camera and cancels an incomplete sequence.
+A completed review image remains available after wake.
+The first wake input activates no photo control.
+
+The camera adapter uses Camera2 YUV output and application JPEG encoding.
+The physical Portal qualification found invalid native JPEG output.
+A closed camera cover produces an obscured picture. Android reports no camera error for that condition.
+The current YUV path works on the Portal and emulator.
+
+Run the application integration test on a dedicated emulator:
+
+```sh
+ANDROID_SERIAL=emulator-5584 make -C .. test-android-photobooth
+```
+
+The test covers pictures, strips, frames, review, albums, deletion, capacity, screensaver interruption, and persistence after an APK update.
+Physical camera evidence and final device acceptance remain separate from emulator results.

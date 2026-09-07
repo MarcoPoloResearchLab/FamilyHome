@@ -32,6 +32,8 @@ apk_basename="${APK_BASENAME:-Children-Portal-v$version_name}"
 
 generated_dir="$output_dir/generated"
 generated_package_dir="$generated_dir/com/mprlab/portal"
+rm -rf "$output_dir/classes" "$output_dir/dex"
+source ./vision-dependencies.sh "$output_dir/vision"
 mkdir -p "$output_dir/classes" "$output_dir/dex" "$generated_package_dir"
 
 escape_java_string() {
@@ -54,7 +56,10 @@ printf '%s\n' \
   '    }' \
   '}' > "$generated_package_dir/RuntimeConfig.java"
 "$tools_dir/aapt2" compile --dir "$source_dir/res" -o "$output_dir/compiled.zip"
+"$tools_dir/aapt2" compile --dir "$vision_output/res" -o "$output_dir/vision-res.zip"
 link_arguments=(
+  -A "$vision_output/assets"
+  --extra-packages org.opencv
   -I "$android_jar"
   --manifest "$manifest"
   --java "$output_dir"
@@ -67,15 +72,17 @@ if [[ "${ANDROID_DEBUGGABLE:-0}" == "1" ]]; then
   link_arguments+=(--debug-mode)
 fi
 "$tools_dir/aapt2" link "${link_arguments[@]}" \
-  -o "$output_dir/portal-unsigned.apk" "$output_dir/compiled.zip"
+  -o "$output_dir/portal-unsigned.apk" "$output_dir/compiled.zip" "$output_dir/vision-res.zip"
 find "$source_dir/java" -name '*.java' -print | sort > "$output_dir/java-sources.txt"
 printf '%s\n' "$generated_package_dir/RuntimeConfig.java" >> "$output_dir/java-sources.txt"
-javac -source 8 -target 8 -classpath "$android_jar" -d "$output_dir/classes" \
-  @"$output_dir/java-sources.txt" "$output_dir/com/mprlab/portal/R.java"
+javac -source 8 -target 8 -classpath "$android_jar:$vision_classpath" -d "$output_dir/classes" \
+  @"$output_dir/java-sources.txt" "$output_dir/com/mprlab/portal/R.java" "$output_dir/org/opencv/R.java"
 find "$output_dir/classes" -name '*.class' -print | sort > "$output_dir/class-files.txt"
-"$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$output_dir/dex" @"$output_dir/class-files.txt"
+"$tools_dir/d8" --lib "$android_jar" --min-api 28 --output "$output_dir/dex" @"$output_dir/class-files.txt" "${vision_jars[@]}"
 cp "$output_dir/portal-unsigned.apk" "$output_dir/portal-with-dex.apk"
-zip -j -q "$output_dir/portal-with-dex.apk" "$output_dir/dex/classes.dex"
+zip -j -q "$output_dir/portal-with-dex.apk" "$output_dir/dex/"*.dex
+native_apk="$(cd "$output_dir" && pwd)/portal-with-dex.apk"
+(cd "$vision_output" && zip -qr "$native_apk" lib)
 "$tools_dir/zipalign" -f 4 "$output_dir/portal-with-dex.apk" "$output_dir/$apk_basename-aligned.apk"
 
 if [[ -n "${PORTAL_KEYSTORE:-}" ]]; then

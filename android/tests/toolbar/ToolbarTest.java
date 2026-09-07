@@ -72,7 +72,7 @@ public final class ToolbarTest extends Instrumentation {
                 if (barRect.top != 0 || barRect.height() / density > 72) throw new AssertionError(name + " wastes top space: " + barRect);
                 if (backRect.top != homeRect.top || backRect.bottom != homeRect.bottom) throw new AssertionError(name + " uses two rows");
                 for (Rect rect : new Rect[]{backRect, homeRect}) {
-                    if (rect.width() / density < 48 || rect.height() / density < 48) throw new AssertionError(name + " small target");
+                    if (rect.width() / density < 60 || rect.height() / density < 60) throw new AssertionError(name + " small target");
                 }
                 checkBounds(toolbar, barRect);
                 if (name.equals("GuitarActivity")) {

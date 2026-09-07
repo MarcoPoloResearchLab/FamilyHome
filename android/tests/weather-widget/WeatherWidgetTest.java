@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.ScrollView;
 import org.json.JSONObject;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -136,7 +137,7 @@ public final class WeatherWidgetTest extends Instrumentation {
                 ViewGroup card = findCard(activity.getWindow().getDecorView());
                 if (card == null) throw new AssertionError("Weather card is missing");
                 float density = activity.getResources().getDisplayMetrics().density;
-                if (Math.abs(card.getHeight() / density - 300) > 1) throw new AssertionError("Weather card height changed");
+                if (card.getHeight() / density < 360) throw new AssertionError("Weather card needs space for the outlined outfit illustrations");
                 requireText(card, "Feels like " + feelsLike + "°");
                 requireText(card, "High 76°  •  Low 36°  •  Rain " + rain + "%");
                 requireText(card, "READY TO GO?");
@@ -187,6 +188,17 @@ public final class WeatherWidgetTest extends Instrumentation {
         if (!containsText(card, text)) throw new AssertionError("Missing text: " + text);
     }
 
+    private void checkTextLayouts(View view) {
+        if (view instanceof TextView) {
+            TextView text = (TextView) view;
+            if (text.getLayout() == null || text.getLayout().getHeight() > text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom())
+                throw new AssertionError("Clipped weather text: " + text.getText());
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) checkTextLayouts(group.getChildAt(i));
+        }
+    }
     private void checkBounds(View view, Rect cardBounds) {
         if (view.getVisibility() != View.VISIBLE) return;
         Rect visible = new Rect();
@@ -197,7 +209,17 @@ public final class WeatherWidgetTest extends Instrumentation {
             if (text.getLayout() == null || text.getLayout().getHeight() > text.getHeight() - text.getCompoundPaddingTop()
                     - text.getCompoundPaddingBottom()) throw new AssertionError("Clipped text: " + text.getText());
         }
-        if (view instanceof ViewGroup) {
+        if (view instanceof ScrollView) {
+            ScrollView scroll = (ScrollView) view;
+            checkTextLayouts(scroll.getChildAt(0));
+            ViewGroup content = (ViewGroup) scroll.getChildAt(0);
+            scroll.scrollTo(0, content.getHeight());
+            Rect last = new Rect();
+            View lastChild = content.getChildAt(content.getChildCount() - 1);
+            if (!lastChild.getGlobalVisibleRect(last) || last.height() != lastChild.getHeight() || !cardBounds.contains(last))
+                throw new AssertionError("Weather details cannot scroll into view");
+            scroll.scrollTo(0, 0);
+        } else if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) checkBounds(group.getChildAt(i), cardBounds);
         }

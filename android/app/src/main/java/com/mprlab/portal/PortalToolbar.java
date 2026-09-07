@@ -1,7 +1,5 @@
 package com.mprlab.portal;
 
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageButton;
@@ -13,9 +11,10 @@ final class PortalToolbar {
     static void navigation(PortalActivity activity, LinearLayout toolbar) {
         toolbar.setContentDescription("Screen toolbar");
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(activity, 14), dp(activity, 8), dp(activity, 14), dp(activity, 8));
+        toolbar.setPadding(dp(activity, 14), dp(activity, 6), dp(activity, 14), dp(activity, 6));
         toolbar.addView(button(activity, "Back", R.drawable.ic_nav_back, view -> activity.onBackPressed()), 0);
         toolbar.addView(button(activity, "Home", R.drawable.ic_nav_home, view -> activity.openHome()), 1);
+        PortalStyle.toolbar(toolbar);
     }
 
     static View screen(PortalActivity activity, LinearLayout toolbar, View content, int color) {
@@ -32,14 +31,12 @@ final class PortalToolbar {
         ImageButton button = new ImageButton(activity);
         button.setContentDescription(label);
         button.setImageResource(icon);
-        button.setColorFilter(Color.rgb(36, 49, 71));
+        button.setColorFilter(PortalStyle.INK);
         button.setPadding(dp(activity, 14), dp(activity, 14), dp(activity, 14), dp(activity, 14));
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(Color.rgb(241, 237, 255));
-        shape.setCornerRadius(dp(activity, 16));
-        button.setBackground(shape);
+        button.setBackground(PortalStyle.surface(activity, PortalStyle.YELLOW, 16));
+        button.setStateListAnimator(null);
         button.setOnClickListener(action);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(activity, 56), dp(activity, 56));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(activity, PortalStyle.CONTROL_HEIGHT), dp(activity, PortalStyle.CONTROL_HEIGHT));
         params.rightMargin = dp(activity, 10);
         button.setLayoutParams(params);
         return button;

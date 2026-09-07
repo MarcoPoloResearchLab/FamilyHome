@@ -130,6 +130,63 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Improvements
 
+- [ ] [I005] {I004} Apply the FamilyHome appearance inside Kart and Freedoom.
+  Goal:
+  Extend the shared appearance to the remaining engine interfaces.
+  Requirements:
+  - Add reproducible source builds for the Kart and Freedoom interface adaptations.
+  - Apply `android/STYLING.md` to preparation, menus, instructions, scores, pause screens, and results.
+  - Verify the adapted games through the FamilyHome Games entry point.
+  - Preserve gameplay controls and saved games.
+  Validation:
+  The repository has no Kart interface adapter or build target.
+  The Freedoom adapter contains launch preparation code but no engine interface build target.
+  The I004 game checks cover Match, Blocks, and Tiles.
+
+- [x] [I004] Apply shared text roles to FamilyHome and its game adapters.
+  Goal:
+  Make the approved appearance the required contract for all FamilyHome interfaces.
+  Requirements:
+  - Define shared text roles and minimum control dimensions.
+  - Apply large bold text to native screens, dialogs, Match, Blocks, and Tiles.
+  - Keep the Photo Booth main action visible below its scrollable options.
+  - Require the appearance contract before future interface changes.
+  - Verify normal and enlarged text through public application entry points.
+  Validation:
+  The initial native test rejected the previous font weight.
+  Native appearance and game navigation passed at font scales of 1.0 and 1.3 on a dedicated 1280 x 800 emulator.
+  Match board checks passed at all three tested screen dimensions.
+  Photo Booth, toolbar, weather, screensaver, and upgrade checks passed.
+  Screenshot review found a Blocks shadow defect. The added pixel check failed before the correction and passed after it.
+  The Blocks settings tests passed. The final `make ci` passed.
+  Root `AGENTS.md` requires `android/STYLING.md` before each interface change.
+  I005 tracks the remaining Kart and Freedoom engine interfaces.
+  Physical Portal acceptance remains pending.
+
+- [x] [I003] Apply the approved FamilyHome appearance.
+  Goal:
+  Use black outlines, bright colors, large activity controls, and character illustrations.
+  Requirements:
+  - Define shared colors, type, outlines, shadows, and control states.
+  - Apply the appearance to Home, Drawing, and native application controls.
+  - Preserve profiles, timers, saved drawings, and activity navigation.
+  - Keep all five Home activity controls visible in one row.
+  - Verify normal and enlarged text on the emulator.
+  Validation:
+  The initial application test failed because Home activity controls were only 92 dp high.
+  The application passed at font scales of 1.0 and 1.3 on a dedicated 1280 x 800 emulator.
+  Five activity controls, black outlines, text bounds, brush selection, a saved drawing stroke, and the timer action passed.
+  Seven native screens passed the toolbar and navigation test.
+  Seven weather outfits, cache expiry, and automatic refresh passed.
+  The upgrade test preserved profiles, timers, saved drawings, and private application files.
+  Photo Booth capture, save, album, photo strips, and persistence passed with an emulated front camera.
+  Screensaver dialog and typing checks passed.
+  `make ci`, the Governor check, and `git diff --check` passed.
+  The language checker reported no mechanical errors in the changed documents.
+  Native screenshots are in `android/build/tests/style`.
+  Physical Portal installation and acceptance remain pending.
+  See `android/STYLING.md` for the appearance and test procedure.
+
 - [x] [I002] Combine navigation and application controls in one toolbar.
   Goal:
   Back, Home, and application controls share one row.
@@ -379,40 +436,163 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Features
 
-- [!] [F003] (P1) Qualify the Photo Booth camera.
+- [-] [F010] (P1) Add Photo Booth zoom and person selection.
+  Requirements:
+  - Add 1×, 1.5×, 2×, and 3× zoom controls.
+  - Start person tracking automatically when one face is visible.
+  - Show rectangles around several visible faces and select the person through a tap inside a rectangle.
+  - Restart automatic detection after tracking loss or an ambiguous match.
+  - Use the same crop in the preview and each saved picture.
+  - Keep face analysis on the device and preserve existing albums.
+  Validation:
+  - Verify zoom, selection, tracking loss, and saved crops through the Android interface.
+  - Verify crop geometry and independent crops in a four-picture strip.
+  - Record physical Portal acceptance separately from controlled image tests.
+
+  Current result:
+  Photo Booth follows one visible person automatically with a maximum zoom of 2×.
+  The crop expands to include space above the face for the head and hair, with space below for shoulders.
+  Zoom settings limit the maximum zoom. A close head can require a wider crop.
+  Each strip preserves the crop for each picture and scales the results to a common size without further cropping.
+  Several faces produce a full camera preview with yellow rectangles for touch selection.
+  The selected person remains the target while other persons are visible.
+  Tracking loss restarts detection without a setup command. The optional Zoom menu contains only zoom controls.
+  The face instruction stays visible above Take picture when the options scroll.
+  Picture modes use two illustrated controls in one row. Three visual frame previews share the next row.
+  Filters and Zoom have a fixed Back control. Take picture remains visible within both panels.
+  Back returns to the main options and preserves the selected picture mode, frame, and filter.
+
+  The initial automatic-flow test failed because the application waited for manual setup despite one visible face.
+  A second interface test failed because the face instruction was outside the visible area.
+  Both tests passed after the changes. The full Photo Booth test passed capture, strips, albums, APK update, and storage limits.
+  The tracker uses YuNet face measurements and optical flow around the head and upper body.
+  Both measurements use the full camera image before the image crop or photo filter.
+  Controlled tests passed head coverage, zoom changes, person removal, group selection, and automatic detection after return.
+  The automatic interface passed at normal text dimensions and the 1.3 font scale, including the visible face instruction.
+  Final `make ci` passed.
+
+  The compact-panel test first failed because the picture modes occupied separate rows.
+  The panel test passed at normal text dimensions and the 1.3 font scale.
+  The full Photo Booth test and final `make ci` passed after the panel changes.
+  The close-head test failed because the crop started below the hair, then passed with automatic crop dimensions.
+  The full Photo Booth test and final `make ci` also passed after the crop correction.
+
+  Installed APK SHA-256: `e276360e1b0080a8dec562236540ce749c7330ce15d9d5c1f8328ecaba9cc4b4`.
+  The APK retrieved from the Portal has the same SHA-256.
+  The physical Portal started person tracking at 2× after entry through Home, without a setup command or face tap.
+  Physical acceptance with several persons and the physical saved-crop check remain open.
+
+- [ ] [F009] Add FamilyHome for iOS with Android feature parity.
   Goal:
-  FamilyHome can show camera preview and take a JPEG picture through one Camera2 session.
+  Deliver an iPhone and iPad application with equivalent family activities to FamilyHome on Android.
+  Android keeps its system Home role. The iOS product uses normal application navigation and an internal Home screen.
+  The user requested the detailed proposal and this backlog entry on 2026-09-06.
+  The current request covers documentation and issue creation. Implementation remains future work.
+
+  Requirements:
+  - Use [the iOS proposal](../docs/IOS.md) as the detailed scope, architecture, milestone, and acceptance reference.
+  - Record its stage 0 decisions before the corresponding implementation work.
+  - Provide iPhone and iPad layouts adapted to each device and application window.
+  - Include profiles, settings, timers, drawing, piano, guitar, base Photo Booth, and the screensaver.
+  - Add weather, the selected calendar scope, Ask, and drawing links through the shared backend.
+  - Keep local activities available without a service connection.
+  - Use individual device enrollment and Keychain storage under the approved P002 contract.
+  - Define Apple login and child privacy behavior before hosted authentication and Ask implementation.
+  - Keep one current resource and credential contract across the backend and both clients.
+  - Verify every core activity during normal application use with Guided Access disabled.
+  - Document Guided Access as an optional parent setup choice.
+  - Record a port, equivalent activity, or explicitly accepted release exception for each Android game.
+
+  Dependencies:
+  P002 owns family identity, enrollment, revocation, and local-data policy.
+  Its resulting implementation and acceptance gate hosted qualification. Offline prototype work can start before that gate.
+
+  P001 gates expanded Google Calendar setup, agenda, and event creation when selected.
+  P004 and F003 through F007 define base Photo Booth behavior. Apple devices require separate evidence.
+  Compare F008 filters with the shared feature baseline. P003 image generation remains outside this issue.
+
+  P001 and P002 define proposed backend work. Their closure alone does not establish backend readiness.
+
+  Deliverables:
+  - Record the feature baseline, devices, OS versions, framework, layout behavior, performance limits, and distribution route.
+  - Complete the five stages in the detailed proposal, beginning with the platform experiment and persistent drawing prototype.
+  - Add the native Apple project and repository Make targets for build, public integration tests, and update preservation.
+  - Link the necessary backend implementation issues and their acceptance evidence before hosted qualification.
+  - Prepare the parent setup guide, privacy decisions, third-party notices, and signed release candidate.
+  - Record artifact identity and the completed device acceptance matrix.
+
+  Estimate:
+  The estimate for one experienced iOS engineer is 2–3 weeks for a prototype and 6–10 weeks total for core activities.
+  The estimate for core release preparation is 10–16 weeks total, with the necessary backend implementation available.
+  These cumulative ranges include phone and tablet layouts. Selected game work adds to the final parity release estimate.
+  P001/P002 backend implementation and Apple review time remain additional work or elapsed time.
+  Revise the estimate after the physical phone and tablet experiments and individual game assessment.
+
+  Validation:
+  - Start each behavior change with a failing integration test through the real application or backend client.
+  - Verify separate child data, offline use, camera and audio lifecycle, timers, screensaver wake, and update preservation.
+  - Verify two-family isolation, device revocation, explicit errors, and approved Ask and share behavior.
+  - Verify supported layouts, accessibility, memory limits, and touch latency on physical iPhones and iPads.
+  - Verify the parity matrix and the recorded disposition of each game and platform difference.
+  - Complete the detailed acceptance matrix and the applicable repository checks.
+  - Record source validation, physical acceptance, signed artifact creation, and store publication as separate results.
+  Close F009 only after the selected parity release candidate passes acceptance and its release package is reviewable.
+  Store submission and production publication remain separate execution requests.
+
+- [-] [F008] (P1) Add silly Photo Booth filters.
+  Requirements:
+  - Add live funhouse effects and face accessories.
+  - Apply the selected filter to single pictures and every picture in a strip.
+  - Keep face detection and image changes on this device.
+  - Preserve existing saved pictures and the current photo metadata schema.
+  Validation:
+  - Verify filter selection, preview, saved pixels, strips, and cancellation through the Android interface.
+  - Verify face accessories with a real face on the Portal.
+  - Record the available camera controls for a narrower view and person tracking.
+
+  Current result:
+  The initial integration test failed with `Missing enabled control: Filters` before implementation.
+  Photo Booth now offers Big nose, Stretch, Mirror twins, Bunny ears, Googly eyes, and Party hat.
+  The real camera test passed all filter choices and saved mirror symmetry for single pictures and strips.
+  Restart, APK update, album isolation, deletion, storage limits, and screensaver interruption passed.
+  Native face detection and all three accessories passed on the Portal with a fixed NASA portrait.
+  Physical camera preview and review passed the Mirror twins check.
+  Final `make ci` passed. The installed APK matches SHA-256 `70aa6f18a8b1a96f7506f630c763315c2fa3439b326ef0733697fcf9585c6474`.
+  Live accessory placement with a centered user remains pending.
+  The camera investigation is in `android/PHOTO_BOOTH_CAMERA.md`.
+  Reported digital zoom is 8.0 with center-only crop. The public camera exposes no face-detection output.
+  The Portal tracking service requires `android.permission.CAMERA_PRIV` and is unavailable to FamilyHome.
+  F010 contains application-owned person tracking.
+
+- [x] [F003] (P1) Qualify the Photo Booth camera.
+  Goal:
+  FamilyHome shows camera preview and creates JPEG pictures through one Camera2 session.
   P004 defines the accepted product scope.
   Requirements:
-  - Add camera access through the Android permission interface.
-  - Select supported camera preview and JPEG dimensions from camera characteristics.
-  - Verify orientation, camera preview reflection, and normal text direction in the JPEG picture.
-  - Release camera resources on Back, Home, activity pause, and screensaver entry.
-  - Reject callbacks from a camera session after its cancellation.
+  - Select supported camera preview and YUV dimensions from camera characteristics.
+  - Encode each selected YUV frame as an upright JPEG picture.
+  - Keep one YUV camera path for the Portal and emulator.
+  - Release camera resources on exit, activity pause, and screensaver entry.
+  - Reject callbacks from a camera session after cancellation.
   Validation:
-  - Start with a failing integration test through Home.
-  - Verify the real camera pipeline with an emulator camera scene.
-  - Verify camera preview and JPEG output together on the physical Portal before F004 through F006.
+  - Verify the real camera pipeline through the qualification application.
+  - Verify the Photo Booth lifecycle through its Android interface.
   Current result:
-  The Home integration test failed with `Missing control: Photo Booth. Take a picture` before the camera adapter implementation.
-  `PortalCamera` is the candidate Camera2 adapter. The FamilyHome interface does not use this adapter yet.
-  The separate qualification APK uses application ID `com.mprlab.portal.cameraqualification`.
-  This APK has no service connection and does not replace FamilyHome or change its saved data.
-  `make test-android-camera` passed on `emulator-5580` with an emulated front camera.
-  The test verified permission denial, JPEG output, 20 camera cycles, cancellation during camera open, and activity resume.
-  The selected emulator dimensions were 1024 by 768 for camera preview and 1440 by 1080 for JPEG output.
-  Visual review found an incorrect camera preview rotation. The corrected camera preview matches the JPEG orientation with horizontal reflection.
-  The test passed after correction of the rotation and camera release sequence.
-  `make test-android-contract` passed.
-  The qualification APK and evidence are in `android/build/tests/camera-qualification/`.
-  The Home integration test remains an expected failure until F004 adds the activity.
-  Shared toolbar and screensaver code did not change. Full CI remains pending until the final implementation checkpoint.
-  ADB showed only the emulator after qualification. No physical camera result is available.
-  Blocked: Connect the physical Portal through ADB to verify camera preview and JPEG output together before F004 through F006.
+  The Home test failed with `Missing control: Photo Booth. Take a picture` before application implementation.
+  On 2026-09-06, physical JPEG capture returned 18,000,008 bytes without a JPEG header.
+  The current adapter uses a continuous YUV stream and application JPEG encoding.
+  The Portal passed 20 capture, release, and reopen cycles, plus pause during open and activity resume.
+  Camera 0 supplies 1280 by 720 pixels for camera preview and YUV output.
+  The saved numbered page has normal text direction. The camera preview reflects the scene horizontally.
+  The Portal uses a fixed display rotation. The emulator separately passed the 180-degree rotation test.
+  The capture reservation uses four bytes per source pixel plus 65,536 bytes for each picture.
+  Four Portal pictures reserve 15,007,744 temporary bytes before capture.
+  The source image limit remains 1600 pixels per side. The renderer checks its 64 MiB decoded-image limit before allocation.
+  Physical camera evidence is in `android/build/tests/photobooth/physical-camera/`.
   References:
-  - [Android camera preview](https://developer.android.com/media/camera/camera2/camera-preview): sensor rotation and camera preview behavior.
+  - [Android YUV image format](https://developer.android.com/reference/android/graphics/ImageFormat).
 
-- [ ] [F004] (P1) {F003} Add Photo Booth capture and review.
+- [x] [F004] (P1) {F003} Add Photo Booth capture and review.
   Requirements:
   - Add the embedded offline activity to Home through the common toolbar.
   - Use a three-second countdown before each picture.
@@ -422,8 +602,11 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Cancel incomplete capture on exit, pause, or screensaver entry.
   Validation:
   - Verify the capture flow, cancellation, and camera release through the Android interface.
+  Current result:
+  The Android integration test passed capture, Retake, Discard, countdown cancellation, and review preservation across screensaver wake.
+  The physical Portal passed permission, preview, capture, review, Save, and Album through screen controls.
 
-- [ ] [F005] (P1) {F004} Add child photo albums.
+- [x] [F005] (P1) {F004} Add child photo albums.
   Requirements:
   - Save pictures with the profile ID selected at capture start.
   - Use one current metadata schema and complete each Save once.
@@ -436,8 +619,12 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Keep pictures in application storage without export or upload.
   Validation:
   - Verify two profiles, duplicate Save input, deletion, restart, APK update, and storage failures through public entry points.
+  Current result:
+  The integration test passed separate albums, repeated Save input, confirmed deletion, process restart, and an actual APK update.
+  Real filesystem conditions verified the entry limit, byte limit, and explicit storage errors.
+  Existing profiles and drawings also passed `make test-android-upgrade`.
 
-- [ ] [F006] (P1) {F005} Add photo strips and decorative frames.
+- [x] [F006] (P1) {F005} Add photo strips and decorative frames.
   Requirements:
   - Add four-picture vertical photo strips with a countdown before each picture.
   - Add None, Stars, and Confetti frame choices.
@@ -448,8 +635,15 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Select the temporary storage bound from qualified camera dimensions.
   Validation:
   - Verify four distinct pictures, frame rendering, crop, orientation, memory use, and cancellation through the Android interface.
+  Current result:
+  The integration test passed a four-picture sequence, Stars and Confetti frames, saved image dimensions, and temporary-data removal.
+  The renderer decodes one source picture at a time and checks the 64 MiB image bound before allocation.
+  Emulator screenshots show the complete strip and its frame.
+  The physical Portal produced a 1200 by 2712 pixel Stars strip with four distinct pictures.
+  A process memory sample recorded 54,120 KiB total PSS during the sequence.
+  This sample is not a peak measurement. The renderer image bound remains a separate allocation check.
 
-- [ ] [F007] (P1) {F006} Verify Photo Booth on the physical Portal.
+- [x] [F007] (P1) {F006} Verify Photo Booth on the physical Portal.
   Requirements:
   - Complete the P004 physical camera procedure and full application checks.
   - Verify the layout at 1280 by 800.
@@ -458,6 +652,17 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Validation:
   - Run the Photo Booth, toolbar, screensaver, and upgrade tests.
   - Run `make ci` after the final implementation change.
+  Current result:
+  On 2026-09-06, Photo Booth passed physical preview, countdown, capture, review, Save, and Album at 1280 by 800 pixels.
+  The Portal passed a four-picture Stars strip and kept the earlier picture after the final APK update.
+  A closed camera cover produced an obscured image without an Android camera error.
+  Capture and Discard completed with the cover closed. Camera preview returned after the cover opened.
+  A timed screensaver preserved the completed strip. The first wake touch activated no Save control.
+  The original five-minute Clock timeout was restored after the checks.
+  Home and screensaver entry released the camera. The system camera service confirmed that FamilyHome had no active camera client.
+  The installed APK and local artifact have SHA-256 `8c192911f9e7d26a3806e250c78e5fe589c8387171c20ba93473df38cfe6acf3`.
+  Photo Booth, toolbar, screensaver, upgrade, camera recovery, and final `make ci` checks passed.
+  Physical screenshots and the memory sample remain in the ignored camera evidence directory recorded by F003.
 
 - [x] [F002] Add a screensaver with a timeout in Settings.
   Goal:
@@ -472,13 +677,30 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   The default is `Black screen` after five minutes.
   `Preview screensaver` shows the selected display immediately.
   A touch or key returns to the same screen without activation of its controls.
-  The clock changes position each minute.
+  The screensaver shows an analog clock above the digital time and full date.
+  Settings offers a `Time format` control with `12-hour` and `24-hour` choices.
+  FamilyHome saves the initial Android format as its own selection.
+  Later Android format changes do not change the saved FamilyHome selection.
+  Home, calendar event times, and the screensaver use this selection.
+  The analog clock has a light purple face and rounded hour and minute indicators.
+  A purple dot shows the seconds. A short date appears along the face edge.
+  The time and date move continuously across the screen. They change direction at each screen edge.
+  If Android animations are disabled, the time and date stay at the center of the screen.
   The black screen uses minimum brightness. The display remains powered.
   The controls apply to FamilyHome screens. Separate game applications control their own display behavior.
   Validation:
   The Android integration test first failed with `Missing control: Screensaver mode`.
   The contrast test failed before correction of the selector text.
   The keyboard test failed before the screensaver closed the keyboard.
+  The date test first failed with `Screensaver date absent`.
+  The analog face test first failed with `Scalloped analog clock face absent`.
+  The date width test exposed clipped text before the layout correction.
+  The time format test first failed with `Missing control: Time format`.
+  The emulator tests verified initialization and both formats on Home and the screensaver.
+  The saved selection survived process restarts and Android format changes.
+  The emulator test verified the analog face, indicators, and full date width.
+  The emulator test verified continuous movement and direction changes at all four screen edges.
+  A separate emulator test verified the stationary date and time with Android animations disabled.
   `make test-android-screensaver` passed, including a process restart and keyboard removal.
   The test verified timeout changes, touch input, brightness, previews, disabled operation, and activity changes.
   `make ci` and `make test-android-toolbar` passed.
@@ -606,7 +828,8 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   `PhotoBoothActivity` owns the screen and user commands.
   A camera adapter owns camera access, camera preview, image output, and resource release.
   Camera2 is the initial candidate because the current build uses platform APIs without AndroidX dependencies.
-  Camera2 selection requires physical Portal evidence for camera preview and JPEG output together.
+  The qualified Camera2 session supplies camera preview and YUV output together.
+  The application encodes YUV images as JPEG pictures.
   Android documentation recommends CameraX for general camera applications.
   Device qualification must establish this choice before the remaining implementation stages.
   The adapter selects supported dimensions from the device characteristics.
@@ -639,8 +862,9 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   1. Record the Portal model, Android version, APK identity, camera IDs, and camera characteristics.
   2. Request camera access through the Photo Booth interface.
   3. Verify explicit interface states for permission denial and unavailable camera access.
-  4. Select one camera and supported camera preview and JPEG dimensions.
-  5. Verify camera preview and JPEG output in the same camera session.
+  4. Select one camera and supported camera preview and YUV dimensions.
+  5. Verify camera preview and YUV output in the same camera session.
+     Verify that the application creates valid JPEG pictures from YUV output.
   6. Photograph a numbered chart with text through the countdown and capture controls.
   7. Verify crop, orientation, text direction, and correspondence between camera preview and saved image.
   8. Complete 20 open, capture, exit, and reopen cycles through the Android interface.
@@ -667,9 +891,12 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Existing toolbar, screensaver, and upgrade tests cover the affected shared behavior.
   `make ci` runs after the final application change. Physical camera acceptance remains a separate result.
 
-  Open Decisions:
-  - Select camera dimensions and the temporary storage bound from physical qualification evidence during implementation.
-  - Confirm image quality and memory limits from the same evidence.
+  Implementation decision on 2026-09-06:
+  The physical Portal supplies camera preview and YUV images at 1280 by 720 pixels through Camera2.
+  Native JPEG output failed. The current contract uses continuous YUV output and JPEG encoding in the application.
+  The same adapter serves the Portal and emulator.
+  F003 records the source dimensions and temporary storage bound.
+  Full application acceptance belongs to F007.
   The selected offline scope has no AI transformation or provider integration dependency.
   P002 applies to future family transfer. P003 applies only if a later request adds AI transformations.
   F003 through F007 record the implementation sequence for the accepted product values.
