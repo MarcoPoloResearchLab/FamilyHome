@@ -18,20 +18,16 @@ public final class GameLibraryActivity extends PortalActivity {
     private static final int MUTED = PortalStyle.SECONDARY;
     private static final int DISABLED = Color.rgb(217, 220, 228);
 
-    private ProfileStore store;
-
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         Window window = getWindow();
         window.setStatusBarColor(SYSTEM_BAR);
         window.setNavigationBarColor(SYSTEM_BAR);
-        store = new ProfileStore(this);
         render();
     }
 
     @Override protected void onResume() {
         super.onResume();
-        store.load();
         render();
     }
 
@@ -79,7 +75,7 @@ public final class GameLibraryActivity extends PortalActivity {
         card.setClickable(true);
         card.setFocusable(true);
         card.setContentDescription(game.name + ". " + game.description + (installed ? "" : ". Not installed yet"));
-        card.setOnClickListener(view -> GameLauncher.open(this, store.active, game));
+        card.setOnClickListener(view -> GameLauncher.open(this, game));
 
         CharacterView illustration = new CharacterView(this, game.illustration);
         card.addView(illustration, new LinearLayout.LayoutParams(dp(160), dp(160)));

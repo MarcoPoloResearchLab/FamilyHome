@@ -14,11 +14,11 @@ public final class MainActivity extends Activity {
     private static final String PROFILES = "["
             + "{\"id\":\"alice-profile\",\"name\":\"Alice\","
             + "\"calendar_url\":\"https://calendar.invalid/alice.ics\","
-            + "\"freedoom_enabled\":true,\"kart_enabled\":true,"
+            + "\"kart_enabled\":true,"
             + "\"remaining_ms\":555000,\"timer_end_epoch_ms\":0,\"timer_running\":false,"
             + "\"color_index\":4,\"brush_index\":2},"
             + "{\"id\":\"bob-profile\",\"name\":\"Bob\","
-            + "\"calendar_url\":\"\",\"freedoom_enabled\":false,\"kart_enabled\":false,"
+            + "\"calendar_url\":\"\",\"kart_enabled\":false,"
             + "\"remaining_ms\":1200000,\"timer_end_epoch_ms\":0,\"timer_running\":false,"
             + "\"color_index\":1,\"brush_index\":1}"
             + "]";

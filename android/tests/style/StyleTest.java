@@ -169,8 +169,22 @@ public final class StyleTest extends Instrumentation {
         }
     }
     private void assertGameIllustrations(Activity screen) throws Exception {
+        onUi(() -> {
+            ViewGroup card = (ViewGroup) findText(screen.getWindow().getDecorView(), "Kart").getParent();
+            ViewGroup grid = (ViewGroup) card.getParent().getParent();
+            java.util.List<String> labels = new java.util.ArrayList<>();
+            for (int row = 0; row < grid.getChildCount(); row++) {
+                ViewGroup cells = (ViewGroup) grid.getChildAt(row);
+                for (int cell = 0; cell < cells.getChildCount(); cell++) {
+                    View game = cells.getChildAt(cell);
+                    if (game.isClickable()) labels.add(game.getContentDescription().toString().split("\\.")[0]);
+                }
+            }
+            if (!labels.equals(java.util.Arrays.asList("Kart", "Blocks", "Tiles", "Match")))
+                throw new AssertionError("The game library must contain exactly Kart, Blocks, Tiles, and Match: " + labels);
+        });
         java.util.HashSet<Integer> drawings = new java.util.HashSet<>();
-        for (String game : new String[]{"Freedoom", "Kart", "Blocks", "Tiles", "Match"}) {
+        for (String game : new String[]{"Kart", "Blocks", "Tiles", "Match"}) {
             ViewGroup[] card = {null};
             onUi(() -> {
                 TextView title = findText(screen.getWindow().getDecorView(), game);

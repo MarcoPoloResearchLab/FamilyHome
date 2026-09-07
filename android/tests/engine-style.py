@@ -2,11 +2,10 @@
 
 import importlib.util
 import json
-from pathlib import Path
 import re
 import struct
 import subprocess
-import pytest
+from pathlib import Path
 
 spec = importlib.util.spec_from_file_location(
     "game_navigation", Path(__file__).with_name("games-toolbar.py")
@@ -74,27 +73,18 @@ def cream_surface() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "game,package",
-    [("Kart", "org.supertuxkart.stk"), ("Freedoom", "net.nullsum.freedoom")],
-)
-def test_engine_screens(game: str, package: str) -> None:
+def test_kart_screens() -> None:
+    game, package = "Kart", "org.supertuxkart.stk"
     nav.command("shell", "am", "force-stop", package)
     nav.command("shell", "am", "start", "-W", "-n", "com.mprlab.portal/.MainActivity")
     # This test requires a child profile and the supported 1280 x 800 Portal layout.
     nav.command("shell", "input", "tap", "884", "679")
     nav.tap(nav.control(nav.snapshot(), game))
-    wait_text(
-        game.lower() + "-launch", "New game" if game == "Freedoom" else "Singleplayer"
-    )
+    wait_text("kart-launch", "Singleplayer")
     state = nav.command("shell", "dumpsys", "activity", "activities")
     assert re.search(r"mResumedActivity:.*" + re.escape(package), state), (
         f"{game} did not launch"
     )
-    if game == "Freedoom":
-        wait_text("freedoom-menu", "New game")
-        cream_surface()
-        return
     words = wait_text("kart-menu", "Singleplayer")
     cream_surface()
     for label in ["Story Mode", "Singleplayer", "Online", "Addons"]:

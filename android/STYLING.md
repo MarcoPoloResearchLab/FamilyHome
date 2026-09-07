@@ -55,7 +55,6 @@ Each adapter must obey this contract.
 - Blocks uses `portal_theme.dart` and `portal_toolbar.dart`.
 - Tiles uses `portal.scss`.
 - Kart uses `games/engine-style/build.py` and `PortalAppearance.java`.
-- Freedoom uses `games/engine-style/freedoom.py` and the shared native `PortalStyle` source.
 
 The game build commands include the shared Fredoka font and license.
 The adapter files implement the values in this document for their respective platforms.

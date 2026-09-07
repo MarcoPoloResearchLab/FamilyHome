@@ -9,7 +9,7 @@ import android.view.View;
 
 final class CharacterView extends View {
     enum Kind { PENCIL, QUESTION, MUSIC, GAME, CAMERA, CALENDAR, BOOK, TOOTH, HOURGLASS, CLOCK,
-        KART, BLOCKS, TILES, MATCH, FREEDOOM }
+        KART, BLOCKS, TILES, MATCH }
     private final Kind kind;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -32,7 +32,6 @@ final class CharacterView extends View {
             case BLOCKS: blocks(canvas); canvas.restore(); return;
             case TILES: tiles(canvas); canvas.restore(); return;
             case MATCH: matchingCards(canvas); canvas.restore(); return;
-            case FREEDOOM: explorer(canvas); canvas.restore(); return;
             default: limbs(canvas);
         }
         switch (kind) {
@@ -218,38 +217,6 @@ final class CharacterView extends View {
         face(canvas, 0, 0, .43f);
         canvas.restore();
         line(canvas, x + 19, y + 69, x + 34, y + 69, 2, PortalStyle.PURPLE);
-    }
-
-    private void explorer(Canvas canvas) {
-        shape(canvas, 8, 13, 119, 110, 8, PortalStyle.MINT);
-        line(canvas, 23, 15, 23, 43, 4, Color.BLACK);
-        line(canvas, 23, 43, 40, 43, 4, Color.BLACK);
-        line(canvas, 39, 14, 39, 28, 4, Color.BLACK);
-        line(canvas, 85, 28, 104, 28, 4, Color.BLACK);
-        line(canvas, 104, 28, 104, 48, 4, Color.BLACK);
-        line(canvas, 8, 64, 24, 64, 4, Color.BLACK);
-        line(canvas, 24, 64, 24, 94, 4, Color.BLACK);
-        line(canvas, 93, 110, 93, 97, 4, Color.BLACK);
-        line(canvas, 93, 97, 117, 97, 4, Color.BLACK);
-        line(canvas, 46, 92, 38, 108, 9, Color.BLACK);
-        line(canvas, 65, 92, 74, 108, 9, Color.BLACK);
-        oval(canvas, 26, 104, 48, 116, PortalStyle.YELLOW);
-        oval(canvas, 67, 104, 89, 116, PortalStyle.YELLOW);
-        shape(canvas, 34, 57, 74, 94, 12, PortalStyle.PURPLE);
-        line(canvas, 34, 68, 29, 81, 7, Color.BLACK);
-        oval(canvas, 24, 77, 37, 89, Color.WHITE);
-        oval(canvas, 30, 18, 81, 67, PortalStyle.BLUE);
-        shape(canvas, 33, 34, 81, 60, 10, Color.WHITE);
-        face(canvas, 57, 43, .62f);
-        shape(canvas, 46, 17, 66, 28, 4, PortalStyle.YELLOW);
-        dot(canvas, 56, 22, 3, Color.WHITE);
-        line(canvas, 67, 74, 84, 79, 8, Color.BLACK);
-        shape(canvas, 81, 73, 91, 92, 3, PortalStyle.PURPLE);
-        shape(canvas, 77, 64, 111, 80, 5, PortalStyle.YELLOW);
-        shape(canvas, 102, 62, 114, 82, 4, PortalStyle.CORAL);
-        oval(canvas, 109, 66, 117, 78, PortalStyle.BLUE);
-        oval(canvas, 75, 77, 86, 88, Color.WHITE);
-        line(canvas, 49, 82, 60, 82, 3, PortalStyle.YELLOW);
     }
 
     private void limbs(Canvas canvas) {
