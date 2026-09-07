@@ -97,6 +97,16 @@ test-engine-style: toolbar-test-deps
 	swiftc android/tests/engine-style/Ocr.swift -o android/build/engine-style/ocr
 	ANDROID_SERIAL="$(ANDROID_SERIAL)" PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/engine-style.py
 
+.PHONY: test-kart-text-selection
+test-kart-text-selection: toolbar-test-deps
+	mkdir -p android/build/engine-style
+	swiftc android/tests/engine-style/Ocr.swift -o android/build/engine-style/ocr
+	ANDROID_SERIAL="$(ANDROID_SERIAL)" PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/engine-style.py -k selected_text
+
+.PHONY: test-kart-skin
+test-kart-skin:
+	PYTHONDONTWRITEBYTECODE=1 uv run --with pytest==9.0.2 --with pillow==11.3.0 python -m pytest -q -o cache_dir=android/build/pytest-cache android/tests/kart-skin.py
+
 .PHONY: build-kart
 build-kart:
 	PYTHONDONTWRITEBYTECODE=1 uv run --with pillow==11.3.0 --with fonttools==4.59.0 python games/engine-style/build.py kart
