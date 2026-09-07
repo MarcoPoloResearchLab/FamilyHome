@@ -90,3 +90,16 @@ test-android-camera-recovery: toolbar-test-deps
 .PHONY: test-android-photo-effects
 test-android-photo-effects:
 	cd android && bash ./tests/photo-effects.sh
+
+.PHONY: test-engine-style
+test-engine-style: toolbar-test-deps
+	mkdir -p android/build/engine-style
+	swiftc android/tests/engine-style/Ocr.swift -o android/build/engine-style/ocr
+	ANDROID_SERIAL="$(ANDROID_SERIAL)" PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/engine-style.py
+
+.PHONY: build-kart build-freedoom
+build-kart:
+	PYTHONDONTWRITEBYTECODE=1 uv run --with pillow==11.3.0 --with fonttools==4.59.0 python games/engine-style/build.py kart
+
+build-freedoom:
+	PYTHONDONTWRITEBYTECODE=1 uv run --with pillow==11.3.0 --with fonttools==4.59.0 python games/engine-style/build.py freedoom
