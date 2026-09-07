@@ -130,30 +130,26 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Improvements
 
-- [-] [I005] {I004} Apply the FamilyHome appearance inside Kart and Freedoom.
+- [-] [I005] {I004} Apply the FamilyHome appearance inside Kart.
   Goal:
   Extend the shared appearance to the remaining engine interfaces.
   Requirements:
-  - Add reproducible source builds for the Kart and Freedoom interface adaptations.
+  - Add reproducible source builds for the Kart interface adaptation.
   - Apply `android/STYLING.md` to preparation, menus, instructions, scores, pause screens, and results.
   - Verify the adapted games through the FamilyHome Games entry point.
   - Preserve gameplay controls and saved games.
   Validation:
   The initial public Kart test rejected the original menu appearance.
-  `make build-kart` and `make build-freedoom` compile the interface adaptations from fixed inputs.
-  Both builds verify that the native game libraries stay the same.
-  Two clean builds produced the same contents for all 5,114 Kart APK entries and all 771 Freedoom APK entries.
+  `make build-kart` compiles the interface adaptation from fixed inputs.
+  The build verifies that the native game libraries stay the same.
+  Two clean builds produced the same contents for all 5,114 Kart APK entries.
   Kart navigation, race preparation, pause, expanded instructions, and results passed through Games at font scales of 1.0 and 1.3.
 
   An in-place emulator update kept all 11 game home files unchanged.
   Kart score and input files stayed unchanged after asset extraction and game launch.
   The results test found white scores on the cream panel. A black score panel supplies the required contrast.
 
-  Freedoom resource parsing passed with desktop GZDoom 4.14.2.
-  The available ARM64 emulator cannot install the 32-bit Freedoom engine.
-  Freedoom Android checks require the Portal signing-key configuration for an in-place update.
-  The process environment and repository environment file contain none of the required signing variables.
-  Physical Portal acceptance and Freedoom gameplay and saves still need verification.
+  Physical Portal acceptance remains pending.
 
   The final `make ci`, Python lint, document checks, and Governor check passed.
 
@@ -174,7 +170,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Screenshot review found a Blocks shadow defect. The added pixel check failed before the correction and passed after it.
   The Blocks settings tests passed. The final `make ci` passed.
   Root `AGENTS.md` requires `android/STYLING.md` before each interface change.
-  I005 tracks the remaining Kart and Freedoom engine interfaces.
+  I005 tracks the Kart engine interface.
   Physical Portal acceptance remains pending.
 
 - [x] [I003] Apply the approved FamilyHome appearance.
@@ -217,7 +213,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   Match combines navigation, its game menu, and game status.
   Blocks combines navigation, score, level, lines, and Settings.
   Tiles combines navigation and menu tabs. Its active game menu uses the same row.
-  Freedoom and Kart already use fullscreen controls without stacked headers.
+  Kart already uses fullscreen controls without stacked headers.
   The audit covers their menus and active games, plus the Kart pause menu.
   Validation:
   Integration tests failed before the toolbar changes.
