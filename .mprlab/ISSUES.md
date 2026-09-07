@@ -130,7 +130,7 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## Improvements
 
-- [ ] [I005] {I004} Apply the FamilyHome appearance inside Kart and Freedoom.
+- [-] [I005] {I004} Apply the FamilyHome appearance inside Kart and Freedoom.
   Goal:
   Extend the shared appearance to the remaining engine interfaces.
   Requirements:
@@ -139,9 +139,23 @@ Format: `- [ ] [B042] (P1) {I007} Title`
   - Verify the adapted games through the FamilyHome Games entry point.
   - Preserve gameplay controls and saved games.
   Validation:
-  The repository has no Kart interface adapter or build target.
-  The Freedoom adapter contains launch preparation code but no engine interface build target.
-  The I004 game checks cover Match, Blocks, and Tiles.
+  The initial public Kart test rejected the original menu appearance.
+  `make build-kart` and `make build-freedoom` compile the interface adaptations from fixed inputs.
+  Both builds verify that the native game libraries stay the same.
+  Two clean builds produced the same contents for all 5,114 Kart APK entries and all 771 Freedoom APK entries.
+  Kart navigation, race preparation, pause, expanded instructions, and results passed through Games at font scales of 1.0 and 1.3.
+
+  An in-place emulator update kept all 11 game home files unchanged.
+  Kart score and input files stayed unchanged after asset extraction and game launch.
+  The results test found white scores on the cream panel. A black score panel supplies the required contrast.
+
+  Freedoom resource parsing passed with desktop GZDoom 4.14.2.
+  The available ARM64 emulator cannot install the 32-bit Freedoom engine.
+  Freedoom Android checks require the Portal signing-key configuration for an in-place update.
+  The process environment and repository environment file contain none of the required signing variables.
+  Physical Portal acceptance and Freedoom gameplay and saves still need verification.
+
+  The final `make ci`, Python lint, document checks, and Governor check passed.
 
 - [x] [I004] Apply shared text roles to FamilyHome and its game adapters.
   Goal:
