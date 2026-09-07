@@ -8,6 +8,8 @@ I003 introduced the appearance. I004 applies shared text roles and larger contro
 
 - Use a playful appearance with character illustrations and bright colors.
 - Use a cream background and black text.
+- Game titles can use a bright fill with a black outline.
+- Game score panels can use a black background with white or bright text.
 - Use a 3 dp black outline and a 4 dp solid shadow for control surfaces.
 - Use Fredoka Bold, weight 700, for titles, section headings, and control labels.
 - Use the medium system typeface for instructions, descriptions, and status messages.
@@ -52,6 +54,8 @@ Each adapter must obey this contract.
 - Match uses the shared native `PortalStyle` source and its Android theme adapter.
 - Blocks uses `portal_theme.dart` and `portal_toolbar.dart`.
 - Tiles uses `portal.scss`.
+- Kart uses `games/engine-style/build.py` and `PortalAppearance.java`.
+- Freedoom uses `games/engine-style/freedoom.py` and the shared native `PortalStyle` source.
 
 The game build commands include the shared Fredoka font and license.
 The adapter files implement the values in this document for their respective platforms.
