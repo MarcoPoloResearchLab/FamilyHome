@@ -31,7 +31,6 @@ public final class PianoActivity extends PortalActivity {
     private static final int INK = PortalStyle.INK;
     private static final int MUTED = PortalStyle.SECONDARY;
     private static final int PURPLE = PortalStyle.PURPLE;
-    private static final int PALE_PURPLE = PortalStyle.PURPLE;
     private static final int BLUE = PortalStyle.BLUE;
 
     private TextView noteReadout;
@@ -59,9 +58,9 @@ public final class PianoActivity extends PortalActivity {
         toolbar.addView(text("Piano", PortalStyle.TextRole.TITLE, INK), new LinearLayout.LayoutParams(0, -2, 1f));
         PortalToolbar.navigation(this, toolbar);
 
-        noteReadout = text("Tap a key", PortalStyle.TextRole.SECTION, PURPLE);
+        noteReadout = text("Tap a key", PortalStyle.TextRole.SECTION, INK);
         noteReadout.setGravity(Gravity.CENTER);
-        noteReadout.setBackground(rounded(PALE_PURPLE, 18));
+        noteReadout.setBackground(rounded(PURPLE, 18));
         noteReadout.setPadding(dp(12), dp(4), dp(12), dp(4));
         LinearLayout.LayoutParams readoutParams = new LinearLayout.LayoutParams(dp(220), dp(60));
         readoutParams.rightMargin = dp(14);

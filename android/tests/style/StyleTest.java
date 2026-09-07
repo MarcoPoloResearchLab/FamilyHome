@@ -99,6 +99,13 @@ public final class StyleTest extends Instrumentation {
             for (String instrument : new String[]{"Piano", "Guitar"}) {
                 Activity screen = clickOpen(music, instrument, instrument + "Activity"); ready();
                 onUi(() -> { assertTextFits(screen.getWindow().getDecorView()); assertButtons(screen.getWindow().getDecorView()); });
+                if (instrument.equals("Piano")) onUi(() -> {
+                    TextView readout = findText(screen.getWindow().getDecorView(), "Tap a key");
+                    if (readout == null) throw new AssertionError("Missing Piano instruction");
+                    bounds(readout);
+                    if (readout.getCurrentTextColor() != Color.BLACK)
+                        throw new AssertionError("Piano readout must use black text on its colored surface");
+                });
                 capture(instrument.toLowerCase());
                 home = clickOpen(screen, "Home", "MainActivity"); ready();
                 music = clickOpen(home, ACTIONS[2], "MusicActivity"); ready();
@@ -234,6 +241,17 @@ public final class StyleTest extends Instrumentation {
             for (int i = 0; i < group.getChildCount(); i++) {
                 View result = find(group.getChildAt(i), label);
                 if (result != null) return result;
+            }
+        }
+        return null;
+    }
+    private TextView findText(View view, String value) {
+        if (view instanceof TextView && value.contentEquals(((TextView) view).getText())) return (TextView) view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                TextView found = findText(group.getChildAt(i), value);
+                if (found != null) return found;
             }
         }
         return null;
