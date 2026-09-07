@@ -8,6 +8,33 @@ Format: `- [ ] [B042] (P1) {I007} Title`
 
 ## BugFixes
 
+- [x] [B007] (P2) Preserve player colors in Kart selection controls.
+  Goal:
+  Each player must have a different color for the current selection.
+  Requirements:
+  - Give the five player selection borders different colors.
+  - Use the same color for each player name control and its selection border.
+  - Keep black outlines and transparent centers on the selection borders.
+  Validation:
+  The initial APK test failed because all five borders had only black outlines.
+  `make build-kart` and `make test-kart-skin` passed after the correction.
+  The generated assets have five different colors and matching name controls.
+  The test verifies that each stretched border contains the player color.
+  A session with multiple physical controllers remains unverified under I005.
+
+- [x] [B006] (P2) Keep selected text visible in Kart.
+  Goal:
+  Text must stay visible when the player selects characters in a text field.
+  Requirements:
+  - Use a blue selection color with partial transparency.
+  - Preserve text contrast when the game engine draws the selection over the characters.
+  Validation:
+  The initial APK tests failed at both text dimensions because the selection was opaque.
+  The APK tests passed after the correction.
+  `make test-kart-text-selection` passed through Games at font scales of 1.0 and 1.3.
+  Screenshot review confirmed visible selected characters at both dimensions.
+  I005 retains physical Portal acceptance.
+
 - [x] [B005] Correct application window selection in the Android upgrade test.
   Goal:
   The upgrade test must read the FamilyHome window after each activity change.
