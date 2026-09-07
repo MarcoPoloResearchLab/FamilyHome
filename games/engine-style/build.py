@@ -15,7 +15,7 @@ from pathlib import Path
 
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
-from PIL import Image, ImageDraw
+from PIL import Image, ImageColor, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = ROOT / "android/build/engine-style/cache"
@@ -30,6 +30,8 @@ COLORS = {
     "coral": "#ff8597",
     "disabled": "#deded8",
 }
+PLAYER_COLORS = ("coral", "blue", "mint", "yellow", "purple")
+TEXT_SELECTION_ALPHA = 96
 
 
 def run(*args: object) -> None:
@@ -132,6 +134,9 @@ def kart(decoded: Path, font: Path) -> None:
             color = "disabled"
         if "error" in kind:
             color = "coral"
+        player = re.fullmatch(r"(?:squareFocusHalo|spinner)([1-5])", kind)
+        if player:
+            color = PLAYER_COLORS[int(player[1]) - 1]
         path = skin / f"portal-{index}.png"
         if kind == "background":
             Image.new("RGB", (1280, 800), COLORS["paper"]).save(path)
@@ -165,12 +170,25 @@ def kart(decoded: Path, font: Path) -> None:
                     outline=COLORS["ink"],
                     width=3,
                 )
+                if player:
+                    draw.rounded_rectangle(
+                        (5, 5, size[0] - 9, size[1] - 9),
+                        radius=13,
+                        outline=COLORS[color],
+                        width=5,
+                    )
+                    draw.rounded_rectangle(
+                        (10, 10, size[0] - 14, size[1] - 14),
+                        radius=8,
+                        outline=COLORS["ink"],
+                        width=2,
+                    )
                 image.save(path)
         element.attrib.pop("common", None)
         element.set("image", path.name)
         for edge in ["left_border", "right_border", "top_border", "bottom_border"]:
             if edge in element.attrib:
-                element.set(edge, "8")
+                element.set(edge, "12" if player and "halo" in kind.lower() else "8")
         if kind in {"spinner", "spinner_rainbow"}:
             element.set("left_border", "24")
             element.set("right_border", "24")
@@ -194,6 +212,15 @@ def kart(decoded: Path, font: Path) -> None:
         if "background" in color.get("state", ""):
             for channel, value in zip(("r", "g", "b"), (255, 251, 239)):
                 color.set(channel, str(value))
+        if (
+            color.get("type") == "text_field"
+            and color.get("state") == "background_marked"
+        ):
+            for channel, value in zip(
+                ("r", "g", "b"), ImageColor.getrgb(COLORS["blue"])
+            ):
+                color.set(channel, str(value))
+            color.set("a", str(TEXT_SELECTION_ALPHA))
     tree.write(skin / "stkskin.xml", encoding="utf-8", xml_declaration=True)
     # One selectable appearance; common contains engine-owned icons shared by the skin.
     for sibling in (data / "skins").iterdir():
