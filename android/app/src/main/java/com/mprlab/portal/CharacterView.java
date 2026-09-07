@@ -8,7 +8,8 @@ import android.graphics.Path;
 import android.view.View;
 
 final class CharacterView extends View {
-    enum Kind { PENCIL, QUESTION, MUSIC, GAME, CAMERA, CALENDAR, BOOK, TOOTH, HOURGLASS, CLOCK }
+    enum Kind { PENCIL, QUESTION, MUSIC, GAME, CAMERA, CALENDAR, BOOK, TOOTH, HOURGLASS, CLOCK,
+        KART, BLOCKS, TILES, MATCH, FREEDOOM }
     private final Kind kind;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -26,7 +27,14 @@ final class CharacterView extends View {
         canvas.save();
         canvas.translate((getWidth() - scale * 128) / 2, (getHeight() - scale * 128) / 2);
         canvas.scale(scale, scale);
-        limbs(canvas);
+        switch (kind) {
+            case KART: kart(canvas); canvas.restore(); return;
+            case BLOCKS: blocks(canvas); canvas.restore(); return;
+            case TILES: tiles(canvas); canvas.restore(); return;
+            case MATCH: matchingCards(canvas); canvas.restore(); return;
+            case FREEDOOM: explorer(canvas); canvas.restore(); return;
+            default: limbs(canvas);
+        }
         switch (kind) {
             case PENCIL:
                 canvas.save(); canvas.rotate(16, 64, 60);
@@ -113,6 +121,135 @@ final class CharacterView extends View {
                 face(canvas, 64, 65, 1f); break;
         }
         canvas.restore();
+    }
+
+    private void kart(Canvas canvas) {
+        line(canvas, 8, 62, 25, 62, 3, Color.BLACK);
+        line(canvas, 4, 73, 20, 73, 3, Color.BLACK);
+        line(canvas, 12, 84, 27, 84, 3, Color.BLACK);
+        shape(canvas, 77, 54, 106, 69, 5, PortalStyle.PURPLE);
+        shape(canvas, 33, 63, 50, 94, 6, Color.BLACK);
+        shape(canvas, 90, 61, 111, 94, 6, Color.BLACK);
+        shape(canvas, 51, 48, 84, 80, 10, PortalStyle.BLUE);
+        oval(canvas, 40, 10, 87, 58, PortalStyle.YELLOW);
+        shape(canvas, 40, 25, 88, 49, 10, Color.WHITE);
+        face(canvas, 65, 35, .62f);
+        path(canvas, new float[]{42, 17, 51, 7, 74, 7, 83, 17}, PortalStyle.CORAL);
+        line(canvas, 54, 60, 67, 71, 6, Color.BLACK);
+        oval(canvas, 62, 63, 86, 76, Color.BLACK);
+        oval(canvas, 62, 60, 73, 70, Color.WHITE);
+        path(canvas, new float[]{35, 73, 74, 77, 95, 65, 110, 80, 105, 100, 37, 108, 23, 91}, PortalStyle.CORAL);
+        path(canvas, new float[]{49, 78, 65, 80, 74, 100, 58, 103}, PortalStyle.YELLOW);
+        shape(canvas, 21, 91, 40, 115, 6, Color.BLACK);
+        shape(canvas, 96, 87, 117, 113, 6, Color.BLACK);
+        line(canvas, 27, 97, 27, 108, 3, PortalStyle.SECONDARY);
+        line(canvas, 110, 94, 110, 106, 3, PortalStyle.SECONDARY);
+        shape(canvas, 39, 98, 95, 111, 5, Color.WHITE);
+        line(canvas, 48, 104, 85, 104, 3, Color.BLACK);
+    }
+
+    private void blocks(Canvas canvas) {
+        line(canvas, 23, 8, 23, 16, 3, Color.BLACK);
+        line(canvas, 46, 5, 46, 13, 3, Color.BLACK);
+        canvas.save(); canvas.rotate(-12, 37, 44);
+        block(canvas, 15, 23, PortalStyle.YELLOW);
+        block(canvas, 15, 43, PortalStyle.YELLOW);
+        block(canvas, 35, 43, PortalStyle.YELLOW);
+        block(canvas, 55, 43, PortalStyle.YELLOW);
+        face(canvas, 45, 47, .4f);
+        canvas.restore();
+        line(canvas, 93, 6, 93, 14, 3, Color.BLACK);
+        canvas.save(); canvas.rotate(13, 94, 40);
+        block(canvas, 84, 20, PortalStyle.BLUE);
+        block(canvas, 64, 40, PortalStyle.BLUE);
+        block(canvas, 84, 40, PortalStyle.BLUE);
+        block(canvas, 104, 40, PortalStyle.BLUE);
+        canvas.restore();
+        canvas.save(); canvas.rotate(-7, 58, 91);
+        block(canvas, 28, 73, PortalStyle.CORAL);
+        block(canvas, 48, 73, PortalStyle.CORAL);
+        block(canvas, 48, 93, PortalStyle.CORAL);
+        block(canvas, 68, 93, PortalStyle.CORAL);
+        face(canvas, 59, 90, .52f);
+        canvas.restore();
+        path(canvas, new float[]{100, 75, 100, 90, 94, 90, 105, 102, 117, 90, 110, 90, 110, 75}, PortalStyle.MINT);
+    }
+
+    private void block(Canvas canvas, float x, float y, int color) {
+        shape(canvas, x, y, x + 20, y + 20, 2, color);
+        line(canvas, x + 5, y + 5, x + 14, y + 5, 2, Color.WHITE);
+    }
+
+    private void tiles(Canvas canvas) {
+        limbs(canvas);
+        canvas.save(); canvas.rotate(-10, 64, 60);
+        shape(canvas, 24, 17, 104, 97, 7, Color.WHITE);
+        int[] colors = {PortalStyle.CORAL, PortalStyle.BLUE, PortalStyle.YELLOW,
+            PortalStyle.MINT, PortalStyle.PURPLE, PortalStyle.CORAL,
+            PortalStyle.YELLOW, PortalStyle.BLUE, PortalStyle.MINT};
+        for (int row = 0; row < 3; row++) for (int column = 0; column < 3; column++) {
+            float x = 28 + column * 24, y = 21 + row * 24;
+            shape(canvas, x, y, x + 24, y + 24, 1, colors[row * 3 + column]);
+            path(canvas, new float[]{x + 2, y + 2, x + 22, y + 2, x + 2, y + 22},
+                colors[(row * 3 + column + 4) % colors.length]);
+        }
+        face(canvas, 64, 52, .85f);
+        canvas.restore();
+    }
+
+    private void matchingCards(Canvas canvas) {
+        canvas.save(); canvas.rotate(-14, 38, 64);
+        pictureCard(canvas, 8, 24);
+        canvas.restore();
+        canvas.save(); canvas.rotate(12, 88, 64);
+        pictureCard(canvas, 61, 31);
+        canvas.restore();
+        line(canvas, 52, 12, 56, 19, 3, Color.BLACK);
+        line(canvas, 70, 10, 66, 19, 3, Color.BLACK);
+        line(canvas, 91, 16, 80, 22, 3, Color.BLACK);
+    }
+
+    private void pictureCard(Canvas canvas, float x, float y) {
+        shape(canvas, x, y, x + 53, y + 75, 7, Color.WHITE);
+        shape(canvas, x + 5, y + 6, x + 48, y + 64, 4, PortalStyle.BLUE);
+        canvas.save(); canvas.translate(x + 26.5f, y + 32);
+        path(canvas, new float[]{0, -20, 7, -7, 21, -5, 11, 6, 14, 21, 0, 14,
+            -14, 21, -11, 6, -21, -5, -7, -7}, PortalStyle.YELLOW);
+        face(canvas, 0, 0, .43f);
+        canvas.restore();
+        line(canvas, x + 19, y + 69, x + 34, y + 69, 2, PortalStyle.PURPLE);
+    }
+
+    private void explorer(Canvas canvas) {
+        shape(canvas, 8, 13, 119, 110, 8, PortalStyle.MINT);
+        line(canvas, 23, 15, 23, 43, 4, Color.BLACK);
+        line(canvas, 23, 43, 40, 43, 4, Color.BLACK);
+        line(canvas, 39, 14, 39, 28, 4, Color.BLACK);
+        line(canvas, 85, 28, 104, 28, 4, Color.BLACK);
+        line(canvas, 104, 28, 104, 48, 4, Color.BLACK);
+        line(canvas, 8, 64, 24, 64, 4, Color.BLACK);
+        line(canvas, 24, 64, 24, 94, 4, Color.BLACK);
+        line(canvas, 93, 110, 93, 97, 4, Color.BLACK);
+        line(canvas, 93, 97, 117, 97, 4, Color.BLACK);
+        line(canvas, 46, 92, 38, 108, 9, Color.BLACK);
+        line(canvas, 65, 92, 74, 108, 9, Color.BLACK);
+        oval(canvas, 26, 104, 48, 116, PortalStyle.YELLOW);
+        oval(canvas, 67, 104, 89, 116, PortalStyle.YELLOW);
+        shape(canvas, 34, 57, 74, 94, 12, PortalStyle.PURPLE);
+        line(canvas, 34, 68, 29, 81, 7, Color.BLACK);
+        oval(canvas, 24, 77, 37, 89, Color.WHITE);
+        oval(canvas, 30, 18, 81, 67, PortalStyle.BLUE);
+        shape(canvas, 33, 34, 81, 60, 10, Color.WHITE);
+        face(canvas, 57, 43, .62f);
+        shape(canvas, 46, 17, 66, 28, 4, PortalStyle.YELLOW);
+        dot(canvas, 56, 22, 3, Color.WHITE);
+        line(canvas, 67, 74, 84, 79, 8, Color.BLACK);
+        shape(canvas, 81, 73, 91, 92, 3, PortalStyle.PURPLE);
+        shape(canvas, 77, 64, 111, 80, 5, PortalStyle.YELLOW);
+        shape(canvas, 102, 62, 114, 82, 4, PortalStyle.CORAL);
+        oval(canvas, 109, 66, 117, 78, PortalStyle.BLUE);
+        oval(canvas, 75, 77, 86, 88, Color.WHITE);
+        line(canvas, 49, 82, 60, 82, 3, PortalStyle.YELLOW);
     }
 
     private void limbs(Canvas canvas) {

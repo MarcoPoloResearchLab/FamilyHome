@@ -1,7 +1,6 @@
 package com.mprlab.portal;
 
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -82,9 +81,8 @@ public final class GameLibraryActivity extends PortalActivity {
         card.setContentDescription(game.name + ". " + game.description + (installed ? "" : ". Not installed yet"));
         card.setOnClickListener(view -> GameLauncher.open(this, store.active, game));
 
-        TextView icon = text(game.icon, PortalStyle.TextRole.DISPLAY, INK);
-        icon.setGravity(Gravity.CENTER);
-        card.addView(icon, matchWrap());
+        CharacterView illustration = new CharacterView(this, game.illustration);
+        card.addView(illustration, new LinearLayout.LayoutParams(dp(160), dp(160)));
         TextView name = text(game.name, PortalStyle.TextRole.SECTION, INK);
         name.setGravity(Gravity.CENTER);
         name.setPadding(0, dp(7), 0, 0);
@@ -130,7 +128,7 @@ public final class GameLibraryActivity extends PortalActivity {
     }
 
     private LinearLayout.LayoutParams gameParams() {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(280), 1f);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1f);
         params.leftMargin = dp(9);
         params.rightMargin = dp(9);
         return params;
