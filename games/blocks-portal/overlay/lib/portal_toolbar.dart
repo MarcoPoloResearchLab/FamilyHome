@@ -7,7 +7,8 @@ const portalNavigation = MethodChannel('familyhome/navigation');
 class PortalToolbar extends StatelessWidget implements PreferredSizeWidget {
   final Widget title;
   final List<Widget> actions;
-  const PortalToolbar({super.key, required this.title, this.actions = const []});
+  final VoidCallback? onBack;
+  const PortalToolbar({super.key, required this.title, this.actions = const [], this.onBack});
   @override
   Size get preferredSize => const Size.fromHeight(72);
   @override
@@ -17,7 +18,7 @@ class PortalToolbar extends StatelessWidget implements PreferredSizeWidget {
     leading: Row(children: [
       IconButton(tooltip: 'Back', icon: const Icon(Icons.arrow_back),
         constraints: const BoxConstraints.tightFor(width: portalControlHeight, height: portalControlHeight),
-        onPressed: () => WidgetsBinding.instance.handlePopRoute()),
+        onPressed: onBack ?? () => WidgetsBinding.instance.handlePopRoute()),
       IconButton(tooltip: 'Home', icon: const Icon(Icons.home_outlined),
         constraints: const BoxConstraints.tightFor(width: portalControlHeight, height: portalControlHeight),
         onPressed: () => portalNavigation.invokeMethod<void>('home')),

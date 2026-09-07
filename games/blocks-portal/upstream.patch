@@ -1,6 +1,6 @@
 --- a/android/app/src/main/kotlin/com/blockdrop/game/MainActivity.kt
 +++ b/android/app/src/main/kotlin/com/blockdrop/game/MainActivity.kt
-@@ -1,5 +1,33 @@
+@@ -1,5 +1,37 @@
  package com.blockdrop.game
 
 +import android.content.Intent
@@ -17,6 +17,10 @@
 +        MethodChannel(engine.dartExecutor.binaryMessenger, "familyhome/navigation")
 +            .setMethodCallHandler { call, result ->
 +                when (call.method) {
++                    "back" -> {
++                        moveTaskToBack(true)
++                        result.success(null)
++                    }
 +                    "home" -> {
 +                        startActivity(Intent().setClassName("com.mprlab.portal", "com.mprlab.portal.MainActivity")
 +                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
@@ -965,11 +969,12 @@
                  minimumSize: const Size(double.infinity, 48),
                ),
                child: const Text('Play Again'),
-@@ -498,6 +500,14 @@
+@@ -498,6 +500,15 @@
          }
        },
        child: Scaffold(
 +        appBar: PortalToolbar(
++          onBack: () => portalNavigation.invokeMethod<void>('back'),
 +          title: Row(children: [
 +            Text(gameLogic.practiceMode ? 'PRACTICE' : 'Score: ${formatter.format(gameLogic.score)}'),
 +            const Spacer(), Text('Level: ${gameLogic.level}'),
