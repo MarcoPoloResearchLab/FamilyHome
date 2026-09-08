@@ -10,9 +10,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o
 FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
 
 WORKDIR /app
+COPY service/config.yml /app/config.yml
 COPY --from=build --chown=65532:65532 /out/familyhome-service /app/familyhome-service
 COPY --from=build --chown=65532:65532 /out/data /data
 
 USER 65532:65532
 EXPOSE 8765
 ENTRYPOINT ["/app/familyhome-service"]
+CMD ["--config", "/app/config.yml"]

@@ -30,26 +30,12 @@ mprlab_resources:
             group: gateway
             cardinality: one
           environment:
-            FAMILYHOME_LISTEN_ADDRESS:
-              value: 0.0.0.0:8765
-            FAMILYHOME_DATA_DIR:
-              value: /data
             FAMILYHOME_DEVICE_TOKEN:
               resource: private
               output: device-token
-            LLM_PROXY_BASE_URL:
-              value: https://llm-proxy-api.mprlab.com
             LLM_PROXY_SECRET:
               resource: private
               output: llm-proxy-secret
-            LLM_PROXY_PROVIDER:
-              value: openai
-            LLM_PROXY_MODEL:
-              value: gpt-5-mini
-            LLM_PROXY_REASONING_EFFORT:
-              value: low
-            LLM_PROXY_REQUEST_TIMEOUT_SECONDS:
-              value: "45"
           mounts:
             - volume: data
               target: /data

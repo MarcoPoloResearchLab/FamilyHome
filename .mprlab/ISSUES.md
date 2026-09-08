@@ -21,6 +21,81 @@ No issue is currently taken. Select an issue before implementation and change it
 
 ## Improvements
 
+- [ ] [I009] (P1) Complete configured Ask acceptance on the physical Portal.
+  Goal:
+  Qualify typed and spoken questions against the selected model through the physical Portal.
+  P005 records the approved technical plan. Local implementation is completed, but provider and physical acceptance remain open.
+
+  Implemented contract:
+  The backend loads one strict `service/config.yml` and constructs the official Go LLM Proxy client at startup.
+  The package manager resolved `@latest` to v1.7.0 on 2026-09-08.
+  YAML owns model selection, request deadlines, question length, recording duration, upload size, and concurrent request limits.
+  Android reads public Ask limits from the authenticated backend settings resource.
+  The backend validates typed and audio inputs and rejects unsupported audio before provider submission.
+
+  The activity prevents duplicate submissions, rejects stale responses, preserves drafts, and provides cancellation and speech controls.
+  Navigation, activity pause, and screensaver entry stop recording and speech and cancel network work.
+  Temporary recordings are removed after terminal states and activity restart.
+  `service/README.md` and `android/README.md` own the current configuration and interaction contracts.
+
+  Local evidence:
+  The startup test first failed because the old service could not load YAML.
+  The Android test first failed because both submission controls remained enabled during an active question.
+  `make test-service` passed with actual executable startup and HTTP requests through the official client.
+  The service tests cover model changes, invalid configuration, question validation, real audio bytes, capability rejection, provider errors, cancellation, and deadlines.
+
+  The Go race detector, `go vet`, and module verification passed.
+  The container built and served authenticated Ask settings and a successful storage health check from its packaged YAML.
+  `make test-android-ask` passed at font scales of 1.0 and 1.3, including microphone denial and screensaver recording cleanup.
+  The emulator sent an actual microphone recording to a local HTTP server.
+  These tests do not establish speech understanding or audible model answers on the physical Portal.
+
+  Final `make ci`, container startup, appearance checks at both font scales, toolbar checks, and upgrade preservation passed.
+  The final client deadline permits 90 seconds, including separate upload, capability, and proxy transfer allowances.
+  Profile-change and total-deadline scenarios also passed through the Ask activity.
+  I008 records the incomplete broader screensaver regression.
+  Governor reports only the existing `issues-md-format.md` template drift. Changed-document language checks and whitespace checks passed.
+
+  Requirements and dependencies:
+  - Preserve the current single-installation authorization boundary until the P002 implementation replaces it.
+  - Keep hosted multi-family authorization, persistent duplicate prevention, retention, and accounting under P002.
+  - Do not make P002 a dependency of current-installation physical acceptance.
+  - Keep I008 as the owner of the broad appearance audit.
+  - Use the same configured model for typed and voice questions.
+  - Keep actual provider execution separate from local protocol tests.
+
+  Remaining acceptance:
+  - Verify the selected Vertex model with the tenant credentials before voice acceptance.
+  - Verify tenant access, reasoning support, typed answers, voice understanding, and audible playback through the official client.
+  - Qualify normal text and the 1.3 font scale on the physical Portal.
+  - Verify microphone denial, unavailable speech, recording limits, cancellation, navigation, and screensaver cleanup on that device.
+  - Record source revision, configuration identity without secrets, APK identity, device identity, screenshots, and audible results.
+  - Record any required child age assumptions, parent controls, and provider data policy before additional children or families use Ask.
+
+  Model selection:
+  The configuration selects `vertex:gemini-3.8-flash`, `low` reasoning, and a 45-second work budget.
+  The public proxy catalog on 2026-09-08 lists text and audio input and low reasoning for this offering.
+  The operator selected Gemini 3.8 Flash after the price comparison.
+  Google lists global introductory prices of $0.75 per million input tokens and $3.75 per million output tokens through 2026-12-31.
+  From 2027-01-01, these prices increase to $1.50 and $7.50. Output charges include reasoning tokens.
+  The proxy catalog has not imported the Vertex prices.
+  `service/README.md` records the price source and the explicit selection policy.
+  Voice questions use the current audio attachment operation. Android text-to-speech reads each answer.
+  A separate dictation operation and automatic price selection are outside this change.
+
+  Selection validation:
+  A local HTTP check used the actual service executable, current YAML selection, and current public capability catalog.
+  Typed and M4A questions passed through the official client to a local proxy fixture.
+  The fixture verified provider, model, low reasoning, and the 45-second work budget.
+  `make ci` passed after the client update and model selection.
+  These checks do not establish tenant access or actual model answer quality.
+
+  Open Decisions:
+  The initial language remains US English. Questions remain independent and use the existing child-oriented instructions.
+
+  Provider qualification, deployment, and physical Portal installation have not occurred for this change.
+
+
 - [ ] [I005] (P1) Complete physical acceptance of the Kart appearance.
   Goal:
   Complete Portal acceptance of the implemented Kart interface adaptation.
@@ -79,6 +154,14 @@ No issue is currently taken. Select an issue before implementation and change it
 
   Validation:
   Archived entries record successful emulator checks and later physical checks with narrower scope.
+  The 2026-09-08 Ask regression run passed the full appearance target at font scales of 1.0 and 1.3.
+  The broader screensaver target passed its `typing` and `dialogs` phases on `emulator-5586`.
+  Its `behavior` phase stalled for nine minutes with `PianoActivity` in the foreground and was interrupted.
+  The subsequent `persistence` phase reported `Disabled != Clock` after that interruption.
+  These two phases do not establish acceptance. The separate Ask screensaver recording-cleanup scenarios passed at both font scales.
+
+  - Investigate the stalled Music and Piano test flow before the next broader screensaver qualification.
+  - Run `SCREENSAVER_TEST_PHASES='typing dialogs behavior persistence' make test-android-screensaver` on a clean, dedicated emulator.
   - Use existing screenshots only when their build, screen, font scale, and result establish the required behavior.
   - Complete the remaining scenarios on the physical Portal.
   - Restore the previous device settings after the checks.
@@ -478,6 +561,8 @@ No issue is currently taken. Select an issue before implementation and change it
   Planning boundaries:
   The following design is a proposal, not a claim about implemented behavior.
   P002 owns the detailed technical proposal. `docs/MULTI-FAMILY.md` provides its overview.
+  P005 records the approved Go LLM Proxy plan. I009 owns the remaining current-installation Ask acceptance.
+  P002 retains hosted family authorization, persistent duplicate prevention, retention, and usage accounting.
   P001 uses the family, device, and child identities defined here for later Google Calendar access.
   P002 owns shared identity and access decisions. P001 and P003 depend on those decisions before their plans complete.
   P002 has no completion dependency on P001 or P003.

@@ -97,6 +97,13 @@ Give each term one meaning. Use the same term for the same concept in all docume
 
 Add repository-specific technical nouns below this line.
 
+- `Ask`: The FamilyHome activity through which a child submits a question and receives an answer from a configured language model.
+- `LLM Proxy`: The shared service that authenticates tenant requests and operates the selected language model through its provider.
+- `request work budget`: The maximum processing time that a request permits through LLM Proxy.
+- `text-to-speech`: Conversion of an answer into audible speech through the Android speech service.
+- `question draft`: Question text that the child has not submitted or that remains available after a failed request.
+- `YAML`: The configuration format proposed for the canonical FamilyHome backend settings.
+
 - `image generation`: Creation of a new image through an AI model.
 - `image model`: An AI model that creates or changes images.
 - `image job`: A stored request and result for one image generation operation.

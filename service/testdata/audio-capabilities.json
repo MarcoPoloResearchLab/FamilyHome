@@ -1,0 +1,78 @@
+{
+  "offerings": [
+    {
+      "identifier": "openai:test-model",
+      "provider": "openai",
+      "model": "test-model",
+      "capabilities": [
+        "audio_input",
+        "image_input",
+        "text"
+      ],
+      "wire_contract": "vertex_generate_content",
+      "execution_lifecycle": "synchronous_completion",
+      "media_execution_lifecycle": "synchronous_completion",
+      "output_token_limit": 65536,
+      "reasoning_efforts": [],
+      "controls": [],
+      "limits": [],
+      "media_limits": [
+        {
+          "id": "inline_request_bytes",
+          "media_type": "all",
+          "transport": "inline",
+          "status": "bounded",
+          "value": 20000000,
+          "unit": "bytes",
+          "scope": "request_encoded_bytes",
+          "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash",
+          "last_verified": "2026-09-07"
+        },
+        {
+          "id": "image_count",
+          "media_type": "image",
+          "transport": "any",
+          "status": "bounded",
+          "value": 3000,
+          "unit": "files",
+          "scope": "request",
+          "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash",
+          "last_verified": "2026-09-07"
+        },
+        {
+          "id": "audio_count",
+          "media_type": "audio",
+          "transport": "any",
+          "status": "bounded",
+          "value": 1,
+          "unit": "files",
+          "scope": "request",
+          "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash",
+          "last_verified": "2026-09-07"
+        },
+        {
+          "id": "image_inline_bytes",
+          "media_type": "image",
+          "transport": "inline",
+          "status": "bounded",
+          "value": 7000000,
+          "unit": "bytes",
+          "scope": "attachment",
+          "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash",
+          "last_verified": "2026-09-07"
+        },
+        {
+          "id": "audio_inline_bytes",
+          "media_type": "audio",
+          "transport": "inline",
+          "status": "bounded",
+          "value": 20000000,
+          "unit": "bytes",
+          "scope": "attachment",
+          "source": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash",
+          "last_verified": "2026-09-07"
+        }
+      ]
+    }
+  ]
+}

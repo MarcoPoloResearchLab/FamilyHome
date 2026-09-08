@@ -7,6 +7,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -19,6 +20,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/tyemirov/llm-proxy/pkg/llmproxyclient"
@@ -31,23 +33,8 @@ const (
 	weatherResponseByteLimit = 1 << 20
 )
 
-type config struct {
-	Server struct {
-		ListenAddress string
-		DataDir       string
-		DeviceToken   string
-	}
-	LLMProxy struct {
-		BaseURL               string
-		Secret                string
-		Provider              string
-		Model                 string
-		ReasoningEffort       string
-		RequestTimeoutSeconds int
-	}
-}
-
 type application struct {
+	askRequests         atomic.Int32
 	config              config
 	client              llmproxyclient.Client
 	http                *http.Client
@@ -78,27 +65,18 @@ type weatherResponse struct {
 }
 
 func main() {
-	configuration, configError := loadConfig()
+	configPath := flag.String("config", "", "required backend YAML path")
+	flag.Parse()
+	if *configPath == "" || flag.NArg() != 0 {
+		log.Fatal("--config <path> is required")
+	}
+	configuration, configError := loadConfig(*configPath)
 	if configError != nil {
 		log.Fatal(configError)
 	}
-	httpClient := &http.Client{Timeout: time.Duration(configuration.LLMProxy.RequestTimeoutSeconds+10) * time.Second}
-	clientConfig, configError := llmproxyclient.NewConfig(llmproxyclient.ConfigInput{
-		BaseURL:  configuration.LLMProxy.BaseURL,
-		Secret:   configuration.LLMProxy.Secret,
-		Provider: configuration.LLMProxy.Provider,
-	})
-	if configError != nil {
-		log.Fatalf("llm proxy config: %v", configError)
-	}
-	client, clientError := llmproxyclient.NewClient(clientConfig, httpClient)
-	if clientError != nil {
-		log.Fatalf("llm proxy client: %v", clientError)
-	}
-	app := &application{
-		config: configuration, client: client, http: httpClient,
-		weatherGeocodingURL: openMeteoGeocodingURL,
-		weatherForecastURL:  openMeteoForecastURL,
+	app, appError := newApplication(configuration)
+	if appError != nil {
+		log.Fatal(appError)
 	}
 	if directoryError := os.MkdirAll(filepath.Join(configuration.Server.DataDir, "drawings"), 0o750); directoryError != nil {
 		log.Fatalf("create data directory: %v", directoryError)
@@ -107,77 +85,17 @@ func main() {
 		Addr:              configuration.Server.ListenAddress,
 		Handler:           app.routes(),
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       60 * time.Second,
-		WriteTimeout:      60 * time.Second,
+		ReadTimeout:       time.Duration(configuration.Ask.TransferAllowanceSeconds) * time.Second,
+		WriteTimeout:      configuration.responseDuration(),
 		IdleTimeout:       90 * time.Second,
 	}
 	log.Printf("Children's Portal service listening on %s", configuration.Server.ListenAddress)
 	log.Fatal(server.ListenAndServe())
 }
 
-func loadConfig() (config, error) {
-	var value config
-	var configError error
-	value.Server.ListenAddress, configError = requiredEnvironment("FAMILYHOME_LISTEN_ADDRESS")
-	if configError != nil {
-		return config{}, configError
-	}
-	value.Server.DataDir, configError = requiredEnvironment("FAMILYHOME_DATA_DIR")
-	if configError != nil {
-		return config{}, configError
-	}
-	value.Server.DeviceToken, configError = requiredEnvironment("FAMILYHOME_DEVICE_TOKEN")
-	if configError != nil {
-		return config{}, configError
-	}
-	if len(value.Server.DeviceToken) < 32 {
-		return config{}, errors.New("FAMILYHOME_DEVICE_TOKEN must contain at least 32 characters")
-	}
-	value.LLMProxy.BaseURL, configError = requiredEnvironment("LLM_PROXY_BASE_URL")
-	if configError != nil {
-		return config{}, configError
-	}
-	parsedProxyURL, parseError := url.ParseRequestURI(value.LLMProxy.BaseURL)
-	if parseError != nil || parsedProxyURL.Host == "" || (parsedProxyURL.Scheme != "http" && parsedProxyURL.Scheme != "https") {
-		return config{}, errors.New("LLM_PROXY_BASE_URL must be an HTTP or HTTPS URL")
-	}
-	value.LLMProxy.Secret, configError = requiredEnvironment("LLM_PROXY_SECRET")
-	if configError != nil {
-		return config{}, configError
-	}
-	value.LLMProxy.Provider, configError = requiredEnvironment("LLM_PROXY_PROVIDER")
-	if configError != nil {
-		return config{}, configError
-	}
-	value.LLMProxy.Model, configError = requiredEnvironment("LLM_PROXY_MODEL")
-	if configError != nil {
-		return config{}, configError
-	}
-	value.LLMProxy.ReasoningEffort, configError = requiredEnvironment("LLM_PROXY_REASONING_EFFORT")
-	if configError != nil {
-		return config{}, configError
-	}
-	timeoutRaw, configError := requiredEnvironment("LLM_PROXY_REQUEST_TIMEOUT_SECONDS")
-	if configError != nil {
-		return config{}, configError
-	}
-	value.LLMProxy.RequestTimeoutSeconds, configError = strconv.Atoi(timeoutRaw)
-	if configError != nil || value.LLMProxy.RequestTimeoutSeconds <= 0 {
-		return config{}, errors.New("LLM_PROXY_REQUEST_TIMEOUT_SECONDS must be a positive integer")
-	}
-	return value, nil
-}
-
-func requiredEnvironment(name string) (string, error) {
-	value := strings.TrimSpace(os.Getenv(name))
-	if value == "" {
-		return "", fmt.Errorf("%s is required", name)
-	}
-	return value, nil
-}
-
 func (app *application) routes() http.Handler {
 	api := http.NewServeMux()
+	api.HandleFunc("GET /v1/ask/settings", app.askSettings)
 	api.HandleFunc("POST /v1/ask", app.ask)
 	api.HandleFunc("POST /v1/ask/audio", app.askAudio)
 	api.HandleFunc("GET /v1/calendar/next", app.nextCalendarEvent)
@@ -245,84 +163,6 @@ func (app *application) checkDrawingStorage() error {
 		return fmt.Errorf("close drawing storage: %w", closeError)
 	}
 	return nil
-}
-
-func (app *application) ask(writer http.ResponseWriter, request *http.Request) {
-	request.Body = http.MaxBytesReader(writer, request.Body, 32<<10)
-	var input askInput
-	if decodeError := json.NewDecoder(request.Body).Decode(&input); decodeError != nil {
-		writeError(writer, http.StatusBadRequest, "Please enter a question.")
-		return
-	}
-	app.completeAsk(writer, request, input, nil)
-}
-
-func (app *application) askAudio(writer http.ResponseWriter, request *http.Request) {
-	request.Body = http.MaxBytesReader(writer, request.Body, maxRequestBytes)
-	if parseError := request.ParseMultipartForm(maxRequestBytes); parseError != nil {
-		writeError(writer, http.StatusBadRequest, "The recording could not be read.")
-		return
-	}
-	file, header, fileError := request.FormFile("audio")
-	if fileError != nil {
-		writeError(writer, http.StatusBadRequest, "A voice recording is required.")
-		return
-	}
-	defer file.Close()
-	audioBytes, readError := io.ReadAll(io.LimitReader(file, maxRequestBytes))
-	if readError != nil || len(audioBytes) == 0 {
-		writeError(writer, http.StatusBadRequest, "The voice recording was empty.")
-		return
-	}
-	mimeType := header.Header.Get("Content-Type")
-	if mimeType == "" {
-		mimeType = "audio/m4a"
-	}
-	attachment, attachmentError := llmproxyclient.NewAudioAttachment(llmproxyclient.AudioAttachmentInput{MIMEType: mimeType, Data: audioBytes})
-	if attachmentError != nil {
-		writeError(writer, http.StatusBadRequest, "This recording format is not supported.")
-		return
-	}
-	input := askInput{ProfileID: request.FormValue("profile_id"), Name: request.FormValue("name"), Question: "Listen to the child's question and answer it."}
-	app.completeAsk(writer, request, input, []llmproxyclient.MessageAttachment{attachment})
-}
-
-func (app *application) completeAsk(writer http.ResponseWriter, request *http.Request, input askInput, attachments []llmproxyclient.MessageAttachment) {
-	question := strings.TrimSpace(input.Question)
-	if question == "" || len(question) > 2000 {
-		writeError(writer, http.StatusBadRequest, "Please ask a shorter question.")
-		return
-	}
-	name := strings.TrimSpace(input.Name)
-	if name == "" {
-		name = "the child"
-	}
-	systemPrompt := "You are the Children's Portal assistant. Give a warm, accurate, age-appropriate answer in plain language. Avoid frightening or sexual content. Never ask for personal contact details, location, passwords, or secrets. Keep the answer under 140 words unless the child explicitly asks for a story. The child's first name is " + name + "."
-	reasoningEffort := app.config.LLMProxy.ReasoningEffort
-	timeoutSeconds := app.config.LLMProxy.RequestTimeoutSeconds
-	proxyRequest, requestError := llmproxyclient.NewMessagesRequest(llmproxyclient.MessagesRequestInput{
-		Messages: []llmproxyclient.MessageInput{
-			{Role: "system", Content: systemPrompt},
-			{Role: "user", Content: question, Attachments: attachments},
-		},
-		Model:                 app.config.LLMProxy.Model,
-		ReasoningEffort:       &reasoningEffort,
-		RequestTimeoutSeconds: &timeoutSeconds,
-	})
-	if requestError != nil {
-		log.Printf("create Ask request: %v", requestError)
-		writeError(writer, http.StatusBadRequest, "That question could not be prepared.")
-		return
-	}
-	ctx, cancel := context.WithTimeout(request.Context(), time.Duration(timeoutSeconds+5)*time.Second)
-	defer cancel()
-	answer, postError := app.client.PostMessages(ctx, proxyRequest)
-	if postError != nil {
-		log.Printf("Ask failed profile=%q: %v", input.ProfileID, postError)
-		writeError(writer, http.StatusBadGateway, "Ask is temporarily unavailable. Please try again.")
-		return
-	}
-	writeJSON(writer, http.StatusOK, map[string]string{"answer": strings.TrimSpace(answer)})
 }
 
 func (app *application) nextCalendarEvent(writer http.ResponseWriter, request *http.Request) {

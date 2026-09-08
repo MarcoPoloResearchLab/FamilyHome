@@ -29,6 +29,10 @@ test-android-upgrade:
 test-android-weather:
 	cd android && bash ./tests/weather-widget.sh
 
+.PHONY: test-android-ask
+test-android-ask:
+	cd android && bash ./tests/ask.sh
+
 test-android-piano:
 	cd android && bash ./tests/piano-audio.sh
 

@@ -1,30 +1,145 @@
 # FamilyHome service
 
-This service keeps LLM Proxy credentials and model routing off the Portal. It also fetches iCalendar feeds, resolves household weather locations, normalizes current forecasts, and stores shareable PNG drawings. The production service runs on the MPR gateway host and is available through `https://familyhome-api.mprlab.com`.
-
-`GET /v1/weather?location=<ZIP or city>` uses Open-Meteo’s geocoding and forecast APIs and returns only the location label, child-facing condition, icon category, current and apparent temperatures, daily high and low, and precipitation probability. It requires the normal FamilyHome device token and no weather-provider key. The Android app displays Open-Meteo attribution in the weather card.
+The Go service keeps the LLM Proxy secret and model selection off the Portal.
+It also retrieves calendars and weather and stores shared PNG drawings.
+The deployment hostname is `https://familyhome-api.mprlab.com`.
+The production manifest places the service on the MPR gateway host.
 
 ## Authentication
 
-Every `/v1/` request requires `Authorization: Bearer <device token>`. `/healthz` is available for deployment checks. A drawing URL contains a random 128-bit identifier and acts as a shareable capability link; the service does not expose a drawing directory listing.
+Every `/v1/` request requires `Authorization: Bearer <device token>`.
+`GET /healthz` checks drawing storage without authentication.
+A drawing URL contains a random 128-bit identifier and acts as a shareable capability link.
+The service does not expose a drawing directory listing.
 
-Create one installation token with `openssl rand -hex 32`. Put the same value in the deployment private input and the Portal APK build environment. Rotating the token requires a service deployment and a replacement APK.
+Create an installation token with `openssl rand -hex 32`.
+Put the same token in the private deployment input and the APK build input.
+Token rotation requires a service deployment and a replacement APK.
+This shared installation token does not establish a child's identity or isolate families.
+P002 owns the future family authorization contract.
 
-## Local run
+## Weather
 
-Set the complete environment contract, then run `go run .` from this directory:
+`GET /v1/weather?location=<ZIP or city>` uses the Open-Meteo geocoding and forecast APIs.
+It returns the location, child-facing condition, icon category, current temperature, apparent temperature, daily high and low, and precipitation probability.
+The operation requires the FamilyHome device token and no weather-provider key.
+The Android weather card displays Open-Meteo attribution.
+
+## Configuration
+
+`service/config.yml` owns all server, LLM Proxy, and Ask settings.
+The service requires `--config <path>` and reads the file once at startup.
+It rejects missing fields, unresolved references, duplicate keys, unknown keys, multiple YAML documents, and invalid limits.
+The former independent environment settings no longer select the model or server policy.
+Only explicit `${VARIABLE}` references in YAML obtain environment values.
+
+For a local run, change `server.listen_address` to `127.0.0.1:8765` and `server.data_dir` to `./data` in `config.yml`.
+Supply the two secrets, then run the service from this directory:
 
 ```sh
-export FAMILYHOME_LISTEN_ADDRESS=127.0.0.1:8765
-export FAMILYHOME_DATA_DIR=./data
-export FAMILYHOME_DEVICE_TOKEN='<64-character installation token>'
-export LLM_PROXY_BASE_URL=https://llm-proxy-api.mprlab.com
-export LLM_PROXY_SECRET='<LLM Proxy key>'
-export LLM_PROXY_PROVIDER=openai
-export LLM_PROXY_MODEL=gpt-5-mini
-export LLM_PROXY_REASONING_EFFORT=low
-export LLM_PROXY_REQUEST_TIMEOUT_SECONDS=45
-go run .
+export FAMILYHOME_DEVICE_TOKEN='<installation token with at least 32 characters>'
+export LLM_PROXY_SECRET='<LLM Proxy tenant secret>'
+go run . --config config.yml
 ```
 
-Ask uses the official `github.com/tyemirov/llm-proxy/pkg/llmproxyclient` package. The Android client receives the FamilyHome device token but never receives the LLM Proxy secret.
+The tracked selection is `vertex`, `gemini-3.8-flash`, `low` reasoning effort, and a 45-second request work budget.
+Change `llm_proxy.provider`, `llm_proxy.model`, and `llm_proxy.reasoning_effort` together to select a different model.
+Restart the backend after a configuration change. No Android rebuild is necessary for a model change.
+The container includes this YAML at `/app/config.yml`.
+For the production image, rebuild the image after a YAML change and deploy that image.
+The deployment manifest supplies the secrets. It does not repeat model settings.
+
+The official Go client resolves through:
+
+```sh
+go get github.com/tyemirov/llm-proxy/pkg/llmproxyclient@latest
+```
+
+Startup constructs one validated client. Each question uses `NewMessagesRequest` and `PostMessages`.
+The client sends the configured budget through `X-LLM-Proxy-Request-Timeout-Seconds`.
+The `ask` configuration also sets transfer allowance, question length, recording duration, upload size, and concurrent request limits.
+The initial limits are 2,000 Unicode characters, 60 seconds of recording, 6 MiB of audio, and one active request.
+
+## Ask HTTP contract
+
+`GET /v1/ask/settings` returns the client deadline and the question, recording, and upload limits.
+It returns no model selection or LLM Proxy secret.
+Android reads settings when Ask opens and before submission.
+The initial client deadline is 90 seconds: the work budget plus three transfer allowances.
+The allowances cover upload, capability discovery, and proxy transfer. Android cancels the connection at the total deadline.
+The HTTP server limits request reads to one transfer allowance, which initially permits 15 seconds.
+
+`POST /v1/ask` accepts one JSON object with `profile_id`, `name`, and `question` string fields.
+It rejects unknown or repeated fields and trailing JSON.
+The profile ID and name provide untrusted personalization. They do not authorize child-owned resources.
+The backend keeps the child's name and question out of system instructions.
+
+`POST /v1/ask/audio` accepts multipart fields `profile_id`, `name`, and one `audio` file.
+It accepts M4A, WAV, and MPEG audio with matching container signatures.
+The Portal records AAC audio in M4A.
+The backend checks the selected model in the official public capability catalog before audio submission.
+It returns `unsupported_audio` when that model lacks audio input. It does not select another model automatically.
+
+On 2026-09-08, the [public proxy catalog](https://llm-proxy-api.mprlab.com/api/public/capabilities) listed text and audio input for `vertex:gemini-3.8-flash`.
+Ask sends a recording directly to this model for an answer. Android text-to-speech reads the answer.
+This flow uses the current official client without a separate dictation operation.
+
+The operator selected Gemini 3.8 Flash after the price comparison.
+[Google lists](https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing) global introductory prices of $0.75 per million input tokens and $3.75 per million output tokens through 2026-12-31.
+The corresponding non-global prices are $0.825 and $4.125. Output charges include reasoning tokens.
+
+From 2027-01-01, global prices increase to $1.50 for input and $7.50 for output per million tokens.
+Non-global prices increase to $1.65 and $8.25.
+These prices were checked on 2026-09-08. They exclude other infrastructure charges and account discounts.
+
+The proxy catalog does not yet contain the Vertex prices. Unknown catalog prices do not indicate free service.
+Model selection remains explicit in YAML. Ask does not change providers after a price change or request failure.
+Catalog support does not establish tenant access. Actual provider and physical Portal acceptance remain open under I009.
+
+A successful question returns HTTP 200 with `{"answer":"..."}`.
+Ask errors contain `code` and a readable `error` string.
+Authentication errors use the existing FamilyHome authentication response.
+
+| HTTP status | Ask code | Meaning |
+| --- | --- | --- |
+| 400, 413, 415 | `invalid_question` | Invalid question fields, length, body, or media type |
+| 400, 415 | `invalid_audio` | Invalid, empty, oversized, or unsupported recording |
+| 422 | `unsupported_audio` | The selected model lacks audio input |
+| 429 | `ask_busy` | The installation already uses its concurrent request allowance |
+| 503 | `service_unavailable`, `provider_busy` | Capability discovery failed or the provider is busy |
+| 502 | `provider_error`, `empty_answer` | The provider failed or returned no answer |
+| 502, 504 | `outcome_unknown` | The connection or deadline ended without a confirmed answer |
+
+The application does not retry provider requests automatically or keep conversation history.
+Cancellation closes local work. It does not prove that the provider stopped or incurred no charge.
+Questions, answers, recordings, credentials, and raw provider failures do not enter routine application logs.
+P002 owns persistent duplicate prevention, retention policy, and future family accounting.
+
+## Android behavior and validation
+
+Ask permits one active recording or question.
+The main controls remain visible when the answer area scrolls.
+Navigation, activity pause, cancellation, and screensaver entry stop recording and speech and cancel network work.
+Temporary recordings are removed after success, failure, and cancellation. A new activity also removes abandoned recordings.
+The question draft survives request failures and activity recreation.
+Invalid responses produce an error. A speech failure leaves the answer readable.
+The Stop speaking control ends playback.
+
+Run the service checks from the repository root:
+
+```sh
+make test-service
+```
+
+Run the Ask interface scenarios on a dedicated clean emulator:
+
+```sh
+ANDROID_SERIAL=emulator-5586 make test-android-ask
+```
+
+The Ask target covers normal text and the 1.3 font scale, microphone denial, recording cleanup, and screensaver cancellation.
+It uses a local HTTP server and captures screenshots in `android/build/tests/ask`.
+Service tests use the actual executable and HTTP listeners with the official client.
+The audio fixture contains a generated tone. It proves byte transport, not speech understanding.
+Local tests do not establish provider access, voice understanding, or audible answers on the physical Portal.
+I009 records that remaining acceptance work.
