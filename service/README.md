@@ -42,7 +42,7 @@ export LLM_PROXY_SECRET='<LLM Proxy tenant secret>'
 go run . --config config.yml
 ```
 
-The tracked selection is `openai`, `gpt-5-mini`, `low` reasoning effort, and a 45-second request work budget.
+The tracked selection is `vertex`, `gemini-3.8-flash`, `low` reasoning effort, and a 45-second request work budget.
 Change `llm_proxy.provider`, `llm_proxy.model`, and `llm_proxy.reasoning_effort` together to select a different model.
 Restart the backend after a configuration change. No Android rebuild is necessary for a model change.
 The container includes this YAML at `/app/config.yml`.
@@ -80,8 +80,21 @@ The Portal records AAC audio in M4A.
 The backend checks the selected model in the official public capability catalog before audio submission.
 It returns `unsupported_audio` when that model lacks audio input. It does not select another model automatically.
 
-On 2026-09-08, the public catalog listed text and image input for `openai:gpt-5-mini`, but no audio input.
-Voice acceptance thus requires an explicit audio-capable model selection and an actual provider test.
+On 2026-09-08, the [public proxy catalog](https://llm-proxy-api.mprlab.com/api/public/capabilities) listed text and audio input for `vertex:gemini-3.8-flash`.
+Ask sends a recording directly to this model for an answer. Android text-to-speech reads the answer.
+This flow uses the current official client without a separate dictation operation.
+
+The operator selected Gemini 3.8 Flash after the price comparison.
+[Google lists](https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing) global introductory prices of $0.75 per million input tokens and $3.75 per million output tokens through 2026-12-31.
+The corresponding non-global prices are $0.825 and $4.125. Output charges include reasoning tokens.
+
+From 2027-01-01, global prices increase to $1.50 for input and $7.50 for output per million tokens.
+Non-global prices increase to $1.65 and $8.25.
+These prices were checked on 2026-09-08. They exclude other infrastructure charges and account discounts.
+
+The proxy catalog does not yet contain the Vertex prices. Unknown catalog prices do not indicate free service.
+Model selection remains explicit in YAML. Ask does not change providers after a price change or request failure.
+Catalog support does not establish tenant access. Actual provider and physical Portal acceptance remain open under I009.
 
 A successful question returns HTTP 200 with `{"answer":"..."}`.
 Ask errors contain `code` and a readable `error` string.

@@ -3,7 +3,7 @@ module github.com/MarcoPoloResearchLab/FamilyHome/service
 go 1.26.5
 
 require (
-	github.com/tyemirov/llm-proxy v1.6.2
+	github.com/tyemirov/llm-proxy v1.7.0
 	go.yaml.in/yaml/v3 v3.0.5
 )
 
