@@ -97,7 +97,7 @@ func (app *application) routes() http.Handler {
 	api := http.NewServeMux()
 	api.HandleFunc("GET /v1/ask/settings", app.askSettings)
 	api.HandleFunc("POST /v1/ask", app.ask)
-	api.HandleFunc("POST /v1/ask/audio", app.askAudio)
+	api.HandleFunc("POST /v1/ask/transcriptions", app.askTranscription)
 	api.HandleFunc("GET /v1/calendar/next", app.nextCalendarEvent)
 	api.HandleFunc("GET /v1/weather", app.weather)
 	api.HandleFunc("POST /v1/drawings", app.saveDrawing)

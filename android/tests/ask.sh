@@ -44,7 +44,7 @@ for scale in 1.0 1.3; do
   "$adb" shell am force-stop com.mprlab.portal
   result="$("$adb" shell am instrument -w -e phase "${ASK_TEST_PHASE:-all}" com.mprlab.portal.asktest/.AskTest)"
   printf '%s\n' "$result"
-  for screen in ready thinking answer error recording; do
+  for screen in ready thinking answer error recording composer transcript microphone-pressed stop-pressed send-pressed; do
     "$adb" exec-out run-as com.mprlab.portal cat "files/ask-$screen.png" > "$output/$screen-$scale.png" 2>/dev/null || true
   done
   [[ "$result" == *'Ask passed:'* ]]

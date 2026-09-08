@@ -68,7 +68,7 @@ func TestAskUsesOfficialClientBoundary(t *testing.T) {
 	}
 }
 
-func TestAudioAskUsesOfficialClientAttachment(t *testing.T) {
+func TestTranscriptionUsesOfficialClientAttachment(t *testing.T) {
 	var captured map[string]any
 	fakeProxy := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.URL.Path == llmproxyclient.PublicCapabilitiesPath {
@@ -124,7 +124,7 @@ func TestAudioAskUsesOfficialClientAttachment(t *testing.T) {
 	_, _ = part.Write(audio)
 	_ = form.Close()
 
-	request := httptest.NewRequest(http.MethodPost, "/v1/ask/audio", &body)
+	request := httptest.NewRequest(http.MethodPost, "/v1/ask/transcriptions", &body)
 	request.Header.Set("Content-Type", form.FormDataContentType())
 	authorize(request)
 	response := httptest.NewRecorder()
