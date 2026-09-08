@@ -33,7 +33,14 @@ No issue is currently taken. Select an issue before implementation and change it
   Android reads public Ask limits from the authenticated backend settings resource.
   The backend validates typed and audio inputs and rejects unsupported audio before provider submission.
 
-  The activity prevents duplicate submissions, rejects stale responses, preserves drafts, and provides cancellation and speech controls.
+  The activity prevents duplicate submissions, rejects stale responses, preserves drafts, and provides cancellation.
+  The question field contains microphone and paper airplane icons at its right edge, in that order.
+  The empty input shows the instructions. Answers and status messages appear below the input without a colored panel.
+  The microphone starts a recording and changes to a red stop square.
+  The red square stops recording and requests a transcript without question submission.
+  The paper airplane stops an active recording, waits for its transcript, and sends the combined typed and spoken text.
+  The transcript remains in the input for review and changes. Ask has no speech playback buttons.
+  The field stays visible while the answer scrolls. Both icons have accessibility labels and 64 dp touch regions.
   Navigation, activity pause, and screensaver entry stop recording and speech and cancel network work.
   Temporary recordings are removed after terminal states and activity restart.
   `service/README.md` and `android/README.md` own the current configuration and interaction contracts.
@@ -80,8 +87,9 @@ No issue is currently taken. Select an issue before implementation and change it
   From 2027-01-01, these prices increase to $1.50 and $7.50. Output charges include reasoning tokens.
   The proxy catalog has not imported the Vertex prices.
   `service/README.md` records the price source and the explicit selection policy.
-  Voice questions use the current audio attachment operation. Android text-to-speech reads each answer.
-  A separate dictation operation and automatic price selection are outside this change.
+  Voice questions use the current audio attachment operation for transcription, followed by a text request for the answer.
+  Each request uses the same model and has its own work budget and provider charge.
+  Android text-to-speech reads each answer. Automatic price selection is outside this change.
 
   Selection validation:
   A local HTTP check used the actual service executable, current YAML selection, and current public capability catalog.
@@ -89,6 +97,40 @@ No issue is currently taken. Select an issue before implementation and change it
   The fixture verified provider, model, low reasoning, and the 45-second work budget.
   `make ci` passed after the client update and model selection.
   These checks do not establish tenant access or actual model answer quality.
+
+  Input control validation:
+  The new interface test first failed because the question field had no microphone and paper airplane buttons.
+  `make test-android-ask` then passed at font scales of 1.0 and 1.3, including microphone denial.
+  The tests verify icon order, touch dimensions, long-answer scrolling, audio transcription, and typed text with spoken text.
+  Screenshots confirm that the question field and both icons remain visible above the answer.
+  `make ci` passed. The updated APK is installed in the virtual Portal for operator review.
+
+  Transcription validation:
+  The HTTP test first failed with 404 because the transcription resource did not exist.
+  The Android test first failed because speech playback buttons remained visible.
+  Service tests now verify the transcript response, audio validation, capability rejection, and empty or excessive transcript rejection.
+  Android tests passed at font scales of 1.0 and 1.3, including microphone denial and a red stop square.
+  Stop preserves the combined draft without question submission. Send during recording submits the combined text after transcription.
+  Failed or cancelled transcription preserves typed text and does not submit a question.
+  `make ci`, the Go race tests, and changed-document language checks passed.
+  The virtual Portal and its local backend use the new contract. Actual provider transcription remains unverified.
+
+  Instruction placement validation:
+  The interface test first failed because the input did not contain the instructions.
+  The instructions now appear in the empty input. The yellow answer panel is removed.
+  Ask interface tests passed at font scales of 1.0 and 1.3, including microphone denial.
+  Screenshots show the input instructions and answers without the panel. `make ci` passed.
+  The updated APK is installed in the virtual Portal.
+
+  Stop icon alignment:
+  The icon was centered on the full button bounds, which include the lower-right shadow.
+  The interface test reproduced the offset of the red square from the button face center.
+  Prompt icons now use the button face center. Icon dimensions and touch regions remain unchanged.
+  The touch test then reproduced stationary icons during a button press.
+  Each prompt icon now moves with the button face during a press and returns when the press ends.
+  Touch tests verify icon movement, cancelled presses, and recording start and stop through press and release events.
+  Ask tests and screenshots passed at font scales of 1.0 and 1.3. `make ci` passed.
+  The virtual Portal has the updated APK.
 
   Open Decisions:
   The initial language remains US English. Questions remain independent and use the existing child-oriented instructions.
