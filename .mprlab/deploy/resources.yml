@@ -2,7 +2,7 @@
 mprlab_resources:
   owner: familyhome
   release:
-    scheme: semver
+    scheme: calver
   resources:
     - kind: private_values
       id: private
