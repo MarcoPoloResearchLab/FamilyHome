@@ -485,6 +485,211 @@ I005, F001, F008, and F010 retain their separate acceptance work.
 
 ## Planning
 
+- [x] [P005] (P1) Plan completion of Ask with the Go LLM Proxy client.
+  Goal:
+  Children can submit typed or spoken questions and receive readable answers with optional spoken playback.
+  The FamilyHome Go backend uses the official LLM Proxy client and selects its model through a configuration file.
+  The user confirmed the Go client and configuration-based model selection on 2026-09-08.
+
+  This issue records the technical implementation plan. The user authorized implementation on 2026-09-08.
+  The accepted plan is completed. I009 owns the remaining implementation acceptance.
+  The sections below preserve the approved proposal and its source review.
+
+  Requirements:
+  - Use `github.com/tyemirov/llm-proxy/pkg/llmproxyclient` in the FamilyHome Go backend.
+  - Select the provider, model, reasoning effort, and request work budget through backend configuration.
+  - Keep the LLM Proxy secret and provider credentials off the Portal.
+  - Keep typed questions, voice questions, visible answers, and Android text-to-speech in the acceptance scope.
+  - Preserve child profiles, saved drawings, photo albums, and other local activities.
+  - Keep one current configuration and request contract during each coordinated change.
+  - Separate local integration results, actual provider results, backend deployment, and physical Portal acceptance.
+
+  Current source evidence:
+  The source review date is 2026-09-08.
+  `AskActivity` sends text to `POST /v1/ask` and recorded audio to `POST /v1/ask/audio`.
+  Both operations return an `answer` field. Android displays that answer and requests spoken playback.
+  `service/main.go` constructs one official client at startup and uses `NewMessagesRequest` and `PostMessages`.
+  `service/go.mod` currently resolves the LLM Proxy module to v1.2.1.
+  Existing service tests verify text requests and encoded audio attachments against a local HTTP server.
+
+  These tests do not prove that a real model understands the recording or that the Portal produces audible answers.
+  The backend reads all settings from environment variables. It has no canonical `config.yml`.
+  The deployment manifest selects `openai`, `gpt-5-mini`, `low` reasoning effort, and a 45-second request work budget.
+  Those declarations do not prove current provider availability or audio support.
+  Android uses a 60-second read timeout. The Go HTTP server also uses a 60-second write timeout.
+  The current busy indicator does not prevent repeated submissions.
+
+  The activity does not cancel requests or remove temporary recordings after each terminal state.
+  The initial work must address these gaps through the existing Ask flow.
+
+  Ownership and dependencies:
+  FamilyHome owns question validation, child-facing instructions, interaction state, recording cleanup, and answer presentation.
+  LLM Proxy owns its request protocol, tenant authentication, provider execution, and upstream credentials.
+  Android calls FamilyHome. It does not call LLM Proxy directly or select arbitrary providers and models.
+
+  P002 owns future parent authentication, individual device enrollment, family authorization, retention policy, and family usage limits.
+  This plan can complete without P002 because its initial scope uses the existing authorized Portal installation.
+  The shared installation credential does not establish child identity or family isolation.
+  A hosted rollout to additional families requires the applicable P002 implementation and acceptance, not only closure of its planning issue.
+  P001 calendar work and P003 image generation do not prevent this Ask work.
+  I008 retains the broad appearance audit. This issue defines functional Ask acceptance at both text dimensions.
+
+  Proposed configuration contract:
+  Establish `service/config.yml` as the single canonical backend configuration file during implementation.
+  Move the existing server settings and LLM Proxy settings into that file together.
+  Use `--config <path>` as the required startup input for its location.
+  Resolve the file once at startup and reject a missing or unreadable file.
+  Changing the selected model requires a backend restart. It requires no Android rebuild.
+  Automatic configuration reload, model selection on the Portal, and per-question routing remain outside this initial plan.
+
+  This example defines the proposed shape. The model and reasoning values are placeholders, not selected production values.
+  The 45-second budget preserves the current deployment value until a different value is selected.
+  ```yaml
+  server:
+    listen_address: "0.0.0.0:8765"
+    data_dir: "/data"
+    device_token: "${FAMILYHOME_DEVICE_TOKEN}"
+  llm_proxy:
+    base_url: "https://llm-proxy-api.mprlab.com"
+    secret: "${LLM_PROXY_SECRET}"
+    provider: "openai"
+    model: "<selected-model-id>"
+    reasoning_effort: "<supported-reasoning-effort>"
+    request_timeout_seconds: 45
+  ```
+
+  - Parse YAML with one typed schema and reject unknown fields, duplicate keys, and multiple documents.
+  - Expand only explicit environment references in the YAML values.
+  - Require every listed field and reject unresolved placeholders or environment references after expansion.
+  - Keep secret values in the existing private deployment inputs.
+  - Keep model, provider, reasoning, address, and timeout values out of application constants and independent environment overrides.
+  - Require an explicit provider and model for this initial scope.
+  - Validate the selected reasoning value through the released client contract.
+  - Require a positive integer for `request_timeout_seconds`.
+  - Fail startup before the HTTP listener opens when configuration or official-client construction fails.
+  - Remove the former direct environment lookups after the coordinated configuration change.
+  - Copy the canonical YAML into the service image and pass its path through the container command.
+  - Update the deployment manifest, local commands, service guide, and startup tests together.
+  The manifest supplies secrets and the configuration path. It does not duplicate the model policy in environment values.
+  Local integration tests supply a complete temporary YAML file through the same startup input.
+
+  Proposed Go client implementation:
+  - Resolve the released client with `go get github.com/tyemirov/llm-proxy/pkg/llmproxyclient@latest` during implementation.
+  - Review the resolved client contract before changes to the adapter or dependency metadata.
+  - Construct `NewConfig` and `NewClient` once during backend startup.
+  - Inject the client into the existing application dependency graph.
+  - Construct requests with `NewMessagesRequest` and execute them with `PostMessages`.
+  - Pass configured `Model`, `ReasoningEffort`, and `RequestTimeoutSeconds` into each applicable request.
+  - Use `NewAudioAttachment` for voice input when the released client supports that operation.
+  - Keep request construction within one app-owned Ask adapter.
+  - Keep the same selected answer model for text and voice requests.
+  - Report unsupported audio input explicitly without an automatic model change or an alternative provider request.
+  - Verify actual audio support before acceptance of voice questions.
+  - Propagate cancellation through the Go context and official client.
+  - Derive transport and server deadlines from the configured budget plus an explicit allowance for request and response transfer.
+  - Supply the corresponding Android deadline through the application contract before increasing the backend budget beyond its current limit.
+  - Reject empty answers and preserve structured upstream error categories without raw provider payloads.
+
+  Proposed question contract:
+  Keep the existing typed and audio Ask operations for the current installation scope.
+  P002 owns their later replacement with family-owned question resources in one coordinated client and backend change.
+  This work adds no generic public endpoint for arbitrary LLM requests.
+  - Authenticate every Ask request through the current FamilyHome request boundary.
+  - Validate content type, required fields, question length, audio size, and supported audio format before provider execution.
+  - Reject unknown input fields and client-supplied provider, model, reasoning, or budget values.
+  - Convert validated inputs into closed text-question or audio-question domain values.
+  - Keep child names and question text separate from server-owned system instructions.
+  - Treat the supplied profile ID and name as untrusted personalization data, not authorization.
+  - Preserve the documented success response and define stable errors for invalid input, unavailable service, unsupported audio, and timeout.
+  - Keep questions, recordings, answers, credentials, and raw provider errors out of routine logs.
+  - Preserve explicit errors without automatic provider retries.
+  - Report an interrupted dispatched request as an unknown outcome when completion cannot be established.
+  - Never claim that cancellation proves the provider stopped work or incurred no charge.
+  Persistent duplicate prevention, request receipts, and family accounting use the later P002 contract.
+  This work prevents repeated UI submissions but does not claim exactly-once provider execution across restarts or lost responses.
+
+  Proposed Android implementation:
+  - Separate the FamilyHome backend client, microphone adapter, and speech adapter from `AskActivity` rendering.
+  - Use explicit `idle`, `recording`, `submitting`, `answer`, `error`, and `cancelled` interaction states.
+  - Permit at most one recording or submitted request at a time.
+  - Disable both submit actions while a request is active.
+  - Capture the selected profile and a request identity before work starts.
+  - Reject callbacks after cancellation, activity exit, profile change, or replacement by a newer request.
+  - Preserve the question draft after validation or connection errors.
+  - Keep each first-version question independent, without persistent conversation history.
+  - Bound recording duration and file size before upload.
+  - Show explicit microphone denial, unavailable microphone, empty recording, and upload failure states.
+  - Stop recording and spoken playback on Back, Home, activity pause, and screensaver entry.
+  - Cancel active network work on those transitions.
+  - Remove temporary recordings after completion, failure, or cancellation.
+  - Remove abandoned recording files after process restart.
+  - Validate the response before display or spoken playback.
+  - Keep the answer readable when speech initialization or playback fails.
+  - Provide a visible control to stop spoken playback.
+  - Apply `android/STYLING.md` at normal text dimensions and the 1.3 font scale.
+
+  Implementation stages after approval:
+  | Stage | Scope | Exit evidence |
+  | --- | --- | --- |
+  | 1 | Canonical YAML, strict startup, and released Go client | Two configured models produce the corresponding outbound requests without code changes |
+  | 2 | Typed and audio boundaries, deadlines, cancellation, and errors | Real FamilyHome HTTP requests reach a local LLM Proxy test server through the official client |
+  | 3 | Android interaction, recording cleanup, and speech lifecycle | Public UI scenarios pass without duplicate submissions, stale answers, or audio after exit |
+  | 4 | Configuration packaging and regression coverage | The service image contains the selected YAML and existing FamilyHome behavior passes its checks |
+  | 5 | Authorized provider and physical acceptance | Typed and recorded questions produce correct visible and audible answers on the Portal |
+  Each behavior change starts with a failing integration test before production-code changes.
+
+  Deliverables:
+  - Record the selected values for the open decisions below before the corresponding implementation stage.
+  - Define the YAML schema, startup command, official-client adapter, and deployment input transition.
+  - Define the text and audio validation rules and their documented HTTP errors.
+  - Define request cancellation, recording cleanup, and speech lifecycle behavior through public integration scenarios.
+  - Add a repository target such as `make test-android-ask` for complete Ask interface coverage during implementation.
+  - Update the service and Android guides with configuration, model selection, capability limits, and qualification commands.
+  - Create bounded implementation issues for the approved stages without treating this plan as completed application work.
+
+  Open Decisions:
+  - Select the first provider and model and verify text, audio, reasoning, and account support through the released contracts.
+  - Confirm spoken input and playback defaults, supported languages, and the behavior when the selected model lacks audio support.
+  - Select the request work budget, transfer allowance, and Android deadline configuration mechanism.
+  - Select the question limit, recording duration, upload limit, and initial installation concurrency limit.
+  - Define child age assumptions, answer length, parent controls, and the handling of unsuitable requests before child-facing acceptance.
+  - Define provider data controls and the treatment of temporary questions and answers for the initial installation.
+  - Define live-provider qualification cases and their request budget.
+  These decisions do not reopen the confirmed Go client or configuration-based model selection.
+
+  Validation:
+  This planning change uses source and document review. It makes no provider request or application change.
+  - Verify that the new issue ID is absent from both the active tracker and archive before allocation.
+  - Verify the Go API names and source statements against the application and released client during implementation.
+  - Run the language checker, Governor check, issue-reference checks, and `git diff --check` for this plan.
+  - Keep existing unrelated guide drift separate from new findings.
+
+  Acceptance scenarios for later implementation:
+  - Start the actual service with valid YAML and verify its authenticated HTTP entry points.
+  - Reject missing files, malformed YAML, duplicate keys, unknown keys, missing secrets, and invalid budgets before listener startup.
+  - Change the configured model, restart the backend, and verify the new model at the official HTTP boundary.
+  - Verify provider, model, reasoning, authentication, and `X-LLM-Proxy-Request-Timeout-Seconds` without disclosure of secrets.
+  - Verify invalid input and unauthorized requests produce no provider call.
+  - Verify a real audio fixture reaches the official client with its declared format and unchanged bytes.
+  - Verify provider errors, empty answers, cancellation, and deadlines through a controlled HTTP server.
+  - Submit rapidly through the Android interface and verify one active request.
+  - Verify late responses do not appear or speak after navigation, profile changes, or cancellation.
+  - Verify recording cleanup after success, failure, cancellation, screensaver entry, and process restart.
+  - Verify microphone denial, speech failure, readable answers, and the stop-playback control.
+  - Run `make test-service`, the new Ask interface target, and the affected appearance, toolbar, screensaver, and upgrade targets.
+  - Run `make ci` after the final implementation change.
+  - Qualify typed input, actual voice understanding, and audible answers with the selected provider on the physical Portal.
+  - Record source revision, configuration identity without secrets, APK identity, device, and results at both font scales.
+  - Keep hosted multi-family acceptance under the applicable P002 implementation work.
+
+  References:
+  - `service/main.go`, `service/main_test.go`, `service/go.mod`: current server, client construction, and boundary tests.
+  - `service/README.md`, `.mprlab/deploy/resources.yml`, `Dockerfile`: current configuration and deployment contract.
+  - `android/app/src/main/java/com/mprlab/portal/AskActivity.java`: current input, recording, HTTP, and speech behavior.
+  - `android/app/src/main/java/com/mprlab/portal/PortalActivity.java`: shared navigation and screensaver lifecycle.
+  - `android/STYLING.md`, `Makefile`: appearance and validation contracts.
+
+
 - [x] [P004] Plan the Photo Booth application.
   Goal:
   This issue defines an implementation proposal for Photo Booth in FamilyHome.
