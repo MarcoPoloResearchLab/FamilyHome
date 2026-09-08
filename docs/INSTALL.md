@@ -44,7 +44,7 @@ This procedure starts with an operational Portal and working ADB access.
    ```
 
 The script prints the output path under `android/build/local`.
-The current filename is `Children-Portal-v0.13.0.apk`.
+The current filename is `Children-Portal-v26.908.221450.apk`.
 The package name is `com.mprlab.portal`.
 The [Android guide](../android/README.md) contains the build contract.
 
@@ -65,7 +65,7 @@ The [Android guide](../android/README.md) contains the build contract.
 3. From the `android` directory, install the APK:
 
    ```sh
-   adb install -r build/local/Children-Portal-v0.13.0.apk
+   adb install -r build/local/Children-Portal-v26.908.221450.apk
    ```
 
 4. Open FamilyHome:

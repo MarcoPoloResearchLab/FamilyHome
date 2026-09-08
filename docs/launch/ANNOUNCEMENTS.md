@@ -62,7 +62,7 @@ The README has screenshots, a short demo, and setup details.
 | APK URL | Supply the verified public release URL after release acceptance. |
 | Version code | Read the accepted APK manifest. |
 
-The source build currently uses version 0.13.0 and version code 19.
+The source build currently uses version `26.908.221450` and version code `20`.
 Those values identify the captured development build, not a future release.
 
 Long description draft:
