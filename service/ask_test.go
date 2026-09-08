@@ -199,16 +199,18 @@ func TestAskHTTPWorkDeadline(t *testing.T) {
 	}
 }
 
-func TestAskHTTPAudioCapabilityAndValidation(t *testing.T) {
+func TestAskHTTPTranscriptionCapabilityAndValidation(t *testing.T) {
 	for _, scenario := range []struct {
-		name, mime       string
-		supported, valid bool
-		status           int
+		name, mime, modelText string
+		supported, valid      bool
+		status                int
 	}{
-		{"unsupported model", "audio/m4a", false, true, 422},
-		{"wrong container", "audio/m4a", true, false, 415},
-		{"wrong MIME", "image/png", true, true, 415},
-		{"supported", "audio/m4a", true, true, 200},
+		{"unsupported model", "audio/m4a", "Why is the sky blue?", false, true, 422},
+		{"wrong container", "audio/m4a", "Why is the sky blue?", true, false, 415},
+		{"wrong MIME", "image/png", "Why is the sky blue?", true, true, 415},
+		{"supported", "audio/m4a", "Why is the sky blue?", true, true, 200},
+		{"empty transcript", "audio/m4a", " ", true, true, 502},
+		{"long transcript", "audio/m4a", strings.Repeat("x", 2001), true, true, 502},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			var completions atomic.Int32
@@ -225,7 +227,19 @@ func TestAskHTTPAudioCapabilityAndValidation(t *testing.T) {
 					return
 				}
 				completions.Add(1)
-				io.WriteString(w, "Recorded question answered.")
+				var payload struct {
+					Messages []struct {
+						Role    string `json:"role"`
+						Content string `json:"content"`
+					} `json:"messages"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+					t.Fatal(err)
+				}
+				if len(payload.Messages) < 2 || !strings.Contains(strings.ToLower(payload.Messages[0].Content), "transcrib") {
+					t.Error("audio request must transcribe instead of answering")
+				}
+				io.WriteString(w, scenario.modelText)
 			})
 			data, err := os.ReadFile("testdata/question.m4a")
 			if err != nil {
@@ -247,7 +261,7 @@ func TestAskHTTPAudioCapabilityAndValidation(t *testing.T) {
 			}
 			part.Write(data)
 			form.Close()
-			request, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/ask/audio", &body)
+			request, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/ask/transcriptions", &body)
 			request.Header.Set("Content-Type", form.FormDataContentType())
 			authorize(request)
 			response, err := server.Client().Do(request)
@@ -258,7 +272,16 @@ func TestAskHTTPAudioCapabilityAndValidation(t *testing.T) {
 			if response.StatusCode != scenario.status {
 				t.Fatalf("status=%d want=%d", response.StatusCode, scenario.status)
 			}
-			if scenario.status != 200 && completions.Load() != 0 {
+			if scenario.status == 200 {
+				var result map[string]string
+				if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+					t.Fatal(err)
+				}
+				if result["transcript"] != "Why is the sky blue?" || result["answer"] != "" {
+					t.Fatalf("expected transcript without an answer: %v", result)
+				}
+			}
+			if scenario.status >= 400 && scenario.status < 500 && completions.Load() != 0 {
 				t.Fatal("invalid or unsupported audio reached provider completion")
 			}
 		})

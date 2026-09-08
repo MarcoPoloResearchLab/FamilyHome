@@ -65,7 +65,7 @@ The initial limits are 2,000 Unicode characters, 60 seconds of recording, 6 MiB 
 `GET /v1/ask/settings` returns the client deadline and the question, recording, and upload limits.
 It returns no model selection or LLM Proxy secret.
 Android reads settings when Ask opens and before submission.
-The initial client deadline is 90 seconds: the work budget plus three transfer allowances.
+The initial client deadline is 90 seconds per transcription or answer request: the work budget plus three transfer allowances.
 The allowances cover upload, capability discovery, and proxy transfer. Android cancels the connection at the total deadline.
 The HTTP server limits request reads to one transfer allowance, which initially permits 15 seconds.
 
@@ -74,15 +74,19 @@ It rejects unknown or repeated fields and trailing JSON.
 The profile ID and name provide untrusted personalization. They do not authorize child-owned resources.
 The backend keeps the child's name and question out of system instructions.
 
-`POST /v1/ask/audio` accepts multipart fields `profile_id`, `name`, and one `audio` file.
+`POST /v1/ask/transcriptions` accepts multipart fields `profile_id`, `name`, and one `audio` file.
 It accepts M4A, WAV, and MPEG audio with matching container signatures.
 The Portal records AAC audio in M4A.
 The backend checks the selected model in the official public capability catalog before audio submission.
 It returns `unsupported_audio` when that model lacks audio input. It does not select another model automatically.
 
 On 2026-09-08, the [public proxy catalog](https://llm-proxy-api.mprlab.com/api/public/capabilities) listed text and audio input for `vertex:gemini-3.8-flash`.
-Ask sends a recording directly to this model for an answer. Android text-to-speech reads the answer.
-This flow uses the current official client without a separate dictation operation.
+Ask sends a recording to this model for transcription through the current official client.
+A successful request returns HTTP 200 with `{"transcript":"..."}`. It does not request an answer.
+The backend rejects empty, invalid, or excessive transcript text.
+Android adds the transcript to the question draft. The paper airplane submits that text through `POST /v1/ask`.
+Voice submission thus uses one model request for transcription and another for the answer.
+Each request has its own work budget and provider charge. Android text-to-speech reads the answer.
 
 The operator selected Gemini 3.8 Flash after the price comparison.
 [Google lists](https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing) global introductory prices of $0.75 per million input tokens and $3.75 per million output tokens through 2026-12-31.
@@ -104,6 +108,7 @@ Authentication errors use the existing FamilyHome authentication response.
 | --- | --- | --- |
 | 400, 413, 415 | `invalid_question` | Invalid question fields, length, body, or media type |
 | 400, 415 | `invalid_audio` | Invalid, empty, oversized, or unsupported recording |
+| 502 | `invalid_transcript` | Empty, invalid, or excessive transcript text |
 | 422 | `unsupported_audio` | The selected model lacks audio input |
 | 429 | `ask_busy` | The installation already uses its concurrent request allowance |
 | 503 | `service_unavailable`, `provider_busy` | Capability discovery failed or the provider is busy |
@@ -123,7 +128,7 @@ Navigation, activity pause, cancellation, and screensaver entry stop recording a
 Temporary recordings are removed after success, failure, and cancellation. A new activity also removes abandoned recordings.
 The question draft survives request failures and activity recreation.
 Invalid responses produce an error. A speech failure leaves the answer readable.
-The Stop speaking control ends playback.
+Ask has no speech playback buttons. Recording a question, navigation, or cancellation stops playback.
 
 Run the service checks from the repository root:
 
