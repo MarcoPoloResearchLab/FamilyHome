@@ -98,6 +98,7 @@ public final class StyleTest extends Instrumentation {
                     ready();
                 }
                 capture(entry[2]);
+                if (entry[1].equals("MusicActivity")) assertMusicSurfaces(screen);
                 if (entry[1].equals("GameLibraryActivity")) {
                     assertGameIllustrations(screen);
                     capture("games-scrolled");
@@ -264,6 +265,37 @@ public final class StyleTest extends Instrumentation {
             if (found != null) return found;
         }
         return null;
+    }
+    private void assertMusicSurfaces(Activity screen) throws Exception {
+        View[] piano = {null};
+        onUi(() -> {
+            View root = screen.getWindow().getDecorView();
+            piano[0] = required(root, "Piano");
+            View guitar = required(root, "Guitar");
+            Rect left = bounds(piano[0]), right = bounds(guitar), display = bounds(root);
+            assertSharedBorder(left, right, true);
+            if (left.left != display.left || right.right != display.right || left.bottom != display.bottom
+                    || right.bottom != display.bottom || Math.abs(left.width() - right.width()) > 1)
+                throw new AssertionError("Music needs two equal surfaces that reach the screen edges");
+            Rect toolbar = bounds(required(root, "Screen toolbar"));
+            assertSharedBorder(toolbar, bounds((View) piano[0].getParent()), false);
+            if (findText(root, "What will you play today?") != null)
+                throw new AssertionError("Music must not reserve a separate instruction row");
+            for (View tile : new View[]{piano[0], guitar}) {
+                ViewGroup group = (ViewGroup) tile;
+                boolean largeArt = false;
+                for (int i = 0; i < group.getChildCount(); i++) {
+                    View art = group.getChildAt(i);
+                    if (art.getClass().getSimpleName().equals("CharacterView")) {
+                        Rect area = bounds(art);
+                        largeArt = area.height() > left.height() / 2 && area.width() > left.width() / 2;
+                    }
+                }
+                if (!largeArt) throw new AssertionError("Each instrument needs a large character illustration");
+                assertTextFits(tile);
+            }
+        });
+        assertTileStates(piano[0]);
     }
     private void assertGameIllustrations(Activity screen) throws Exception {
         View[] focusCell = {null};

@@ -9,7 +9,7 @@ import android.view.View;
 
 final class CharacterView extends View {
     enum Kind { PENCIL, QUESTION, MUSIC, GAME, CAMERA, CALENDAR, BOOK, TOOTH, HOURGLASS, CLOCK,
-        KART, BLOCKS, TILES, MATCH }
+        KART, BLOCKS, TILES, MATCH, PIANO, GUITAR }
     private final Kind kind;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -32,6 +32,8 @@ final class CharacterView extends View {
             case BLOCKS: blocks(canvas); canvas.restore(); return;
             case TILES: tiles(canvas); canvas.restore(); return;
             case MATCH: matchingCards(canvas); canvas.restore(); return;
+            case PIANO: piano(canvas); canvas.restore(); return;
+            case GUITAR: guitar(canvas); canvas.restore(); return;
             default: limbs(canvas);
         }
         switch (kind) {
@@ -217,6 +219,53 @@ final class CharacterView extends View {
         face(canvas, 0, 0, .43f);
         canvas.restore();
         line(canvas, x + 19, y + 69, x + 34, y + 69, 2, PortalStyle.PURPLE);
+    }
+
+    private void piano(Canvas canvas) {
+        limbs(canvas);
+        shape(canvas, 23, 23, 103, 92, 7, PortalStyle.PURPLE);
+        shape(canvas, 19, 15, 107, 27, 4, PortalStyle.CORAL);
+        line(canvas, 31, 33, 94, 33, 2, Color.WHITE);
+        face(canvas, 64, 48, .9f);
+        shape(canvas, 19, 76, 107, 99, 3, PortalStyle.CORAL);
+        shape(canvas, 25, 77, 101, 94, 1, Color.WHITE);
+        for (int key = 1; key < 10; key++) {
+            float x = 25 + key * 7.6f;
+            line(canvas, x, 78, x, 93, 1, Color.BLACK);
+        }
+        for (int key : new int[]{1, 2, 4, 5, 6, 8, 9}) {
+            float x = 25 + key * 7.6f;
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.BLACK);
+            canvas.drawRoundRect(x - 2, 77, x + 2, 87, .5f, .5f, paint);
+        }
+    }
+
+    private void guitar(Canvas canvas) {
+        limbs(canvas);
+        Path body = new Path();
+        body.moveTo(63, 46);
+        body.cubicTo(37, 33, 27, 51, 39, 67);
+        body.cubicTo(45, 77, 22, 76, 29, 94);
+        body.cubicTo(38, 114, 91, 111, 99, 92);
+        body.cubicTo(106, 75, 83, 76, 89, 66);
+        body.cubicTo(102, 47, 86, 35, 63, 46);
+        body.close();
+        drawPath(canvas, body, PortalStyle.CORAL);
+        shape(canvas, 57, 17, 71, 60, 2, PortalStyle.PURPLE);
+        for (int fret = 0; fret < 5; fret++) line(canvas, 58, 28 + fret * 6, 70, 28 + fret * 6, 1, Color.BLACK);
+        for (int peg = 0; peg < 3; peg++) {
+            line(canvas, 50, 8 + peg * 5, 78, 8 + peg * 5, 3, Color.BLACK);
+        }
+        shape(canvas, 55, 3, 73, 23, 3, PortalStyle.MINT);
+        for (int string = 0; string < 6; string++)
+            line(canvas, 59 + string * 2, 24, 59 + string * 2, 60, .6f, Color.WHITE);
+        oval(canvas, 50, 65, 79, 93, PortalStyle.YELLOW);
+        oval(canvas, 54, 69, 75, 89, Color.BLACK);
+        face(canvas, 64, 64, .72f);
+        shape(canvas, 48, 97, 82, 102, 2, PortalStyle.PURPLE);
+        for (int string = 0; string < 6; string++)
+            line(canvas, 57 + string * 3, 92, 57 + string * 3, 99, .8f, Color.WHITE);
     }
 
     private void limbs(Canvas canvas) {
