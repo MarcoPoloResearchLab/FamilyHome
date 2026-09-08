@@ -53,10 +53,14 @@ Section letters:
 - F = Features
 - P = Planning
 
-Identifiers must match the section they appear in. Numbers increment
-independently per section. Use three digits (`001`-`999`) per section; after a
-section reaches its max (example: after B999), the next auto-number wraps to
-B001.
+Identifiers must match their issue section.
+Each section has its own sequence from `001` through `999`.
+
+- Select an identifier absent from both the active tracker and its archive.
+- After sequence number `999`, continue the identifier search at `001`.
+- Do not select an identifier already present in either file.
+- If all identifiers in the section are occupied, stop and request an identifier decision.
+
 A capital `R` suffix inside the identifier marks the entry as recurring
 (example: `[M001R]`). A separate `R` token after the identifier is invalid.
 Parsers accept lowercase `r` while reading and render uppercase `R` in
