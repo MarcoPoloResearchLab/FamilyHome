@@ -223,7 +223,28 @@ func securityHeaders(next http.Handler) http.Handler {
 }
 
 func (app *application) health(writer http.ResponseWriter, _ *http.Request) {
+	if err := app.checkDrawingStorage(); err != nil {
+		log.Printf("health check failed: %v", err)
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]any{"ok": false})
+		return
+	}
 	writeJSON(writer, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (app *application) checkDrawingStorage() error {
+	directory, err := os.Open(filepath.Join(app.config.Server.DataDir, "drawings"))
+	if err != nil {
+		return fmt.Errorf("open drawing storage: %w", err)
+	}
+	_, readError := directory.ReadDir(1)
+	closeError := directory.Close()
+	if readError != nil && !errors.Is(readError, io.EOF) {
+		return fmt.Errorf("read drawing storage: %w", readError)
+	}
+	if closeError != nil {
+		return fmt.Errorf("close drawing storage: %w", closeError)
+	}
+	return nil
 }
 
 func (app *application) ask(writer http.ResponseWriter, request *http.Request) {

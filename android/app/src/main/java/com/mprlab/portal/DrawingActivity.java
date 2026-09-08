@@ -1,6 +1,5 @@
 package com.mprlab.portal;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
@@ -15,14 +14,12 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -44,20 +41,19 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.UUID;
 
-public final class DrawingActivity extends Activity {
-    private static final int BG = Color.rgb(255, 248, 234);
-    private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
-    private static final int SURFACE = Color.WHITE;
-    private static final int INK = Color.rgb(36, 49, 71);
-    private static final int BLUE = Color.rgb(63, 132, 255);
-    private static final int PURPLE = Color.rgb(124, 92, 252);
-    private static final int CORAL = Color.rgb(255, 105, 105);
-    private static final int TEAL = Color.rgb(0, 166, 153);
-    private static final int PALE_PURPLE = Color.rgb(241, 237, 255);
+public final class DrawingActivity extends PortalActivity {
+    private static final int BG = PortalStyle.PAPER;
+    private static final int SYSTEM_BAR = PortalStyle.INK;
+    private static final int SURFACE = PortalStyle.WHITE;
+    private static final int INK = PortalStyle.INK;
+    private static final int BLUE = PortalStyle.BLUE;
+    private static final int PURPLE = PortalStyle.PURPLE;
+    private static final int CORAL = PortalStyle.CORAL;
+    private static final int TEAL = PortalStyle.MINT;
+    private static final int PALE_PURPLE = PortalStyle.PURPLE;
     private static final int ICON_LIBRARY = 1;
     private static final int ICON_NEW = 2;
     private static final int ICON_SHARE = 3;
-    private static final int ICON_DONE = 4;
     private static final int ICON_ERASER = 5;
     private String profileID;
     private String profileName;
@@ -73,7 +69,6 @@ public final class DrawingActivity extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setStatusBarColor(SYSTEM_BAR);
         getWindow().setNavigationBarColor(SYSTEM_BAR);
         profileID = getIntent().getStringExtra("profile_id");
@@ -94,11 +89,11 @@ public final class DrawingActivity extends Activity {
         topBar.setGravity(Gravity.CENTER_VERTICAL);
         topBar.setPadding(dp(14), dp(12), dp(14), dp(10));
         topBar.setBackgroundColor(BG);
-        addTopButton("My drawings", PURPLE, Color.WHITE, ICON_LIBRARY, v -> showLibrary());
-        addTopButton("New picture", TEAL, Color.WHITE, ICON_NEW, v -> newDrawing());
-        addTopButton("Save & share", CORAL, Color.WHITE, ICON_SHARE, v -> saveAndShare());
-        addTopButton("Done", SURFACE, INK, ICON_DONE, v -> { persist(); finish(); });
-        FrameLayout.LayoutParams topParams = new FrameLayout.LayoutParams(-1, dp(78), Gravity.TOP);
+        addTopButton("My drawings", PURPLE, INK, ICON_LIBRARY, v -> showLibrary());
+        addTopButton("New picture", TEAL, INK, ICON_NEW, v -> newDrawing());
+        addTopButton("Save & share", CORAL, INK, ICON_SHARE, v -> saveAndShare());
+        PortalToolbar.navigation(this, topBar);
+        FrameLayout.LayoutParams topParams = new FrameLayout.LayoutParams(-1, dp(PortalToolbar.HEIGHT_DP), Gravity.TOP);
         frame.addView(topBar, topParams);
 
         palette = new LinearLayout(this);
@@ -106,12 +101,14 @@ public final class DrawingActivity extends Activity {
         palette.setGravity(Gravity.CENTER);
         palette.setPadding(dp(12), dp(8), dp(12), dp(8));
         palette.setBackground(rounded(SURFACE, 24));
-        palette.setElevation(dp(4));
+        palette.setElevation(0);
         int[] colors = drawingCanvas.colors;
         colorButtons.clear();
         for (int index = 0; index < colors.length; index++) {
             final int selected = index;
-            Button color = button("●", SURFACE, colors[index]);
+            Button color = new Button(this);
+            PortalStyle.button(color);
+            color.setPadding(0, 0, dp(4), dp(4));
             color.setTextColor(colors[index]);
             color.setTextSize(30);
             color.setContentDescription(colorName(index) + " brush");
@@ -128,7 +125,9 @@ public final class DrawingActivity extends Activity {
 
         sizeControl = new StrokeSizeControl(drawingCanvas.strokeWidth / getResources().getDisplayMetrics().density);
         sizeControl.setOnSizeChanged(widthDp -> drawingCanvas.strokeWidth = dp(widthDp));
-        palette.addView(sizeControl, paletteParams(420));
+        LinearLayout.LayoutParams sizeParams = new LinearLayout.LayoutParams(0, dp(PortalStyle.CONTROL_HEIGHT), 1f);
+        sizeParams.setMargins(dp(8), 0, dp(8), 0);
+        palette.addView(sizeControl, sizeParams);
 
         eraserButton = toolIconButton("Eraser", PALE_PURPLE, INK, ICON_ERASER);
         eraserButton.setOnClickListener(v -> {
@@ -149,7 +148,7 @@ public final class DrawingActivity extends Activity {
     private void addTopButton(String label, int color, int textColor, int iconKind, View.OnClickListener listener) {
         ToolButton button = toolButton(label, color, textColor, iconKind, false);
         button.setOnClickListener(listener);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(56), 1f);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(PortalStyle.CONTROL_HEIGHT), 1f);
         params.leftMargin = dp(5); params.rightMargin = dp(5);
         topBar.addView(button, params);
     }
@@ -157,16 +156,23 @@ public final class DrawingActivity extends Activity {
     private void updateToolSelection() {
         if (drawingCanvas == null) return;
         for (int index = 0; index < colorButtons.size(); index++) {
-            colorButtons.get(index).setBackground(swatchBackground(!drawingCanvas.eraser && index == drawingCanvas.colorIndex));
+            Button color = colorButtons.get(index);
+            boolean selected = !drawingCanvas.eraser && index == drawingCanvas.colorIndex;
+            color.setSelected(selected);
+            color.setText(selected ? "✓" : "");
+            color.setTextColor(Color.luminance(drawingCanvas.colors[index]) > .179f ? INK : Color.WHITE);
+            color.setBackground(PortalStyle.surface(this, drawingCanvas.colors[index], 30));
         }
         if (eraserButton != null) eraserButton.setSelectedVisual(drawingCanvas.eraser);
     }
 
     private LinearLayout.LayoutParams paletteParams(int width) {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(width), dp(58));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(width), dp(PortalStyle.CONTROL_HEIGHT));
         params.leftMargin = dp(3); params.rightMargin = dp(3);
         return params;
     }
+
+    @Override protected void beforeHome() { persist(); }
 
     @Override public void onBackPressed() {
         persist();
@@ -174,12 +180,12 @@ public final class DrawingActivity extends Activity {
     }
 
     private void newDrawing() {
-        EditText input = new EditText(this);
+        EditText input = textInput();
         input.setHint("Drawing title");
         input.setSingleLine();
         input.setTextColor(Color.BLACK);
         input.setHintTextColor(Color.DKGRAY);
-        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Name your new picture").setView(input)
+        showPortalDialog(new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("Name your new picture").setView(input)
                 .setPositiveButton("Create", (dialog, which) -> {
                     String title = input.getText().toString().trim();
                     if (title.isEmpty()) title = "Untitled drawing";
@@ -187,15 +193,15 @@ public final class DrawingActivity extends Activity {
                     documents.add(active);
                     drawingCanvas.resetView();
                     persist();
-                }).setNegativeButton("Cancel", null).show();
+                }).setNegativeButton("Cancel", null).create());
     }
 
     private void showLibrary() {
         String[] titles = new String[documents.size()];
         for (int i = 0; i < documents.size(); i++) titles[i] = documents.get(i).title;
-        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle(profileName + "’s pictures")
+        showPortalDialog(new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle(profileName + "’s pictures")
                 .setItems(titles, (dialog, which) -> { active = documents.get(which); drawingCanvas.resetView(); persist(); })
-                .setPositiveButton("New picture", (dialog, which) -> newDrawing()).setNegativeButton("Close", null).show();
+                .setPositiveButton("New picture", (dialog, which) -> newDrawing()).setNegativeButton("Close", null).create());
     }
 
     private void saveAndShare() {
@@ -251,7 +257,7 @@ public final class DrawingActivity extends Activity {
                 Toast.makeText(this, "Drawing link copied.", Toast.LENGTH_SHORT).show();
             });
         }
-        dialog.show();
+        showPortalDialog(dialog.create());
     }
 
     private void shareFile(File image, String webURL) {
@@ -304,17 +310,13 @@ public final class DrawingActivity extends Activity {
 
     private static String safeFile(String value) { return value.replaceAll("[^a-zA-Z0-9_-]+", "-").replaceAll("^-|-$", ""); }
 
-    private Button button(String label, int color) { return button(label, color, Color.WHITE); }
-    private Button button(String label, int color, int textColor) { Button button = new Button(this); button.setText(label); button.setAllCaps(false); button.setTextColor(textColor); button.setTextSize(17); button.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)); button.setBackground(rounded(color, 18)); button.setPadding(dp(10), dp(6), dp(10), dp(6)); return button; }
     private ToolButton toolButton(String label, int color, int textColor, int iconKind, boolean compact) { return new ToolButton(label, color, textColor, iconKind, compact); }
     private ToolButton toolIconButton(String label, int color, int textColor, int iconKind) { return new ToolButton(label, color, textColor, iconKind, true, true); }
-    private GradientDrawable rounded(int color, int radius) { GradientDrawable drawable = new GradientDrawable(); drawable.setColor(color); drawable.setCornerRadius(dp(radius)); return drawable; }
-    private GradientDrawable swatchBackground(boolean selected) { GradientDrawable drawable = rounded(SURFACE, 18); drawable.setStroke(dp(selected ? 4 : 1), selected ? PURPLE : Color.rgb(230, 230, 235)); return drawable; }
+    private Drawable rounded(int color, int radius) { return PortalStyle.surface(this, color, radius); }
     private int dp(float value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 
     private final class ToolButton extends LinearLayout {
         private final int normalColor;
-        private final int normalTextColor;
         private final ToolIconView icon;
         private final TextView words;
 
@@ -325,7 +327,6 @@ public final class DrawingActivity extends Activity {
         ToolButton(String label, int color, int textColor, int iconKind, boolean compact, boolean iconOnly) {
             super(DrawingActivity.this);
             normalColor = color;
-            normalTextColor = textColor;
             setOrientation(HORIZONTAL);
             setGravity(iconOnly ? Gravity.CENTER : Gravity.CENTER_VERTICAL);
             setPadding(iconOnly ? 0 : dp(compact ? 8 : 12), 0, iconOnly ? 0 : dp(compact ? 7 : 10), 0);
@@ -344,8 +345,8 @@ public final class DrawingActivity extends Activity {
                 words = new TextView(DrawingActivity.this);
                 words.setText(label);
                 words.setTextColor(textColor);
-                words.setTextSize(compact ? 13 : 15);
-                words.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD));
+                PortalStyle.text(words, PortalStyle.TextRole.CONTROL);
+                words.setTypeface(PortalStyle.heading(DrawingActivity.this));
                 words.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
                 words.setSingleLine(true);
                 LinearLayout.LayoutParams wordParams = new LinearLayout.LayoutParams(0, -1, 1f);
@@ -356,7 +357,8 @@ public final class DrawingActivity extends Activity {
 
         void setSelectedVisual(boolean selected) {
             int color = selected ? PURPLE : normalColor;
-            int textColor = selected ? Color.WHITE : normalTextColor;
+            setSelected(selected);
+            int textColor = INK;
             setBackground(rounded(color, 18));
             if (words != null) words.setTextColor(textColor);
             icon.setInkColor(textColor);
@@ -394,21 +396,21 @@ public final class DrawingActivity extends Activity {
             controlPaint.setStyle(Paint.Style.STROKE);
             controlPaint.setStrokeCap(Paint.Cap.ROUND);
             controlPaint.setStrokeWidth(dp(4));
-            controlPaint.setColor(Color.rgb(196, 199, 213));
+            controlPaint.setColor(INK);
             canvas.drawLine(startX, centerY, endX, centerY, controlPaint);
             controlPaint.setColor(PURPLE);
             canvas.drawLine(startX, centerY, thumbX, centerY, controlPaint);
 
             controlPaint.setStyle(Paint.Style.FILL);
-            controlPaint.setColor(Color.rgb(196, 199, 213));
+            controlPaint.setColor(INK);
             canvas.drawCircle(startX, centerY, dp(3), controlPaint);
             canvas.drawCircle(endX, centerY, dp(8), controlPaint);
 
             controlPaint.setColor(Color.WHITE);
             canvas.drawCircle(thumbX, centerY, dp(12), controlPaint);
             controlPaint.setStyle(Paint.Style.STROKE);
-            controlPaint.setStrokeWidth(dp(1));
-            controlPaint.setColor(Color.rgb(224, 221, 235));
+            controlPaint.setStrokeWidth(dp(3));
+            controlPaint.setColor(INK);
             canvas.drawCircle(thumbX, centerY, dp(12), controlPaint);
             controlPaint.setStyle(Paint.Style.FILL);
             controlPaint.setColor(PURPLE);
@@ -504,7 +506,6 @@ public final class DrawingActivity extends Activity {
                 case ICON_LIBRARY: drawLibrary(canvas); break;
                 case ICON_NEW: drawNew(canvas); break;
                 case ICON_SHARE: drawShare(canvas); break;
-                case ICON_DONE: drawDone(canvas); break;
                 default: break;
             }
             canvas.restore();
@@ -530,12 +531,6 @@ public final class DrawingActivity extends Activity {
             canvas.drawCircle(26, 10, 3, iconPaint);
             canvas.drawCircle(26, 26, 3, iconPaint);
         }
-
-        private void drawDone(Canvas canvas) {
-            canvas.drawLine(9, 18, 15, 24, iconPaint);
-            canvas.drawLine(15, 24, 28, 10, iconPaint);
-        }
-
     }
 
     private static final class DrawingDocument {

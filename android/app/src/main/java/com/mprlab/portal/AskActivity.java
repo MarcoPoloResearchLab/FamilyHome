@@ -1,11 +1,9 @@
 package com.mprlab.portal;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
@@ -31,16 +29,16 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-public final class AskActivity extends Activity implements TextToSpeech.OnInitListener {
-    private static final int BG = Color.rgb(255, 248, 234);
-    private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
-    private static final int SURFACE = Color.WHITE;
-    private static final int INK = Color.rgb(36, 49, 71);
-    private static final int MUTED = Color.rgb(100, 110, 128);
-    private static final int BLUE = Color.rgb(63, 132, 255);
-    private static final int PURPLE = Color.rgb(124, 92, 252);
-    private static final int CORAL = Color.rgb(231, 76, 91);
-    private static final int PALE_YELLOW = Color.rgb(255, 245, 197);
+public final class AskActivity extends PortalActivity implements TextToSpeech.OnInitListener {
+    private static final int BG = PortalStyle.PAPER;
+    private static final int SYSTEM_BAR = PortalStyle.INK;
+    private static final int SURFACE = PortalStyle.WHITE;
+    private static final int INK = PortalStyle.INK;
+    private static final int MUTED = PortalStyle.SECONDARY;
+    private static final int BLUE = PortalStyle.BLUE;
+    private static final int PURPLE = PortalStyle.PURPLE;
+    private static final int CORAL = PortalStyle.CORAL;
+    private static final int PALE_YELLOW = PortalStyle.YELLOW;
     private static final int RECORD_PERMISSION = 401;
     private String profileID;
     private String profileName;
@@ -63,33 +61,29 @@ public final class AskActivity extends Activity implements TextToSpeech.OnInitLi
     }
 
     private void render() {
-        ScrollView scroll = new ScrollView(this);
+        ScrollView scroll = PortalStyle.scroll(this);
         scroll.setBackgroundColor(BG);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(38), dp(32), dp(38), dp(32));
+        root.setPadding(dp(38), dp(8), dp(38), dp(32));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
-        TextView title = text("Ask anything", 34, true);
-        header.addView(title, new LinearLayout.LayoutParams(0, dp(62), 1f));
-        Button done = button("Back home", SURFACE, INK);
-        done.setOnClickListener(v -> finish());
-        header.addView(done, new LinearLayout.LayoutParams(dp(130), dp(62)));
-        root.addView(header);
+        TextView title = text("Ask anything", PortalStyle.TextRole.TITLE);
+        header.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        TextView intro = text("What are you curious about, " + profileName + "?", 21, false);
+        TextView intro = text("What are you curious about, " + profileName + "?", PortalStyle.TextRole.BODY);
         intro.setPadding(0, dp(20), 0, dp(16));
         root.addView(intro);
-        question = new EditText(this);
+        question = textInput();
         question.setHint("Type a question here…");
         question.setTextColor(INK);
         question.setHintTextColor(MUTED);
-        question.setTextSize(21);
+        PortalStyle.text(question, PortalStyle.TextRole.BODY);
         question.setMinHeight(dp(112));
         question.setGravity(Gravity.TOP);
         question.setBackground(rounded(SURFACE, 22));
-        question.setElevation(dp(3));
+        question.setElevation(0);
         question.setPadding(dp(18), dp(16), dp(18), dp(16));
         root.addView(question, new LinearLayout.LayoutParams(-1, -2));
 
@@ -108,13 +102,13 @@ public final class AskActivity extends Activity implements TextToSpeech.OnInitLi
         progress = new ProgressBar(this);
         progress.setVisibility(View.GONE);
         root.addView(progress, new LinearLayout.LayoutParams(-1, dp(46)));
-        answer = text("Your answer will appear here—and I’ll read it aloud!", 23, false);
+        answer = text("Your answer will appear here—and I’ll read it aloud!", PortalStyle.TextRole.BODY);
         answer.setBackground(rounded(PALE_YELLOW, 22));
-        answer.setElevation(dp(2));
+        answer.setElevation(0);
         answer.setPadding(dp(24), dp(22), dp(24), dp(22));
         answer.setMinHeight(dp(180));
         root.addView(answer, new LinearLayout.LayoutParams(-1, -2));
-        setContentView(scroll);
+        setContentView(PortalToolbar.screen(this, header, scroll, BG));
     }
 
     private void askTyped() {
@@ -242,9 +236,8 @@ public final class AskActivity extends Activity implements TextToSpeech.OnInitLi
         super.onDestroy();
     }
 
-    private TextView text(String value, int size, boolean bold) { TextView view = new TextView(this); view.setText(value); view.setTextColor(INK); view.setTextSize(size); view.setTypeface(Typeface.create("sans-serif", bold ? Typeface.BOLD : Typeface.NORMAL)); return view; }
-    private Button button(String value, int color) { return button(value, color, Color.WHITE); }
-    private Button button(String value, int color, int textColor) { Button view = new Button(this); view.setText(value); view.setAllCaps(false); view.setTextSize(18); view.setTextColor(textColor); view.setTypeface(Typeface.create("sans-serif", Typeface.BOLD)); view.setBackground(rounded(color, 20)); view.setPadding(dp(16), dp(8), dp(16), dp(8)); return view; }
-    private GradientDrawable rounded(int color, int radius) { GradientDrawable drawable = new GradientDrawable(); drawable.setColor(color); drawable.setCornerRadius(dp(radius)); return drawable; }
+    private TextView text(String value, PortalStyle.TextRole role) { TextView view = new TextView(this); view.setText(value); view.setTextColor(INK); PortalStyle.text(view, role); return view; }
+    private Button button(String value, int color) { Button view = new Button(this); view.setText(value); view.setAllCaps(false); PortalStyle.primary(view); view.setBackground(rounded(color, 20)); view.setPadding(dp(16), dp(8), dp(16), dp(8)); return view; }
+    private android.graphics.drawable.Drawable rounded(int color, int radius) { return PortalStyle.surface(this, color, radius); }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 }

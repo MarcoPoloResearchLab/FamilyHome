@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mprlab.portal"
-    android:versionCode="18"
-    android:versionName="0.12.0">
+    android:versionCode="19"
+    android:versionName="0.13.0">
 
     <uses-sdk
         android:minSdkVersion="28"
@@ -10,7 +10,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="com.mprlab.portal.permission.LAUNCH_GAME" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:allowBackup="false"
@@ -19,6 +20,8 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/AppTheme">
+        <activity android:name=".PhotoBoothActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
@@ -41,6 +44,10 @@
             android:name=".DrawingActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:exported="false" />
+        <activity android:name=".MusicActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize" android:exported="false" />
+        <activity android:name=".GuitarActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize" android:exported="false" />
         <activity
             android:name=".PianoActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
@@ -52,6 +59,9 @@
         <activity
             android:name=".GameLibraryActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
+            android:exported="false" />
+        <receiver
+            android:name=".TimerAlarmReceiver"
             android:exported="false" />
         <provider
             android:name=".ShareProvider"

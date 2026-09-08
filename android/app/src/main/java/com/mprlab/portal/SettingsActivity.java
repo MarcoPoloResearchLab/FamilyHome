@@ -1,8 +1,6 @@
 package com.mprlab.portal;
 
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -11,30 +9,28 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.CheckBox;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-public final class SettingsActivity extends Activity {
-    private static final int BG = Color.rgb(255, 248, 234);
-    private static final int SYSTEM_BAR = Color.rgb(36, 49, 71);
-    private static final int SURFACE = Color.WHITE;
-    private static final int INK = Color.rgb(36, 49, 71);
-    private static final int MUTED = Color.rgb(92, 104, 124);
-    private static final int PURPLE = Color.rgb(124, 92, 252);
-    private static final int BLUE = Color.rgb(63, 132, 255);
-    private static final int TEAL = Color.rgb(0, 166, 153);
-    private static final int PALE_PURPLE = Color.rgb(244, 239, 255);
-    private static final int PALE_BLUE = Color.rgb(232, 243, 255);
-    private static final int PALE_GREEN = Color.rgb(234, 249, 240);
+public final class SettingsActivity extends PortalActivity {
+    private static final int BG = PortalStyle.PAPER;
+    private static final int SYSTEM_BAR = PortalStyle.INK;
+    private static final int SURFACE = PortalStyle.WHITE;
+    private static final int INK = PortalStyle.INK;
+    private static final int MUTED = PortalStyle.SECONDARY;
+    private static final int PURPLE = PortalStyle.PURPLE;
+    private static final int BLUE = PortalStyle.BLUE;
+    private static final int TEAL = PortalStyle.MINT;
+    private static final int PALE_PURPLE = PortalStyle.PURPLE;
+    private static final int PALE_BLUE = PortalStyle.BLUE;
+    private static final int PALE_GREEN = PortalStyle.MINT;
 
     private ProfileStore store;
     private EditText locationInput;
@@ -45,7 +41,6 @@ public final class SettingsActivity extends Activity {
         Window window = getWindow();
         window.setStatusBarColor(SYSTEM_BAR);
         window.setNavigationBarColor(SYSTEM_BAR);
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         store = new ProfileStore(this);
         render();
     }
@@ -56,27 +51,15 @@ public final class SettingsActivity extends Activity {
     }
 
     private void render() {
-        ScrollView scroll = new ScrollView(this);
+        ScrollView scroll = PortalStyle.scroll(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
         LinearLayout root = column();
-        root.setPadding(dp(34), dp(24), dp(34), dp(28));
+        root.setPadding(dp(34), dp(8), dp(34), dp(28));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -1));
 
         LinearLayout header = row();
-        LinearLayout heading = column();
-        heading.addView(text("Settings", 32, INK, true), matchWrap());
-        TextView subtitle = text("Make FamilyHome fit your family.", 17, MUTED, false);
-        subtitle.setPadding(0, dp(3), 0, 0);
-        heading.addView(subtitle, matchWrap());
-        header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1f));
-        Button done = button("Done", PURPLE, Color.WHITE);
-        done.setOnClickListener(view -> {
-            saveLocation(false);
-            finish();
-        });
-        header.addView(done, new LinearLayout.LayoutParams(dp(126), dp(58)));
-        root.addView(header, matchWrap());
+        header.addView(text("Settings", PortalStyle.TextRole.TITLE, INK), new LinearLayout.LayoutParams(0, -2, 1f));
 
         LinearLayout content = row();
         content.setGravity(Gravity.TOP);
@@ -85,7 +68,7 @@ public final class SettingsActivity extends Activity {
         childrenPanel.addView(sectionLabel("CHILDREN"));
         childrenPanel.addView(sectionHelp("Add a child, choose their calendar and games, or switch the current child."));
         if (store.profiles.isEmpty()) {
-            TextView empty = text("No child spaces yet", 19, MUTED, true);
+            TextView empty = text("No child spaces yet", PortalStyle.TextRole.SECTION, MUTED);
             empty.setGravity(Gravity.CENTER);
             empty.setPadding(0, dp(24), 0, dp(24));
             childrenPanel.addView(empty, matchWrap());
@@ -94,21 +77,26 @@ public final class SettingsActivity extends Activity {
                 childrenPanel.addView(childRow(profile), childRowParams());
             }
         }
-        Button addChild = button("＋  Add a child", TEAL, Color.WHITE);
+        Button addChild = button("＋  Add a child", TEAL);
+        PortalStyle.primary(addChild);
         addChild.setOnClickListener(view -> editChild(null));
         LinearLayout.LayoutParams addParams = matchWrap();
         addParams.topMargin = dp(14);
         childrenPanel.addView(addChild, addParams);
 
         LinearLayout homeColumn = column();
+        homeColumn.addView(timeFormatPanel(), matchWrap());
+        LinearLayout.LayoutParams screensaverParams = matchWrap();
+        screensaverParams.topMargin = dp(18);
+        homeColumn.addView(screensaverPanel(), screensaverParams);
         LinearLayout weatherPanel = panel();
         weatherPanel.addView(sectionLabel("WEATHER LOCATION"));
         weatherPanel.addView(sectionHelp("Use a ZIP code or city for the home-screen weather card. Leave it blank to hide weather."));
-        locationInput = new EditText(this);
+        locationInput = textInput();
         locationInput.setSingleLine(true);
         locationInput.setHint("ZIP code or city");
         locationInput.setText(store.weatherLocation);
-        locationInput.setTextSize(19);
+        PortalStyle.text(locationInput, PortalStyle.TextRole.BODY);
         locationInput.setTextColor(Color.BLACK);
         locationInput.setHintTextColor(Color.DKGRAY);
         locationInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_POSTAL_ADDRESS);
@@ -118,15 +106,18 @@ public final class SettingsActivity extends Activity {
         locationParams.height = dp(58);
         locationParams.topMargin = dp(18);
         weatherPanel.addView(locationInput, locationParams);
-        Button saveLocation = button("Save weather location", BLUE, Color.WHITE);
+        Button saveLocation = button("Save weather location", BLUE);
+        PortalStyle.primary(saveLocation);
         saveLocation.setOnClickListener(view -> saveLocation(true));
         LinearLayout.LayoutParams saveParams = matchWrap();
         saveParams.topMargin = dp(12);
         weatherPanel.addView(saveLocation, saveParams);
-        locationStatus = text(locationMessage(), 15, MUTED, false);
+        locationStatus = text(locationMessage(), PortalStyle.TextRole.BODY, MUTED);
         locationStatus.setPadding(0, dp(10), 0, 0);
         weatherPanel.addView(locationStatus, matchWrap());
-        homeColumn.addView(weatherPanel, matchWrap());
+        LinearLayout.LayoutParams weatherParams = matchWrap();
+        weatherParams.topMargin = dp(18);
+        homeColumn.addView(weatherPanel, weatherParams);
 
         LinearLayout devicePanel = panel();
         devicePanel.addView(sectionLabel("THIS PORTAL"));
@@ -145,7 +136,97 @@ public final class SettingsActivity extends Activity {
         content.addView(homeColumn, homeParams);
         root.addView(content, matchWrap());
 
-        setContentView(scroll);
+        setContentView(PortalToolbar.screen(this, header, scroll, BG));
+    }
+
+    private View timeFormatPanel() {
+        LinearLayout panel = panel();
+        panel.addView(sectionLabel("TIME"));
+        panel.addView(sectionHelp("Starts with this device's format. Your choice stays saved on this Portal."));
+        TimeFormatSettings.Format saved = TimeFormatSettings.read(this);
+        Spinner format = selection(panel, TimeFormatSettings.LABEL, TimeFormatSettings.Format.values(), saved.ordinal());
+        format.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                TimeFormatSettings.Format selected = (TimeFormatSettings.Format) format.getSelectedItem();
+                TimeFormatSettings.Format current = TimeFormatSettings.read(SettingsActivity.this);
+                if (selected == current) return;
+                if (!TimeFormatSettings.save(SettingsActivity.this, selected)) {
+                    Toast.makeText(SettingsActivity.this, "Could not save time format", Toast.LENGTH_LONG).show();
+                    format.setSelection(current.ordinal());
+                }
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        });
+        return panel;
+    }
+
+    private View screensaverPanel() {
+        ScreensaverSettings saved = ScreensaverSettings.read(this);
+        LinearLayout panel = panel();
+        panel.addView(sectionLabel("SCREENSAVER"));
+        panel.addView(sectionHelp("Start after no activity in FamilyHome. Tap anywhere to return."));
+        panel.addView(sectionHelp("Black screen hides everything at minimum brightness. The display stays powered."));
+        Spinner mode = selection(panel, ScreensaverSettings.MODE_LABEL, ScreensaverSettings.Mode.values(), saved.mode.ordinal());
+        Spinner timeout = selection(panel, ScreensaverSettings.TIMEOUT_LABEL, ScreensaverSettings.Timeout.values(), saved.timeout.ordinal());
+        Button preview = button(ScreensaverSettings.PREVIEW_LABEL, PURPLE);
+        preview.setContentDescription(ScreensaverSettings.PREVIEW_LABEL);
+        preview.setOnClickListener(view -> showScreensaver());
+        LinearLayout.LayoutParams previewParams = matchWrap();
+        previewParams.topMargin = dp(12);
+        panel.addView(preview, previewParams);
+        Runnable save = () -> {
+            ScreensaverSettings selected = new ScreensaverSettings((ScreensaverSettings.Mode) mode.getSelectedItem(),
+                    (ScreensaverSettings.Timeout) timeout.getSelectedItem());
+            boolean enabled = selected.mode != ScreensaverSettings.Mode.DISABLED;
+            timeout.setEnabled(enabled);
+            preview.setEnabled(enabled);
+            preview.setAlpha(enabled ? 1f : .45f);
+            ScreensaverSettings current = ScreensaverSettings.read(this);
+            if (current.mode == selected.mode && current.timeout == selected.timeout) return;
+            if (!selected.save(this)) {
+                Toast.makeText(this, "Could not save screensaver settings", Toast.LENGTH_LONG).show();
+                return;
+            }
+            reloadScreensaverSettings();
+        };
+        AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { save.run(); }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        };
+        mode.setOnItemSelectedListener(listener);
+        timeout.setOnItemSelectedListener(listener);
+        save.run();
+        return panel;
+    }
+
+    private <T> Spinner selection(LinearLayout panel, String label, T[] choices, int selected) {
+        TextView title = text(label, PortalStyle.TextRole.SECTION, INK);
+        title.setPadding(0, dp(12), 0, dp(4));
+        panel.addView(title, matchWrap());
+        Spinner spinner = new PortalSpinner(this);
+        spinner.setPrompt(label);
+        spinner.setContentDescription(label);
+        ArrayAdapter<T> adapter = new ArrayAdapter<T>(spinner.getContext(), android.R.layout.simple_spinner_item, choices) {
+            @Override public View getView(int position, View convert, android.view.ViewGroup parent) {
+                TextView view = (TextView) super.getView(position, convert, parent);
+                PortalStyle.text(view, PortalStyle.TextRole.CONTROL);
+                view.setTextColor(INK);
+                return view;
+            }
+            @Override public View getDropDownView(int position, View convert, android.view.ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(position, convert, parent);
+                PortalStyle.text(view, PortalStyle.TextRole.CONTROL);
+                view.setTextColor(INK); view.setBackgroundColor(PortalStyle.PAPER);
+                view.setMinHeight(dp(PortalStyle.CONTROL_HEIGHT));
+                return view;
+            }
+        };
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(selected);
+        spinner.setBackgroundTintList(android.content.res.ColorStateList.valueOf(PURPLE));
+        panel.addView(spinner, new LinearLayout.LayoutParams(-1, dp(PortalStyle.CONTROL_HEIGHT)));
+        return spinner;
     }
 
     private View childRow(ProfileStore.Profile profile) {
@@ -163,18 +244,19 @@ public final class SettingsActivity extends Activity {
             render();
         });
 
-        TextView initial = text(profileInitial(profile.name), 22, Color.WHITE, true);
+        TextView initial = text(profileInitial(profile.name), PortalStyle.TextRole.SECTION, INK);
         initial.setGravity(Gravity.CENTER);
         GradientDrawable initialBackground = new GradientDrawable();
         initialBackground.setShape(GradientDrawable.OVAL);
+        initialBackground.setStroke(dp(3), INK);
         initialBackground.setColor(current ? TEAL : PURPLE);
         initial.setBackground(initialBackground);
         row.addView(initial, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         LinearLayout details = column();
-        TextView name = text(profile.name, 20, INK, true);
+        TextView name = text(profile.name, PortalStyle.TextRole.SECTION, INK);
         details.addView(name, matchWrap());
-        TextView summary = text(childSummary(profile), 14, MUTED, false);
+        TextView summary = text(childSummary(profile), PortalStyle.TextRole.BODY, MUTED);
         summary.setPadding(0, dp(2), 0, 0);
         details.addView(summary, matchWrap());
         LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(0, -2, 1f);
@@ -182,17 +264,17 @@ public final class SettingsActivity extends Activity {
         row.addView(details, detailsParams);
 
         if (current) {
-            TextView currentLabel = text("CURRENT", 12, TEAL, true);
+            TextView currentLabel = text("Current", PortalStyle.TextRole.CONTROL, INK);
             currentLabel.setGravity(Gravity.CENTER);
             currentLabel.setBackground(rounded(Color.WHITE, 12));
-            LinearLayout.LayoutParams currentParams = new LinearLayout.LayoutParams(dp(84), dp(36));
+            LinearLayout.LayoutParams currentParams = new LinearLayout.LayoutParams(dp(110), dp(48));
             currentParams.rightMargin = dp(8);
             row.addView(currentLabel, currentParams);
         }
 
-        Button edit = button("Edit", Color.WHITE, INK);
+        Button edit = button("Edit", Color.WHITE);
         edit.setOnClickListener(view -> editChild(profile));
-        row.addView(edit, new LinearLayout.LayoutParams(dp(82), dp(44)));
+        row.addView(edit, new LinearLayout.LayoutParams(dp(100), dp(PortalStyle.CONTROL_HEIGHT)));
         return row;
     }
 
@@ -200,7 +282,7 @@ public final class SettingsActivity extends Activity {
         LinearLayout form = column();
         form.setPadding(dp(28), dp(8), dp(28), dp(18));
         form.setBackgroundColor(Color.WHITE);
-        TextView title = text(profile == null ? "Add a child" : "Edit " + profile.name, 26, INK, true);
+        TextView title = text(profile == null ? "Add a child" : "Edit " + profile.name, PortalStyle.TextRole.SECTION, INK);
         title.setPadding(0, dp(8), 0, dp(12));
         form.addView(title, matchWrap());
 
@@ -211,24 +293,7 @@ public final class SettingsActivity extends Activity {
         calendarParams.topMargin = dp(12);
         form.addView(calendar, calendarParams);
 
-        TextView gameHeading = text("CHOOSE GAMES", 14, PURPLE, true);
-        gameHeading.setLetterSpacing(.08f);
-        LinearLayout.LayoutParams headingParams = matchWrap();
-        headingParams.topMargin = dp(18);
-        form.addView(gameHeading, headingParams);
-        TextView gameHelp = text("These games appear only in this child’s game library.", 15, MUTED, false);
-        gameHelp.setPadding(0, dp(4), 0, dp(8));
-        form.addView(gameHelp, matchWrap());
-        Map<String, CheckBox> gameChecks = new LinkedHashMap<>();
-        for (GameCatalog.Game game : GameCatalog.all()) {
-            CheckBox choice = gameChoice(game, profile != null && profile.isGameEnabled(game.id));
-            gameChecks.put(game.id, choice);
-            LinearLayout.LayoutParams choiceParams = matchWrap();
-            choiceParams.topMargin = dp(7);
-            form.addView(choice, choiceParams);
-        }
-
-        ScrollView formScroll = new ScrollView(this);
+        ScrollView formScroll = PortalStyle.scroll(this);
         formScroll.setFillViewport(true);
         formScroll.addView(form, new ScrollView.LayoutParams(-1, -2));
 
@@ -247,15 +312,12 @@ public final class SettingsActivity extends Activity {
             ProfileStore.Profile saved = profile == null ? store.add(value) : profile;
             saved.name = value;
             saved.calendarUrl = calendar.getText().toString().trim();
-            for (Map.Entry<String, CheckBox> entry : gameChecks.entrySet()) {
-                saved.setGameEnabled(entry.getKey(), entry.getValue().isChecked());
-            }
             store.active = saved;
             store.save();
             dialog.dismiss();
             render();
         }));
-        dialog.show();
+        showPortalDialog(dialog);
     }
 
     private void saveLocation(boolean announce) {
@@ -273,16 +335,9 @@ public final class SettingsActivity extends Activity {
     }
 
     private String childSummary(ProfileStore.Profile profile) {
-        StringBuilder summary = new StringBuilder();
-        if (profile.calendarUrl != null && !profile.calendarUrl.trim().isEmpty()) summary.append("Calendar");
-        int gameCount = GameCatalog.enabledCount(profile);
-        if (gameCount > 0) appendSummary(summary, gameCount + (gameCount == 1 ? " game" : " games"));
-        return summary.length() == 0 ? "No calendar or games yet" : summary.toString();
-    }
-
-    private void appendSummary(StringBuilder summary, String value) {
-        if (summary.length() > 0) summary.append("  •  ");
-        summary.append(value);
+        return profile.calendarUrl == null || profile.calendarUrl.trim().isEmpty()
+                ? "No calendar yet"
+                : "Calendar";
     }
 
     private String profileInitial(String name) {
@@ -291,7 +346,7 @@ public final class SettingsActivity extends Activity {
     }
 
     private EditText field(String hint, String value) {
-        EditText field = new EditText(this);
+        EditText field = textInput();
         field.setHint(hint);
         field.setSingleLine(true);
         field.setText(value);
@@ -300,35 +355,22 @@ public final class SettingsActivity extends Activity {
         return field;
     }
 
-    private CheckBox gameChoice(GameCatalog.Game game, boolean checked) {
-        CheckBox checkBox = new CheckBox(this);
-        checkBox.setText(game.icon + "   " + game.name + "\n      " + game.description);
-        checkBox.setTextSize(17);
-        checkBox.setTextColor(INK);
-        checkBox.setChecked(checked);
-        checkBox.setButtonTintList(ColorStateList.valueOf(game.color));
-        checkBox.setPadding(dp(14), dp(7), dp(14), dp(7));
-        checkBox.setBackground(rounded(Color.rgb(248, 247, 252), 14));
-        checkBox.setContentDescription(game.name + ". " + game.description);
-        return checkBox;
-    }
-
     private LinearLayout panel() {
         LinearLayout panel = column();
         panel.setPadding(dp(22), dp(20), dp(22), dp(20));
         panel.setBackground(rounded(SURFACE, 18));
-        panel.setElevation(dp(2));
+        panel.setElevation(0);
         return panel;
     }
 
     private TextView sectionLabel(String value) {
-        TextView label = text(value, 14, PURPLE, true);
+        TextView label = text(value, PortalStyle.TextRole.SECTION, INK);
         label.setLetterSpacing(.08f);
         return label;
     }
 
     private TextView sectionHelp(String value) {
-        TextView help = text(value, 16, MUTED, false);
+        TextView help = text(value, PortalStyle.TextRole.BODY, MUTED);
         help.setPadding(0, dp(6), 0, 0);
         return help;
     }
@@ -352,33 +394,25 @@ public final class SettingsActivity extends Activity {
         return column;
     }
 
-    private TextView text(String value, int size, int color, boolean bold) {
+    private TextView text(String value, PortalStyle.TextRole role, int color) {
         TextView text = new TextView(this);
         text.setText(value);
-        text.setTextSize(size);
+        PortalStyle.text(text, role);
         text.setTextColor(color);
-        text.setTypeface(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL);
         return text;
     }
 
-    private Button button(String value, int color, int textColor) {
+    private Button button(String value, int color) {
         Button button = new Button(this);
         button.setText(value);
-        button.setTextSize(17);
-        button.setTextColor(textColor);
         button.setAllCaps(false);
-        button.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        PortalStyle.button(button);
         button.setBackground(rounded(color, 16));
         button.setPadding(dp(14), dp(6), dp(14), dp(6));
         return button;
     }
 
-    private GradientDrawable rounded(int color, int radius) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(dp(radius));
-        return drawable;
-    }
+    private android.graphics.drawable.Drawable rounded(int color, int radius) { return PortalStyle.surface(this, color, radius); }
 
     private LinearLayout.LayoutParams matchWrap() {
         return new LinearLayout.LayoutParams(-1, -2);

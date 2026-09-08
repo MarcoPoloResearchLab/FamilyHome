@@ -1,6 +1,11 @@
-.PHONY: ci test test-service build-service build-android test-android test-android-contract test-android-upgrade release publish deploy
+.PHONY: build-match test-match-toolbar test-android-toolbar
+.PHONY: ci test test-service build-service build-android test-android test-android-contract test-android-upgrade test-android-weather test-android-piano release publish deploy
 
 ci: test-service build-service test-android-contract
+
+.PHONY: test-android-style
+test-android-style:
+	cd android && bash ./tests/style.sh
 
 test: test-service test-android-contract
 
@@ -13,13 +18,19 @@ build-service:
 build-android:
 	cd android && ./build.sh
 
-test-android: test-android-contract test-android-upgrade
+test-android: test-android-contract test-android-upgrade test-android-guitar test-android-screensaver test-android-photobooth
 
 test-android-contract:
 	cd android && ./tests/apk-contract.sh
 
 test-android-upgrade:
 	cd android && ./tests/upgrade-persistence.sh
+
+test-android-weather:
+	cd android && bash ./tests/weather-widget.sh
+
+test-android-piano:
+	cd android && bash ./tests/piano-audio.sh
 
 release publish deploy:
 	@application_root="$$(git rev-parse --show-toplevel)"; \
@@ -31,3 +42,71 @@ release publish deploy:
 	fi; \
 	$(MAKE) --no-print-directory -C "$${gateway_root}" "app-$@" \
 		MPRLAB_APP_ROOT="$${application_root}"
+
+test-android-toolbar:
+	cd android && bash ./tests/toolbar.sh
+
+toolbar-test-deps:
+	python3 -m venv android/build/toolbar-python
+	android/build/toolbar-python/bin/pip --quiet install -r android/tests/toolbar-requirements.txt
+
+test-match-toolbar: toolbar-test-deps
+	PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/match-toolbar.py
+
+build-match:
+	bash games/match-portal/build.sh
+
+.PHONY: test-android-guitar
+test-android-guitar:
+	cd android && bash ./tests/guitar.sh
+
+.PHONY: test-games-toolbar
+test-games-toolbar: toolbar-test-deps
+	ANDROID_SERIAL="$(ANDROID_SERIAL)" PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/games-toolbar.py
+
+.PHONY: build-blocks build-tiles toolbar-test-deps
+build-blocks:
+	bash games/build-toolbar-game.sh blocks
+
+build-tiles:
+	bash games/build-toolbar-game.sh tiles
+
+.PHONY: test-android-screensaver
+test-android-screensaver:
+	cd android && bash ./tests/screensaver.sh
+
+.PHONY: test-android-photobooth
+test-android-photobooth:
+	cd android && bash ./tests/photobooth.sh
+
+.PHONY: test-android-camera
+test-android-camera:
+	cd android && bash ./tests/camera-qualification.sh
+
+.PHONY: test-android-camera-recovery
+test-android-camera-recovery: toolbar-test-deps
+	PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/camera-recovery.py
+
+.PHONY: test-android-photo-effects
+test-android-photo-effects:
+	cd android && bash ./tests/photo-effects.sh
+
+.PHONY: test-engine-style
+test-engine-style: toolbar-test-deps
+	mkdir -p android/build/engine-style
+	swiftc android/tests/engine-style/Ocr.swift -o android/build/engine-style/ocr
+	ANDROID_SERIAL="$(ANDROID_SERIAL)" PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/engine-style.py
+
+.PHONY: test-kart-text-selection
+test-kart-text-selection: toolbar-test-deps
+	mkdir -p android/build/engine-style
+	swiftc android/tests/engine-style/Ocr.swift -o android/build/engine-style/ocr
+	ANDROID_SERIAL="$(ANDROID_SERIAL)" PYTHONDONTWRITEBYTECODE=1 android/build/toolbar-python/bin/python -m pytest -q -s -o cache_dir=android/build/pytest-cache android/tests/engine-style.py -k selected_text
+
+.PHONY: test-kart-skin
+test-kart-skin:
+	PYTHONDONTWRITEBYTECODE=1 uv run --with pytest==9.0.2 --with pillow==11.3.0 python -m pytest -q -o cache_dir=android/build/pytest-cache android/tests/kart-skin.py
+
+.PHONY: build-kart
+build-kart:
+	PYTHONDONTWRITEBYTECODE=1 uv run --with pillow==11.3.0 --with fonttools==4.59.0 python games/engine-style/build.py kart

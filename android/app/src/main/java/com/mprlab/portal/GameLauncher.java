@@ -16,17 +16,16 @@ final class GameLauncher {
         }
     }
 
-    static void open(Activity activity, ProfileStore.Profile profile, GameCatalog.Game game) {
-        if (game == null || profile == null) return;
+    static void open(Activity activity, GameCatalog.Game game) {
+        if (game == null) return;
         if (!isInstalled(activity, game)) {
-            Toast.makeText(activity, game.name + " is ready to choose, but it is not installed on this Portal yet.", Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, game.name + " is not installed on this Portal yet.", Toast.LENGTH_LONG).show();
             return;
         }
         Intent launch = new Intent(Intent.ACTION_MAIN);
         launch.setClassName(game.packageName, game.activityName);
         launch.addCategory(Intent.CATEGORY_LAUNCHER);
-        launch.putExtra("portal_profile_id", profile.id);
-        launch.putExtra("portal_profile_name", profile.name);
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
             activity.startActivity(launch);
         } catch (RuntimeException error) {

@@ -1,0 +1,13 @@
+version: 3
+runner:
+  type: bundled
+  contract_version: 1.0.0
+requirements:
+  files: ["Makefile"]
+validation:
+  control_files: [".mprlab/runtime.yml", "Makefile"]
+commands:
+  test:
+    argv: ["make", "test"]
+  ci:
+    argv: ["make", "ci"]
