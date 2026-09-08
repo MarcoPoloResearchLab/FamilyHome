@@ -106,17 +106,27 @@ Ask sends typed questions and voice recordings through the FamilyHome backend.
 The backend selects the model through `service/config.yml` and keeps the LLM Proxy secret off the device.
 See the [service contract](../service/README.md) for configuration, HTTP fields, errors, and model capability limits.
 
-The main question controls stay visible when the answer scrolls.
+The question field contains a microphone icon followed by a paper airplane icon at its right edge.
+The empty input shows the instructions. Answers and status messages appear below the input without a colored panel.
+The field and its controls stay visible when the answer scrolls.
+The microphone starts a recording and changes to a red square.
+The red square stops recording and requests a transcript. Ask adds the transcript to the input for review and changes.
+During recording, the paper airplane stops recording, waits for the transcript, and sends the combined typed and spoken text.
+The recording limit also stops recording for transcription without question submission.
+For a typed question, the paper airplane sends the text.
+Both icons have accessibility labels and 64 dp touch regions.
 Only one question or recording can be active.
 Cancel stops local work. The provider can continue processing a dispatched question.
 
 Back, Home, activity pause, and screensaver entry cancel local work and stop speech.
 Ask removes temporary recordings after completion, failure, cancellation, and activity restart.
 The question draft survives request failures and activity recreation.
-An unavailable speech engine leaves the answer readable. Stop speaking ends playback.
+Answers play automatically. An unavailable speech engine leaves the answer readable.
+Ask has no start or stop buttons for speech playback.
+If transcription fails, Ask preserves the typed text and does not submit a question.
 
-The initial `gpt-5-mini` selection supports typed questions but lacks audio input in the current proxy catalog.
-Voice questions require an explicit audio-capable model selection. Ask does not change models automatically.
+The current model selection supports typed and spoken questions through the same official client.
+`service/config.yml` owns the selection. Ask does not change models automatically.
 The current speech language is US English.
 
 Run the Ask interface tests on a dedicated clean emulator:

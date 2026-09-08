@@ -13,6 +13,12 @@ final class AskClient {
     private static final int CONNECTION_TIMEOUT_MS = 6000;
     private static final int SETTINGS_TIMEOUT_MS = 10000;
     private static final int RESPONSE_BYTE_LIMIT = 1 << 20;
+    private enum Result {
+        ANSWER("answer", "Ask returned an invalid answer."),
+        TRANSCRIPT("transcript", "The recording could not be transcribed. Please try again.");
+        final String field, invalidMessage;
+        Result(String field, String invalidMessage) { this.field = field; this.invalidMessage = invalidMessage; }
+    }
 
     static final class Settings {
         final int timeoutMillis, questionLimit, recordingSeconds, audioBytes;
@@ -72,9 +78,9 @@ final class AskClient {
             Settings settings = settings();
             if (question.codePointCount(0, question.length()) > settings.questionLimit) throw new IOException("Please ask a shorter question.");
             JSONObject value = new JSONObject().put("profile_id", profile).put("name", name).put("question", question);
-            return send("/v1/ask", "application/json; charset=utf-8", value.toString().getBytes(StandardCharsets.UTF_8), settings);
+            return send("/v1/ask", "application/json; charset=utf-8", value.toString().getBytes(StandardCharsets.UTF_8), settings, Result.ANSWER);
         }
-        String audio(String profile, String name, File recording) throws Exception {
+        String transcribe(String profile, String name, File recording) throws Exception {
             Settings settings = settings();
             if (!recording.isFile() || recording.length() == 0 || recording.length() > settings.audioBytes) throw new IOException("The recording is empty or too large.");
             String boundary = "PortalQuestion"+UUID.randomUUID().toString();
@@ -89,16 +95,18 @@ final class AskClient {
                 }
             }
             body.write(("\r\n--"+boundary+"--\r\n").getBytes(StandardCharsets.UTF_8));
-            return send("/v1/ask/audio", "multipart/form-data; boundary="+boundary, body.toByteArray(), settings);
+            return send("/v1/ask/transcriptions", "multipart/form-data; boundary="+boundary, body.toByteArray(), settings, Result.TRANSCRIPT);
         }
-        private String send(String path, String contentType, byte[] bytes, Settings settings) throws Exception {
+        private String send(String path, String contentType, byte[] bytes, Settings settings, Result expected) throws Exception {
             HttpURLConnection current = open(path, "POST", settings.timeoutMillis);
             try {
                 current.setDoOutput(true); current.setFixedLengthStreamingMode(bytes.length); current.setRequestProperty("Content-Type", contentType);
                 try (OutputStream output = current.getOutputStream()) { output.write(bytes); }
                 JSONObject result = read(current);
-                Object raw = result.opt("answer");
-                if (!(raw instanceof String) || ((String)raw).trim().isEmpty()) throw new AnswerFailure("Ask returned an invalid answer.");
+                Object raw = result.opt(expected.field);
+                if (!(raw instanceof String) || ((String)raw).trim().isEmpty()) throw new AnswerFailure(expected.invalidMessage);
+                if (expected == Result.TRANSCRIPT && ((String)raw).codePointCount(0,((String)raw).length()) > settings.questionLimit)
+                    throw new AnswerFailure(expected.invalidMessage);
                 return ((String)raw).trim();
             } catch (AnswerFailure error) { throw error; }
             catch (IOException error) { throw new IOException("The connection stopped. Your question may still be processing."); }
@@ -131,6 +139,7 @@ final class AskClient {
                     case "unsupported_audio": throw new AnswerFailure("Voice questions are not available. Please type your question.");
                     case "invalid_question": throw new AnswerFailure("Choose a child and enter a shorter question.");
                     case "invalid_audio": throw new AnswerFailure("The recording could not be read. Please record it again.");
+                    case "invalid_transcript": throw new AnswerFailure(Result.TRANSCRIPT.invalidMessage);
                     case "ask_busy": case "provider_busy": throw new AnswerFailure("Ask is busy. Please wait before asking again.");
                     case "outcome_unknown": throw new AnswerFailure("The answer did not arrive. Your question may still be processing.");
                     default: throw new AnswerFailure("Ask is unavailable right now. Please try again later.");
