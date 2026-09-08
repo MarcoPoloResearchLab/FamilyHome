@@ -13,7 +13,7 @@ import java.util.UUID;
 final class ProfileStore {
     static final String PREFS_NAME = "children_portal";
     private static final String PREFS_PROFILES = "profiles_json";
-    private static final String PREFS_ACTIVE = "active_profile_id";
+    static final String PREFS_ACTIVE = "active_profile_id";
     private static final String PREFS_WEATHER_LOCATION = "weather_location";
     private static final String PREFS_WEATHER_CACHE_LOCATION = "weather_cache_location";
     private static final String PREFS_WEATHER_CACHE_JSON = "weather_cache_json";

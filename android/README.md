@@ -100,6 +100,35 @@ Run the toolbar integration test on a dedicated emulator:
 ANDROID_SERIAL=emulator-5582 make -C .. test-android-toolbar
 ```
 
+## Ask
+
+Ask sends typed questions and voice recordings through the FamilyHome backend.
+The backend selects the model through `service/config.yml` and keeps the LLM Proxy secret off the device.
+See the [service contract](../service/README.md) for configuration, HTTP fields, errors, and model capability limits.
+
+The main question controls stay visible when the answer scrolls.
+Only one question or recording can be active.
+Cancel stops local work. The provider can continue processing a dispatched question.
+
+Back, Home, activity pause, and screensaver entry cancel local work and stop speech.
+Ask removes temporary recordings after completion, failure, cancellation, and activity restart.
+The question draft survives request failures and activity recreation.
+An unavailable speech engine leaves the answer readable. Stop speaking ends playback.
+
+The initial `gpt-5-mini` selection supports typed questions but lacks audio input in the current proxy catalog.
+Voice questions require an explicit audio-capable model selection. Ask does not change models automatically.
+The current speech language is US English.
+
+Run the Ask interface tests on a dedicated clean emulator:
+
+```sh
+ANDROID_SERIAL=emulator-5586 make -C .. test-android-ask
+```
+
+The target covers normal text, the 1.3 font scale, HTTP responses, duplicate submissions, deadlines, recordings, microphone denial, and screensaver cleanup.
+Screenshots are in `build/tests/ask`.
+Actual model understanding and physical Portal audio remain separate acceptance steps under I009.
+
 ## Music
 
 Music contains Piano and Guitar. Both instruments work without network access.
