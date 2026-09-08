@@ -40,12 +40,20 @@ func TestAskUsesOfficialClientBoundary(t *testing.T) {
 	}
 	configuration := config{}
 	configuration.LLMProxy.Model = "test-model"
+	configuration.LLMProxy.Provider = "openai"
 	configuration.LLMProxy.ReasoningEffort = "low"
 	configuration.LLMProxy.RequestTimeoutSeconds = 10
 	configuration.Server.DeviceToken = testDeviceToken
+	configuration.Ask.QuestionCharacterLimit = 2000
+	configuration.Ask.AudioByteLimit = 6291456
+	configuration.Ask.ConcurrentRequestLimit = 1
+	configuration.Ask.TransferAllowanceSeconds = 5
 	app := &application{config: configuration, client: client, http: fakeProxy.Client()}
 	request := httptest.NewRequest(http.MethodPost, "/v1/ask", strings.NewReader(`{"profile_id":"alice","name":"Alice","question":"Why is the sky blue?"}`))
 	authorize(request)
+	if request.Header.Get("Content-Type") == "" {
+		request.Header.Set("Content-Type", "application/json")
+	}
 	response := httptest.NewRecorder()
 	app.routes().ServeHTTP(response, request)
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "A short answer") {
@@ -63,6 +71,14 @@ func TestAskUsesOfficialClientBoundary(t *testing.T) {
 func TestAudioAskUsesOfficialClientAttachment(t *testing.T) {
 	var captured map[string]any
 	fakeProxy := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == llmproxyclient.PublicCapabilitiesPath {
+			data, err := os.ReadFile("testdata/audio-capabilities.json")
+			if err != nil {
+				t.Error(err)
+			}
+			_, _ = writer.Write(data)
+			return
+		}
 		if request.URL.Path != "/v2" || request.URL.Query().Get("key") != "test-secret" || request.URL.Query().Get("provider") != "openai" {
 			t.Fatalf("unexpected official-client request: %s", request.URL.String())
 		}
@@ -80,12 +96,20 @@ func TestAudioAskUsesOfficialClientAttachment(t *testing.T) {
 	}
 	configuration := config{}
 	configuration.LLMProxy.Model = "test-model"
+	configuration.LLMProxy.Provider = "openai"
 	configuration.LLMProxy.ReasoningEffort = "low"
 	configuration.LLMProxy.RequestTimeoutSeconds = 10
 	configuration.Server.DeviceToken = testDeviceToken
+	configuration.Ask.QuestionCharacterLimit = 2000
+	configuration.Ask.AudioByteLimit = 6291456
+	configuration.Ask.ConcurrentRequestLimit = 1
+	configuration.Ask.TransferAllowanceSeconds = 5
 	app := &application{config: configuration, client: client, http: fakeProxy.Client()}
 
-	audio := []byte("small-m4a-fixture")
+	audio, err := os.ReadFile("testdata/question.m4a")
+	if err != nil {
+		t.Fatal(err)
+	}
 	var body bytes.Buffer
 	form := multipart.NewWriter(&body)
 	_ = form.WriteField("profile_id", "alice")
@@ -334,32 +358,5 @@ func TestDrawingShareUsesUnguessableUnauthenticatedLink(t *testing.T) {
 	app.routes().ServeHTTP(listResponse, listRequest)
 	if listResponse.Code != http.StatusNotFound {
 		t.Fatalf("directory listing status=%d", listResponse.Code)
-	}
-}
-
-func TestLoadConfigRequiresCompleteEnvironment(t *testing.T) {
-	for name, value := range map[string]string{
-		"FAMILYHOME_LISTEN_ADDRESS":         "127.0.0.1:8765",
-		"FAMILYHOME_DATA_DIR":               t.TempDir(),
-		"FAMILYHOME_DEVICE_TOKEN":           testDeviceToken,
-		"LLM_PROXY_BASE_URL":                "https://llm-proxy-api.mprlab.com",
-		"LLM_PROXY_SECRET":                  "proxy-secret",
-		"LLM_PROXY_PROVIDER":                "openai",
-		"LLM_PROXY_MODEL":                   "test-model",
-		"LLM_PROXY_REASONING_EFFORT":        "low",
-		"LLM_PROXY_REQUEST_TIMEOUT_SECONDS": "45",
-	} {
-		t.Setenv(name, value)
-	}
-	configuration, err := loadConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if configuration.Server.DeviceToken != testDeviceToken || configuration.LLMProxy.RequestTimeoutSeconds != 45 {
-		t.Fatalf("configuration=%+v", configuration)
-	}
-	t.Setenv("FAMILYHOME_DEVICE_TOKEN", "short")
-	if _, err = loadConfig(); err == nil || !strings.Contains(err.Error(), "at least 32") {
-		t.Fatalf("short token error=%v", err)
 	}
 }

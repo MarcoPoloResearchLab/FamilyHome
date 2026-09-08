@@ -2,8 +2,10 @@ github.com/dlclark/regexp2 v1.11.0 h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxK
 github.com/dlclark/regexp2 v1.11.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 h1:1EYB5IzjZawrrnELUi78f9fPu57HuXjmddZPjrls/28=
 github.com/santhosh-tekuri/jsonschema/v6 v6.0.3/go.mod h1:JXeL+ps8p7/KNMjDQk3TCwPpBy0wYklyWTfbkIzdIFU=
-github.com/tyemirov/llm-proxy v1.2.1 h1:SJjb7Y/8OBNkMUDqXTefp1+DkbRUplxzeTkQr+kvSRY=
-github.com/tyemirov/llm-proxy v1.2.1/go.mod h1:k8gMhWERmsKsdDoz8dQdO0U33gmrT6GxDnbYex1gX7Y=
+github.com/tyemirov/llm-proxy v1.6.2 h1:sRot6SRayoBwr8vsHfHr/G5JZOIa8qc9INVzec6x1Jo=
+github.com/tyemirov/llm-proxy v1.6.2/go.mod h1:cMexsNuUl5Gs9OIBu3zYt5Tbif8UfnYkRabVX2wHiUw=
+go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
+go.yaml.in/yaml/v3 v3.0.5/go.mod h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=
 golang.org/x/text v0.40.0 h1:Ub2Z6/xjgF1WrYQz2nuITOEegKFtiIy+rieRJ5lHZKs=
 golang.org/x/text v0.40.0/go.mod h1:hpnzDAfGV753zIKo+wk3u1bVKCGPbrnF7+7LBF/UHVY=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
