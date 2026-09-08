@@ -28,7 +28,7 @@ No issue is currently taken. Select an issue before implementation and change it
 
   Implemented contract:
   The backend loads one strict `service/config.yml` and constructs the official Go LLM Proxy client at startup.
-  The package manager resolved `@latest` to v1.6.2 on 2026-09-08.
+  The package manager resolved `@latest` to v1.7.0 on 2026-09-08.
   YAML owns model selection, request deadlines, question length, recording duration, upload size, and concurrent request limits.
   Android reads public Ask limits from the authenticated backend settings resource.
   The backend validates typed and audio inputs and rejects unsupported audio before provider submission.
@@ -65,17 +65,32 @@ No issue is currently taken. Select an issue before implementation and change it
   - Keep actual provider execution separate from local protocol tests.
 
   Remaining acceptance:
-  - Select an audio-capable provider and model before voice acceptance.
+  - Verify the selected Vertex model with the tenant credentials before voice acceptance.
   - Verify tenant access, reasoning support, typed answers, voice understanding, and audible playback through the official client.
   - Qualify normal text and the 1.3 font scale on the physical Portal.
   - Verify microphone denial, unavailable speech, recording limits, cancellation, navigation, and screensaver cleanup on that device.
   - Record source revision, configuration identity without secrets, APK identity, device identity, screenshots, and audible results.
   - Record any required child age assumptions, parent controls, and provider data policy before additional children or families use Ask.
 
+  Model selection:
+  The configuration selects `vertex:gemini-3.8-flash`, `low` reasoning, and a 45-second work budget.
+  The public proxy catalog on 2026-09-08 lists text and audio input and low reasoning for this offering.
+  The operator selected Gemini 3.8 Flash after the price comparison.
+  Google lists global introductory prices of $0.75 per million input tokens and $3.75 per million output tokens through 2026-12-31.
+  From 2027-01-01, these prices increase to $1.50 and $7.50. Output charges include reasoning tokens.
+  The proxy catalog has not imported the Vertex prices.
+  `service/README.md` records the price source and the explicit selection policy.
+  Voice questions use the current audio attachment operation. Android text-to-speech reads each answer.
+  A separate dictation operation and automatic price selection are outside this change.
+
+  Selection validation:
+  A local HTTP check used the actual service executable, current YAML selection, and current public capability catalog.
+  Typed and M4A questions passed through the official client to a local proxy fixture.
+  The fixture verified provider, model, low reasoning, and the 45-second work budget.
+  `make ci` passed after the client update and model selection.
+  These checks do not establish tenant access or actual model answer quality.
+
   Open Decisions:
-  The retained configuration selects `openai:gpt-5-mini`, `low` reasoning, and a 45-second work budget.
-  The public proxy catalog on 2026-09-08 lists no audio input for that model.
-  The backend thus returns `unsupported_audio` for this selection without an automatic model change.
   The initial language remains US English. Questions remain independent and use the existing child-oriented instructions.
 
   Provider qualification, deployment, and physical Portal installation have not occurred for this change.
