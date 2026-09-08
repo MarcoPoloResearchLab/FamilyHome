@@ -11,8 +11,8 @@ I003 introduced the appearance. I004 applies shared text roles and larger contro
 - Game titles can use a bright fill with a black outline.
 - Game score panels can use a black background with white or bright text.
 - Use a 3 dp black outline and a 4 dp solid shadow for control surfaces.
-- Group Home and Games controls on large, flat color surfaces with shared 3 dp black borders.
-- Use the complete screen for Home and Games, with no outer outline, shadow, or margins.
+- Group Home, Games, and Music controls on large, flat color surfaces with shared 3 dp black borders.
+- Use the complete screen for Home, Games, and Music, with no outer outline, shadow, or margins.
 - Use square corners for these groups. Do not put shadows between their controls.
 - Use Fredoka Bold, weight 700, for titles, section headings, and control labels.
 - Use the medium system typeface for instructions, descriptions, and status messages.
@@ -79,6 +79,8 @@ Hide this control when no timer is active.
 Games uses four equal quadrants in two rows below the existing toolbar.
 Each game has a large character illustration and a bold title near its upper-left corner.
 Keep the missing-installation message and the game launch action in each quadrant.
+Music uses two equal surfaces below the toolbar, with one shared black border.
+Give Piano and Guitar large character illustrations and bold titles near the upper-left corner.
 `JoinedSurface` owns these group layouts. `PortalStyle.tile` supplies their pressed, focused, selected, and disabled states.
 The child selector uses large colored surfaces with character illustrations and bold names.
 Mark the active child with a check mark and a visible status message.
