@@ -8,7 +8,7 @@ mprlab_resources:
       id: private
       bindings:
         device-token: FAMILYHOME_DEVICE_TOKEN
-        llm-proxy-secret: LLM_PROXY_SECRET
+        llm-proxy-secret: LLM_PROXY_TENANT_KEY
     - kind: compose_project
       id: runtime
       images:
