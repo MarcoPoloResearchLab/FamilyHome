@@ -1,5 +1,7 @@
 # ISSUES
 
+[repo:MediaOps]: https://github.com/MarcoPoloResearchLab/MediaOps
+
 This tracker contains unresolved work and recurring maintenance.
 Completed entries are in `ISSUES_ARCHIVE.md`. Their IDs remain reserved.
 
@@ -20,6 +22,52 @@ No issue is currently taken. Select an issue before implementation and change it
 ## BugFixes
 
 ## Improvements
+
+- [ ] [I010] (P2) Restyle the screensaver clock with the FamilyHome Goofy appearance.
+  Goal:
+  The screensaver clock has the recognizable, playful FamilyHome appearance.
+  Children can clearly see the hour hand, minute hand, and seconds dot.
+  Goofy refers to the FamilyHome appearance used throughout the application.
+
+  Current behavior:
+  `ScreensaverClockView` draws the clock face and hands in application code.
+  The dot represents seconds and advances once per second around the clock face.
+  `ScreensaverView` moves the complete clock across a black background and shows the digital time and date.
+
+  Requirements:
+  - Give the clock face original FamilyHome shapes, black outlines, and playful details.
+  - Apply `android/STYLING.md` and the shared text roles to the clock and its text.
+  - Use recognizable FamilyHome colors at brightness levels suitable for the screensaver.
+  - Keep the black background and dim appearance required by the screensaver contract.
+  - Keep both hands clearly visible against the clock face.
+  - Give the hour and minute hands distinct lengths and shapes.
+  - Keep decorative details clear of the hands and the seconds dot.
+  - Keep the seconds dot visible throughout its complete path around the face.
+  - Advance the dot once per second, with one complete circuit per minute.
+  - Keep the hands and dot synchronized with the device time.
+  - Keep the digital time, date, and selected 12-hour or 24-hour format.
+  - Keep clock movement, screen-edge turns, and the stationary position when Android animations are disabled.
+  - Keep all screensaver modes, timeout choices, saved settings, preview, and wake behavior.
+  - Keep the broader appearance and screensaver acceptance work under I008.
+
+  Deliverables:
+  - Update the clock illustration and its shared appearance values.
+  - Add integration coverage through Settings and the screensaver preview.
+  - Record screenshots and a screen recording that show the hands and seconds dot.
+
+  Validation:
+  - Start with integration coverage that exposes the missing FamilyHome clock appearance.
+  - Verify the clock through preview and automatic screensaver entry.
+  - Verify hand visibility at several times, including positions where the hands overlap.
+  - Observe a complete minute to verify the seconds dot and its return to the top of the face.
+  - Verify the minute change and synchronization of the analog and digital time.
+  - Verify normal text and the 1.3 font scale at Portal screen dimensions.
+  - Verify that the clock and text remain inside the screen throughout movement and screen-edge turns.
+  - Verify dim appearance and clear hands on the physical Portal.
+  - Verify that a wake touch returns to the previous activity without control activation.
+  - Run the applicable appearance, screensaver, and upgrade integration tests.
+  - Run `make ci` after the final implementation change.
+  - Record the APK identity and physical Portal acceptance separately from emulator results.
 
 - [ ] [I009] (P1) Complete configured Ask acceptance on the physical Portal.
   Goal:
@@ -402,6 +450,261 @@ No issue is currently taken. Select an issue before implementation and change it
   - Confirm issue archive and active tracker references remain consistent.
 
 ## Features
+
+- [!] [F013] (P2) {P003,F021@MediaOps} Add Imagine for image creation and play on the Portal.
+  Goal:
+  Children can turn an idea into a picture, try changes, and keep their favorite results.
+  Imagine is a FamilyHome activity beside Draw, the existing finger drawing activity.
+  This issue records future product work. The current request covers issue organization and scope only.
+
+  Minimum feature set:
+  - Add an `Imagine` entry from Home with the active child profile and the common Home and Back toolbar.
+  - Provide illustrated idea choices for a character, place, and action.
+  - Let the child type a description or tap a microphone control to say it.
+  - Show the transcript for correction before the child selects `Create`.
+  - Reuse the existing bounded speech capture and transcription contract where applicable.
+  - Offer three initial styles: Cartoon, Watercolor, and Clay.
+  - Create one picture per explicit `Create` action.
+  - Keep idea and style selection free of image generation requests until that action.
+  - Show a large result with `Try another`, `Change idea`, and `Save` controls.
+  - Use `Try another` to request a new picture from the same description and style.
+  - Use `Change idea` to revise the description or style before another explicit creation request.
+  - Keep previous results available for comparison and selection within the current session.
+  - Describe these results as new versions. Treat exact preservation of a character as a later image-editing capability.
+  - Save selected pictures and their descriptions in an image gallery under the active child profile.
+  - Let the child reopen, view, reuse the description of, and delete saved pictures with a clear deletion confirmation.
+  - Keep saved pictures available locally without a network connection, subject to the P002 family and device policy.
+  - Preserve existing Draw documents and its separate launch action.
+
+  Product controls:
+  - Use `provider=openai`, `model=gpt-image-2`, and `quality=low` in backend configuration for the first qualified release.
+  - Propose one 1024 by 1024 PNG per request, subject to the P003 capability and budget checks.
+  - Limit each child to one active image job and enforce the family limits selected under P003.
+  - Show creation progress, service unavailability, content rejection, exhausted limits, and recoverable failures in clear child-facing language.
+  - Keep the description after an error. Require an explicit action before a new paid request.
+  - Preserve accepted job identity across navigation, connection loss, and process restart.
+  - Prevent repeated taps and uncertain responses from creating duplicate paid work.
+  - Keep late results associated with their originating family and child after a profile change.
+  - Apply parent enablement, family access, content moderation, retention, and deletion rules before hosted child use.
+  - Show the remaining creation allowance and its reset time when a limit prevents creation.
+  - Apply `android/STYLING.md`, including shared text roles, bold typeface, black outlines, bright colors, and large controls.
+
+  Later extensions:
+  Photo input, drawing-to-image conversion, precise image edits, stickers, animation, and screensaver display require separately scoped follow-up issues.
+  Sharing requires the parent-controlled access contract from P002 and a separate product decision.
+
+  Dependency contract:
+  P003 owns unresolved service, authentication, moderation, storage, and budget decisions for this feature.
+  The requested external dependency is F021@MediaOps, declared through the repository alias above.
+  MediaOps F021 currently covers a composition SDK and explicitly excludes FamilyHome image generation from its prerequisites.
+  The current MediaOps design instead names LLM Proxy F024 as the first FamilyHome image capability.
+  This reference records a requested dependency with a scope conflict. It does not establish image support in that SDK.
+  Blocked: Resolve the service ownership conflict in P003 and align the external dependency with the selected public image contract.
+  Product design and independent interface work can proceed before that integration decision.
+
+  Deliverables:
+  - Record the final P003 decisions and exact SDK release required for image creation.
+  - Implement the Portal activity, image gallery, and authenticated FamilyHome image-job resources after the applicable decisions complete.
+  - Keep backend service credentials separate from parent sessions and Portal device credentials.
+  - Supply integration scenarios for the complete creation, variation, save, reopen, and deletion flow.
+
+  Validation:
+  - Start implementation with a failing integration scenario through Home, Imagine, the backend, and the selected public client.
+  - Verify typed input, speech correction, idea choices, all three styles, and one image per explicit creation action.
+  - Verify that another version preserves earlier results and that local controls cause no paid image request.
+  - Verify gallery ownership, offline viewing, deletion, restart, and application-update persistence.
+  - Verify family isolation, revoked device access, concurrent limits, content rejection, and duplicate prevention through public boundaries.
+  - Verify clear states after timeouts, failed downloads, navigation, and child-profile changes.
+  - Verify normal text and the 1.3 font scale at Portal dimensions.
+  - Verify real creation and interaction on the physical Portal with the selected low-quality model configuration.
+  - Record source tests, client release, service deployment, live-provider results, and physical Portal acceptance separately.
+
+  References:
+  - [Apple Image Playground](https://support.apple.com/en-kw/guide/iphone/iph0063238b5/ios): concepts, descriptions, styles, versions, and saved images.
+  - [Amazon Fire TV AI Art](https://www.aboutamazon.com/news/retail/free-amazon-ai-tools-resources): image creation from spoken descriptions.
+  - `../MediaOps/docs/public-sdk-contract.md`: current composition SDK and gateway ownership decisions.
+
+- [ ] [F012] (P2) Add local Hey Goofy voice activation for Ask.
+  Goal:
+  A child says "Hey Goofy" to open Ask and receive a spoken answer without a touch action.
+  The Portal detects the wake phrase locally and sends only the activated question through the existing Ask service.
+
+  Scope:
+  - Use "Hey Goofy" as the selected prototype wake phrase.
+  - Support activation from Home and the FamilyHome Clock and Black screen screensavers.
+  - Limit initial detection to Home and visible FamilyHome screensavers, including preview.
+  - Suspend detection while other activities or separately installed games are active.
+  - Keep activation during separate games, true device sleep, system lock, and device shutdown outside this first implementation.
+  - Keep public naming clearance separate from prototype and hardware acceptance.
+
+  Current implementation:
+  `AskActivity` requires a tap to start recording and cancels work on pause, Home, or screensaver entry.
+  It loads Ask limits before recording and checks the active child profile before it accepts asynchronous results.
+  `AskMicrophone` uses `MediaRecorder` to produce a bounded AAC recording in an M4A file.
+  `AskClient` uploads that file as `audio/m4a`, receives a transcript, and submits the question through the current service.
+  `PortalActivity` displays a screensaver dialog inside the active application.
+  Black screen mode is not device sleep.
+
+  I009 tracks incomplete physical and provider acceptance of the existing Ask interaction.
+
+  Interaction requirements:
+  - Add a saved "Listen for Hey Goofy" switch in Settings, initially off.
+  - Explain local wake detection, microphone use, and automatic question submission before the parent enables the feature.
+  - Request microphone permission through that explicit Settings action.
+  - Show whether detection is active, suspended, disabled, or unavailable.
+  - Keep the screensaver status dim and apply `android/STYLING.md` to all new controls and states.
+  - On detection, dismiss the screensaver and open Ask for the currently selected child.
+  - Require valid Ask settings, an active child, and microphone access before the ready signal.
+  - Play a short original ready sound and show "Listening..." when question capture can start.
+  - Start the question after the ready signal and exclude that signal from the submitted audio.
+  - Detect the end of speech locally and submit the completed question once.
+  - Show the transcript and answer, then read the answer through `AskSpeech`.
+  - Keep Cancel, manual recording, typed questions, Back, and Home available through their existing controls.
+  - If no speech follows the signal, cancel after a bounded interval without a service request.
+  - If a question draft exists, keep it and require an explicit choice before voice input can replace or extend it.
+  - If the selected child changes, cancel the activated interaction and reject its pending results.
+  - After the answer, keep Ask visible and resume detection only when an eligible surface becomes active.
+
+  Audio and lifecycle requirements:
+  - Use one microphone owner for wake detection, voice activity detection, and question capture.
+  - Define closed states for disabled, suspended, detecting, activating, recording, processing, speaking, and error conditions.
+  - Give each activation one identity and reject duplicate or stale events at the activation boundary.
+  - Validate the selected child, permission, enabled setting, and eligible surface again before Ask capture starts.
+  - Use an internal activation route that an arbitrary external intent cannot use to start recording.
+  - Process bounded PCM frames outside the main thread and supply them to the selected local models.
+  - Supply speech frames to the question encoder through the same microphone owner.
+  - Replace the existing recorder path where necessary while keeping one canonical capture path for manual and activated questions.
+  - Keep the current `audio/m4a` upload contract and backend-owned duration and size limits.
+  - Centralize phrase, model revision, sensitivity, silence interval, no-speech timeout, and audio format values.
+  - Suspend keyword detection during question capture, transcription, submission, ready sounds, and answer speech.
+  - Prevent the ready sound and the spoken answer from causing another activation.
+  - Coordinate screensaver entry with active voice capture so an idle timer cannot interrupt a question.
+  - Restore ordinary screensaver behavior after completion or cancellation.
+  - Release microphone resources on disable, permission loss, external activity entry, and process shutdown.
+  - Cancel an active question on navigation and clear its temporary audio through the existing Ask cleanup contract.
+  - After process restart, restore the setting and start detection only after an eligible surface and prerequisites are available.
+  - Show a clear unavailable state after model or microphone failure and permit an explicit retry.
+  - Verify physical microphone mute behavior and coexistence with Portal system microphone consumers.
+  - Use Android's foreground-service contract if a selected listening lifecycle requires microphone access outside a visible activity.
+  - Qualify any such service and its persistent notification separately on the physical Portal before it becomes part of the scope.
+
+  Privacy and service requirements:
+  - Keep ambient audio and wake detection on the Portal without network access.
+  - Keep pre-activation audio in bounded memory only and discard it after local processing.
+  - Exclude ambient audio and the wake phrase from files, uploads, logs, and analytics.
+  - Upload only the question captured after the ready signal through the existing authenticated Ask client.
+  - Keep provider choice, request limits, deadlines, and authentication in the current backend contract.
+  - If Ask is unavailable, show that state without a ready signal or an automatic retry of a question.
+  - Record diagnostic timing, state transitions, and error categories without speech content or credentials.
+
+  Engine selection:
+  - Evaluate [sherpa-onnx keyword detection](https://k2-fsa.github.io/sherpa/onnx/kws/index.html) first for local Android operation.
+  - Use [Porcupine Android](https://picovoice.ai/docs/quick-start/porcupine-android/) as a comparison candidate with its account and AccessKey requirements.
+  - Verify engine and model licenses separately, including custom phrase and redistribution rights.
+  - Verify Android 9 support, Portal CPU architecture, model size, startup time, CPU use, and memory use.
+  - Select one engine and one fixed model revision after physical comparison.
+  - Record the selected source, model checksum, license, build steps, and audio input requirements.
+  - Obey [Android 9 microphone restrictions](https://developer.android.com/about/versions/pie/android-9.0-changes-all) for the selected lifecycle.
+
+  Open Decisions:
+  Detection with children's voices and the Portal microphone remains unverified.
+  Initial product scope uses English "Hey Goofy".
+  The existing Ask service controls question languages.
+  The following measurements are proposed acceptance targets, not established capabilities.
+  - Confirm detection targets before the final physical qualification run.
+  - Target at least 95 detections from 100 intentional phrases at distances from one to three meters in quiet conditions.
+  - Target at least 90 detections from 100 phrases with documented television or music noise.
+  - Target at most one false activation during eight hours of representative background sound without intentional phrases.
+  - Target a ready signal within two seconds after phrase completion when Ask settings are already available.
+  - Select the silence interval and no-speech timeout after trials with natural pauses in children's questions.
+  - Record separate power, CPU, and memory budgets after comparison with the current idle screensaver.
+  - Complete trademark clearance for public use of "Hey Goofy" before public distribution or promotion under that name.
+  - Use original FamilyHome artwork, sounds, and voice throughout the prototype.
+  - Record naming findings with the [USPTO clearance guidance](https://www.uspto.gov/trademarks/search/comprehensive-clearance-search-similar-trademarks).
+
+  Deliverables:
+  - Supply the selected local model, reproducible Android build inputs, and required license notices.
+  - Implement the shared microphone owner, activation state machine, Settings control, and Ask interaction.
+  - Add `make test-android-wake-word` for the public activation and lifecycle contract.
+  - Keep deterministic integration results, physical measurements, and live Ask acceptance in separate records.
+
+  Validation:
+  - Start with a failing integration scenario through Settings, Home, phrase detection, and Ask.
+  - Exercise the real model with fixed positive phrases, similar phrases, silence, and non-speech recordings through the audio boundary.
+  - Keep injected activation events separate from model accuracy evidence.
+  - Verify preview, automatic screensaver entry, Clock mode, Black screen mode, and return to Home.
+  - Verify permission denial, permission revocation, switch changes, process restart, and application updates.
+  - Verify microphone contention, physical mute, model load failure, and recovery through explicit retry.
+  - Verify one question submission, no-speech cancellation, natural pauses, maximum duration, upload limit, and empty transcript handling.
+  - Verify active-child changes, existing drafts, repeated phrases, stale callbacks, cancellation, and navigation during each active state.
+  - Verify that local detection produces no audio files or network requests before activation.
+  - Verify recording cleanup and correct behavior after offline, transcription, and answer failures.
+  - Verify that ready sounds and answer speech cannot cause another activation.
+  - Verify normal text and the 1.3 font scale, the single toolbar, and visible Cancel controls.
+  - Run `make test-android-wake-word`, `make test-android-ask`, and the applicable screensaver, toolbar, appearance, and upgrade targets.
+  - Run `make ci` after the final implementation change.
+  - Measure detection with consenting adults and children on the physical Portal at documented distances and background sound levels.
+  - Record false activations, missed phrases, ready-signal latency, sustained resource use, and microphone handoff results.
+  - Record the device, APK identity, model revision, sensitivity, and approved targets with the results.
+  - Verify an audible answer through the configured live Ask provider on the physical Portal.
+  - Complete physical acceptance against the recorded targets before closing F012.
+
+- [ ] [F011] (P2) Add Maze, Chess, Reversi, and Solitaire to Games.
+  Goal:
+  Children can select eight games from two pages, with four large quadrants on each page.
+  The new games provide a maze activity, two board games, and a card game.
+
+  Requirements:
+  - Keep Kart, Blocks, Tiles, and Match on the first page.
+  - Add Maze, Chess, Reversi, and Solitaire on the second page.
+  - Keep four equal quadrants in two rows on each page.
+  - Put page arrows and the current page number in the existing single toolbar.
+  - Keep Home, Back, and game controls in one toolbar throughout all four games.
+  - Apply `android/STYLING.md` to game boards, controls, menus, dialogs, and application states.
+  - Use the shared text roles, bright colors, black outlines, large controls, and character illustrations.
+  - Support play without a network connection, advertisements, tracking, or an external account.
+  - Keep game progress when the child leaves and returns.
+  - Keep existing game data during installation and updates.
+  - Keep the missing-installation message and game launch action in each quadrant.
+
+  Game requirements:
+  - Maze: Provide Pac-Man-style movement, collection, and pursuit with original FamilyHome characters, sounds, and maps.
+  - Maze: Provide large touch controls, pause, restart, and an easy difficulty option.
+  - Chess: Support two players on one device and play against a computer with an easy difficulty option.
+  - Chess: Show permitted moves and provide undo.
+  - Reversi: Provide the Othello-style board game with two players or a computer opponent.
+  - Reversi: Provide hints, undo, and an easy difficulty option.
+  - Solitaire: Provide classic Klondike with large cards, one-card draw, hints, undo, and restart.
+
+  Candidate sources:
+  These repositories are research candidates. Their builds, touch controls, and Portal operation require verification.
+  - Maze: [Android Pacman](https://github.com/zagayevskiy/Pacman), MIT.
+  - Chess: [Android Chess](https://github.com/jcarolus/android-chess), MIT.
+  - Reversi: [Reversatile](https://github.com/oers/reversatile), GPLv3. Use its `foss` branch for source evaluation.
+  - Solitaire: [SECUSO Solitaire](https://github.com/SecUSo/privacy-friendly-solitaire), GPLv3-or-later.
+
+  Deliverables:
+  - Verify the code, image, and audio licenses before source selection.
+  - Record each selected repository, fixed source revision, license, and required attribution.
+  - Supply reproducible game builds and the corresponding source archives required by their licenses.
+  - Add all four games to the catalog and the second Games page.
+  - Complete Maze first to verify touch controls and physical Portal performance.
+  - Supply integration coverage through Home, Games, and each game.
+
+  Validation:
+  - Start with failing integration coverage for page selection and the four new game launch actions.
+  - Verify both pages, all eight game launch actions, and Home and Back navigation.
+  - Verify touch input, pause where applicable, restart, game completion, and return to saved progress.
+  - Verify both player modes for Chess and Reversi, including permitted moves and game completion.
+  - Verify Solitaire card movement, draw, hints, undo, and game completion.
+  - Verify offline operation and game data after an application update.
+  - Verify normal text and the 1.3 font scale at Portal screen dimensions.
+  - Capture screenshots of both pages and each new game's board, menu, and dialog states.
+  - Run the applicable toolbar, game, appearance, and upgrade integration tests.
+  - Run `make ci` after the final implementation change.
+  - Verify all four games on the physical Portal through Home and Games.
+  - Record APK identities, touch response, game performance, navigation, and saved progress on the physical Portal.
+  - Record physical Portal acceptance separately from emulator and CI results.
 
 - [ ] [F001] (P1) Add an offline guitar to Music.
   Goal:
@@ -1191,20 +1494,22 @@ No issue is currently taken. Select an issue before implementation and change it
   - [Google web-server authorization](https://developers.google.com/identity/protocols/oauth2/web-server).
   - [Google Calendar event retrieval](https://developers.google.com/workspace/calendar/api/v3/reference/events/list).
 
-- [ ] [P003] (P2) {P002} Plan image generation through MediaOps.
+- [ ] [P003] (P2) {P002} Resolve the image service contract and launch controls for Imagine.
   Goal:
   FamilyHome has two separate creative activities.
   In one activity, the child draws with fingers.
   In the other activity, the child describes an image and an image model creates it.
   The selected first model is GPT Image 2 with low quality.
   This issue authorizes planning and documentation only.
+  F013 now owns the minimum feature set and future implementation acceptance.
+  P003 owns the remaining integration and launch decisions without duplicating that product scope.
 
   Requirements:
   - Keep finger drawing and image generation as separate activities.
   - Keep the existing drawing activity available.
   - Give children an easy route to each activity.
   - Create images from child descriptions in the image generation activity.
-  - Use MediaOps for image generation.
+  - Resolve the requested MediaOps connection against the current service ownership contract before implementation.
   - Use OpenAI model `gpt-image-2` for the first implementation.
   - Set the initial image quality to `low`.
   - Include the price of image generation in the design decisions.
@@ -1225,33 +1530,38 @@ No issue is currently taken. Select an issue before implementation and change it
   The earlier review made no paid generation request.
 
   Integration dependency:
-  The selected path is Portal to FamilyHome backend to MediaOps to OpenAI.
-  Provider execution belongs to MediaOps.
+  The original proposal selected Portal to FamilyHome backend to MediaOps to OpenAI.
+  The 2026-09-10 request again names MediaOps as the external dependency.
+  F013 records that requested relationship as F021@MediaOps.
+  Current MediaOps F021 covers composition and explicitly excludes FamilyHome image generation as a prerequisite.
+  `../MediaOps/docs/public-sdk-contract.md` instead assigns provider generation and its official client to LLM Proxy.
+  That document names LLM Proxy F024 as the first FamilyHome image capability.
+  Resolve this ownership conflict before selecting the application transport or treating F021@MediaOps as a satisfied image dependency.
   FamilyHome owns its child interface, family access, image storage, and family limits.
-  The application connection to MediaOps requires a defined transport and operation contract.
-  Agent verification uses the live MediaOps MCP descriptors and structured results.
-  This plan requires no image generation extension to LLM Proxy.
+  The selected service owns provider execution, provider credentials, operations, and provider artifacts.
+  Keep its application credential in the FamilyHome backend, separate from parent sessions and Portal device credentials.
+  Specify authenticated job submission, status, cancellation, and artifact retrieval through the selected official client.
   P002 defines the proposed family ownership and parent authentication contracts.
   P002 must resolve family ownership and usage policy before this plan completes.
   MediaOps contract research can proceed while those decisions remain open.
   The hosted family release also requires the applicable P002 implementation and acceptance.
 
-  Proposed activity navigation:
-  The proposed Home controls are `Draw` and `Imagine`.
+  Activity navigation:
+  F013 selects the Home controls `Draw` and `Imagine` for its minimum scope.
   `Draw` opens the existing finger drawing activity.
   `Imagine` opens the activity for image generation from descriptions.
   Each activity returns to Home through the common toolbar.
   These are two activities within FamilyHome. Separate Android applications are not part of this proposal.
-  The new activity name and exact navigation controls remain open decisions.
+  F013 owns the final control layout under the shared appearance contract.
 
   Proposed image flow:
-  These steps are proposals for the first implementation.
+  F013 defines the current minimum scope. The flow is:
   1. Enter a prompt or select a character idea.
   2. Select a visual style.
-  3. Create one image job through the FamilyHome backend and MediaOps.
+  3. Create one image job through the FamilyHome backend and the selected public service.
   4. Show the job state and resulting image.
   5. Save the selected image under the active child profile.
-  Drawing input and image revisions remain scope decisions.
+  F013 includes description changes and another generated version. Image-input editing remains later scope.
 
   Cost basis:
   The 2026-09-04 plan recorded an image-output estimate of $0.006 for a 1024 by 1024 image at low quality.
@@ -1260,35 +1570,33 @@ No issue is currently taken. Select an issue before implementation and change it
   The selected image dimensions and total request budget remain open decisions.
 
   Open Decisions:
-  - Select the image dimensions and image format.
-  - Select typed descriptions, spoken descriptions, or both for the first implementation.
-  - Select drawing input and revision scope for the image generation activity.
-  - Select the new activity name and navigation controls.
-  - Select the style choices and save behavior.
+  - Qualify the proposed 1024 by 1024 PNG output against the selected service and current total request cost.
+  - Verify the existing speech capture and transcription contract for the explicit microphone action in F013.
   - Define family spending limits and simultaneous job limits.
   - Define duplicate prevention and accounting for unknown provider outcomes.
   - Define image ownership, deletion, storage duration, and parent controls through the P002 contract.
   - Define content moderation and provider data controls for children.
-  - Select the MediaOps application transport, deployment connection, and required release.
-  - Define the mapping from MediaOps operation records and image artifacts to FamilyHome image jobs.
-  - Verify live MediaOps support for `provider=openai`, `model=gpt-image-2`, and `quality=low`.
-  - Verify account access through the selected MediaOps contract.
+  - Resolve the MediaOps and LLM Proxy ownership conflict and update F013's qualified dependency to the selected owner issue.
+  - Select the application transport, backend credential scope, deployment connection, and required client release.
+  - Define the mapping from service operation records and image artifacts to FamilyHome image jobs.
+  - Verify live service support for `provider=openai`, `model=gpt-image-2`, and `quality=low`.
+  - Verify account access through the selected public contract.
 
   Deliverables:
-  - Verify the live MediaOps descriptors and account access before the integration decision.
+  - Verify the selected public operation contract and account access before the integration decision.
   - Retrieve current official pricing before the budget decision.
   - Record the approved image flow and cost limits.
-  - Record the MediaOps integration contract and its acceptance evidence.
+  - Record the selected integration contract and its acceptance evidence.
   - Record FamilyHome resources, image storage, job states, and family authorization checks.
-  - Define an integration test for an image request with `quality=low` through MediaOps.
+  - Define an integration test for an image request with `quality=low` through the selected official client.
   - Define separate live-provider and Portal acceptance steps.
-  - Create implementation issues after resolution of the applicable design decisions.
+  - Update F013 with the resolved design decisions before its dependent implementation work.
 
   Validation:
   - Verify that the plan defines two separate activities with an easy route to each.
   - Verify that finger drawing remains available beside image generation from descriptions.
   - Verify the selected provider, model, and quality against the confirmed requirements.
-  - Verify the integration statements against FamilyHome source and the MediaOps public contract.
+  - Verify the integration statements against FamilyHome source and the selected service's public contract.
   - Keep account access separate from public model availability and successful image generation.
   - Keep proposed interface behavior and unresolved limits in the planning scope.
   - Review the added prose against the official ASD-STE100 rules and dictionary.

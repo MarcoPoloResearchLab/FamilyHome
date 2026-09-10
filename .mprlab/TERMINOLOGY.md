@@ -105,6 +105,9 @@ Add repository-specific technical nouns below this line.
 - `YAML`: The configuration format proposed for the canonical FamilyHome backend settings.
 
 - `image generation`: Creation of a new image through an AI model.
+- `Imagine`: The FamilyHome activity for image creation from child descriptions and idea choices.
+- `image gallery`: The saved generated pictures associated with one child profile.
+- `SDK`: A software development kit that an application imports to call a public service.
 - `image model`: An AI model that creates or changes images.
 - `image job`: A stored request and result for one image generation operation.
 - `prompt`: The text input that tells an AI model what to create.
@@ -261,6 +264,16 @@ Use the simple present, simple past, simple future, imperative, or infinitive fo
 - `TestFlight`: The Apple service for distribution of test applications.
 - `touch latency`: The time between a touch event and the corresponding visible or audible result.
 - `safe area`: The part of an application window without system interface obstructions.
+
+## Voice Activation Technical Nouns
+
+- `wake phrase`: The spoken phrase that starts one Ask interaction after local detection.
+- `keyword detection`: Local audio analysis that identifies the configured wake phrase.
+- `voice activity detection`: Local audio analysis that identifies speech and silence within an activated question.
+- `PCM`: Uncompressed digital audio samples used by local speech processing.
+- `microphone owner`: The single application component that controls microphone capture and supplies audio to its consumers.
+- `false activation`: A wake event produced without an intentional wake phrase from a user.
+- `foreground service`: An Android service with a persistent notification that supports permitted work outside a visible activity.
 
 ## Repository Technical Verbs
 
