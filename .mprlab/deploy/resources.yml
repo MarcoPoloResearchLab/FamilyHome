@@ -1,30 +1,79 @@
 ---
 mprlab_resources:
   owner: familyhome
+  hosts:
+    tutosh:
+      ansible_become_password: DEPLOY_SUDO_PASSWORD_TUTOSH
   release:
     scheme: calver
+  environment_file: .mprlab/deploy/.env
+  inputs:
+    FAMILYHOME_DEVICE_TOKEN: ${FAMILYHOME_DEVICE_TOKEN}
+    LLM_PROXY_TENANT_KEY: ${LLM_PROXY_TENANT_KEY}
+    DEPLOY_SUDO_PASSWORD_TUTOSH: ${DEPLOY_SUDO_PASSWORD_TUTOSH}
+  ci:
+    enabled: true
+    command:
+      "0": make
+      "1": ci
+  defaults:
+    timeouts:
+      startup: 2m
+      completion: 30m
+      readiness: 5m
+      request: 30s
+      shutdown: 30s
+  operations:
+    ci:
+      timeouts:
+        completion: 30m
+    app_lifecycle.repository_read:
+      polling: &lifecycle-polling
+        initial: 2s
+        maximum: 15s
+        increment: 2s
+        multiplier: 2
+        attempt_limit: 60
+    app-plan-release: &plan-policy
+      timeouts:
+        completion: 2m
+      polling: *lifecycle-polling
+    app-plan-publish: *plan-policy
+    app-plan-deploy: *plan-policy
+    app-release:
+      timeouts:
+        completion: 30m
+      polling: *lifecycle-polling
+    app-publish:
+      timeouts:
+        completion: 4h
+      polling: *lifecycle-polling
+    app-deploy:
+      timeouts:
+        completion: 20m
+      polling: *lifecycle-polling
   resources:
-    - kind: private_values
-      id: private
+    private:
+      kind: private_values
       bindings:
         device-token: FAMILYHOME_DEVICE_TOKEN
         llm-proxy-secret: LLM_PROXY_TENANT_KEY
-    - kind: compose_project
-      id: runtime
+    runtime:
+      kind: compose_project
       images:
-        - id: service-image
+        service-image:
           repository: ghcr.io/marcopoloresearchlab/familyhome-service
           build:
             context: .
             dockerfile: Dockerfile
             platforms:
-              - linux/amd64
+            - linux/amd64
       volumes:
-        - id: data
+        data:
           name: familyhome-data
           retention: retain
       services:
-        - id: api
+        api:
           image: service-image
           placement:
             group: gateway
@@ -37,17 +86,17 @@ mprlab_resources:
               resource: private
               output: llm-proxy-secret
           mounts:
-            - volume: data
-              target: /data
+            /data:
+              volume: data
           ports:
-            - container_port: 8765
+            '8765': {}
           readiness:
             protocol: http
             port: 8765
             path: /healthz
             expected_status: 200
-    - kind: runtime_capability
-      id: http
+    http:
+      kind: runtime_capability
       name: familyhome.http
       version: 1
       project: runtime
@@ -61,12 +110,12 @@ mprlab_resources:
         protocol: http
         path: /healthz
         expected_status: 200
-    - kind: caddy_route
-      id: public-api
+    public-api:
+      kind: caddy_route
       hostname: familyhome-api.mprlab.com
       listener: https
       handlers:
-        - id: api
+        api:
           path_prefix: /
           upstream: familyhome.http
       tls:
@@ -75,8 +124,8 @@ mprlab_resources:
         rate_limit:
           events: 120
           window_seconds: 60
-    - kind: health_check
-      id: public-health
+    public-health:
+      kind: health_check
       protocol: http
       url: https://familyhome-api.mprlab.com/healthz
       expected_status: 200

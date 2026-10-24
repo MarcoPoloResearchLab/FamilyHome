@@ -1,3 +1,4 @@
+MPRLAB_GATEWAY_EXECUTABLE ?= mprlab-gateway
 .PHONY: build-match test-match-toolbar test-android-toolbar
 .PHONY: ci test test-service build-service build-android test-android test-android-contract test-android-upgrade test-android-weather test-android-piano release publish deploy
 
@@ -38,14 +39,7 @@ test-android-piano:
 
 release publish deploy:
 	@application_root="$$(git rev-parse --show-toplevel)"; \
-	gateway_root="$$(dirname "$${application_root}")/mprlab-gateway"; \
-	if [ ! -d "$${gateway_root}" ]; then \
-		printf "required sibling gateway is missing: %s; clone mprlab-gateway at exactly %s\n" \
-			"$${gateway_root}" "$${gateway_root}" >&2; \
-		exit 2; \
-	fi; \
-	$(MAKE) --no-print-directory -C "$${gateway_root}" "app-$@" \
-		MPRLAB_APP_ROOT="$${application_root}"
+	"$(MPRLAB_GATEWAY_EXECUTABLE)" "app-$@" --app-root "$${application_root}"
 
 test-android-toolbar:
 	cd android && bash ./tests/toolbar.sh
