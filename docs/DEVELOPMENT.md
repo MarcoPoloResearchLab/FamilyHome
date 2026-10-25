@@ -60,8 +60,11 @@ The manifest defines the container, retained drawing data, service routing, and 
 
    ```dotenv
    FAMILYHOME_DEVICE_TOKEN=<64-character installation token>
-   LLM_PROXY_SECRET=<LLM Proxy key>
+   LLM_PROXY_TENANT_KEY=<LLM Proxy key>
+   DEPLOY_SUDO_PASSWORD_TUTOSH=<host sudo password>
    ```
+
+   The manifest uses `LLM_PROXY_TENANT_KEY` to supply `LLM_PROXY_SECRET` to the service.
 
 2. Confirm that `familyhome-api.mprlab.com` resolves to the MPR gateway.
 3. After deployment approval, run the production lifecycle from the repository root:
